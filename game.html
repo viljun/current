@@ -215,11 +215,11 @@
     });
 
     restartControl.addEventListener("click", () => {
-        if (!window.confirm("Restart the game? All saved progress and preferences will be cleared.")) {
+        if (!window.confirm("Restart the game? All saved progress will be cleared.")) {
             return;
         }
         try {
-            localStorage.clear();
+            localStorage.removeItem("gpsgame.inventory");
         } finally {
             window.location.reload();
         }
