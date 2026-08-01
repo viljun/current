@@ -15,6 +15,12 @@ export interface ItemActionResult {
     expenses: ItemTypeAndQuantity[];
 }
 
+export interface ItemOrigin {
+    latitude: number;
+    longitude: number;
+    depth: number;
+}
+
 export class Inventory {
     private static readonly STORAGE_KEY = "gpsgame.inventory";
     private static readonly SAVE_VERSION = 1;
@@ -29,6 +35,12 @@ export class Inventory {
     // Returns quantity of the given item type in inventory.
     countItems(itemType: ItemType): number {
         return this.totalQuantities[itemType.name] ?? 0;
+    }
+
+    // Returns the locations of the remaining item instances, newest first.
+    // The history is reconstructed from the ordered coordinate keys so old saves work unchanged.
+    getItemOrigins(itemName: string): ItemOrigin[] {
+        return (this.reconstructItemOrigins()[itemName] ?? []).map(origin => ({ ...origin }));
     }
 
     // Returns text that describes inventory contents.
@@ -195,6 +207,62 @@ export class Inventory {
         }
 
         return Object.values(value).every(isUsed => isUsed === true);
+    }
+
+    private reconstructItemOrigins(): Record<string, ItemOrigin[]> {
+        const origins: Record<string, ItemOrigin[]> = {};
+        for (const key of Object.keys(this.usedCoordinates)) {
+            const origin = this.parseOrigin(key);
+            if (origin === null) {
+                continue;
+            }
+            const coordinates = new Coordinates(origin.latitude, origin.longitude);
+            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.depth);
+            if (action === null) {
+                continue;
+            }
+
+            this.addOrigins(origins, action.name, 1, origin);
+            for (const change of action.prizes()) {
+                if (change.quantity > 0) {
+                    this.addOrigins(origins, change.itemType.name, change.quantity, origin);
+                } else {
+                    // Spend old instances first, leaving recent pickups available for card art.
+                    origins[change.itemType.name]?.splice(change.quantity);
+                }
+            }
+        }
+
+        return origins;
+    }
+
+    private addOrigins(
+        origins: Record<string, ItemOrigin[]>,
+        itemName: string,
+        quantity: number,
+        origin: ItemOrigin,
+    ): void {
+        origins[itemName] ??= [];
+        for (let index = 0; index < quantity; index++) {
+            origins[itemName]!.unshift({ ...origin });
+        }
+    }
+
+    private parseOrigin(key: string): ItemOrigin|null {
+        const parts = key.split(",");
+        if (parts.length !== 3) {
+            return null;
+        }
+        const latitude = Number(parts[0]);
+        const longitude = Number(parts[1]);
+        const depth = Number(parts[2]);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+            || !Number.isSafeInteger(depth)
+        ) {
+            return null;
+        }
+
+        return { latitude, longitude, depth };
     }
 
     // Update inventory total quantities by adding prizes and inventory.

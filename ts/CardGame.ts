@@ -1,4 +1,5 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
+import type { ItemOrigin } from "./Inventory.js";
 
 export interface CardDefinition {
     id: string;
@@ -7,6 +8,7 @@ export interface CardDefinition {
     damage: number;
     block: number;
     healing: number;
+    origin: ItemOrigin|null;
 }
 
 export type FightStatus = "playing" | "won" | "lost";
@@ -40,7 +42,7 @@ export interface CardSelectionResult {
 }
 
 export class CardGame {
-    private static readonly CARD_TYPES: Record<string, Omit<CardDefinition, "id">> = {
+    private static readonly CARD_TYPES: Record<string, Omit<CardDefinition, "id"|"origin">> = {
         stick:     { itemName: "stick",     title: "Stick",     damage: 1, block: 0, healing: 0 },
         stone:     { itemName: "stone",     title: "Stone",     damage: 0, block: 2, healing: 0 },
         root:      { itemName: "root",      title: "Root",      damage: 0, block: 0, healing: 1 },
@@ -64,10 +66,11 @@ export class CardGame {
         inventory: Record<string, number>,
         seed: number,
         requiredItemNames: string[],
+        itemOrigins: Record<string, ItemOrigin[]>,
     ) {
         this.monster = monster;
         this.seedState = { value: seed || 1 };
-        this.drawPile = this.buildDeck(inventory);
+        this.drawPile = this.buildDeck(inventory, itemOrigins);
         while (this.drawPile.length < 3) {
             this.drawPile.push({
                 id: "scratch-" + this.drawPile.length,
@@ -76,6 +79,7 @@ export class CardGame {
                 damage: 1,
                 block: 0,
                 healing: 0,
+                origin: null,
             });
         }
         this.shuffle(this.drawPile);
@@ -193,7 +197,10 @@ export class CardGame {
         };
     }
 
-    private buildDeck(inventory: Record<string, number>): CardDefinition[] {
+    private buildDeck(
+        inventory: Record<string, number>,
+        itemOrigins: Record<string, ItemOrigin[]>,
+    ): CardDefinition[] {
         const cards: CardDefinition[] = [];
         for (const [itemName, quantity] of Object.entries(inventory)) {
             const cardType = CardGame.CARD_TYPES[itemName];
@@ -202,7 +209,11 @@ export class CardGame {
             }
             const copies = Math.min(Math.floor(quantity), 3);
             for (let copy = 0; copy < copies; copy++) {
-                cards.push({ ...cardType, id: itemName + "-" + copy });
+                cards.push({
+                    ...cardType,
+                    id: itemName + "-" + copy,
+                    origin: itemOrigins[itemName]?.[copy] ?? null,
+                });
             }
         }
 

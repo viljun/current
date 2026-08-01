@@ -14,6 +14,12 @@ export class Inventory {
         var _a;
         return (_a = this.totalQuantities[itemType.name]) !== null && _a !== void 0 ? _a : 0;
     }
+    // Returns the locations of the remaining item instances, newest first.
+    // The history is reconstructed from the ordered coordinate keys so old saves work unchanged.
+    getItemOrigins(itemName) {
+        var _a;
+        return ((_a = this.reconstructItemOrigins()[itemName]) !== null && _a !== void 0 ? _a : []).map(origin => (Object.assign({}, origin)));
+    }
     // Returns text that describes inventory contents.
     getText(messageBox) {
         var _a;
@@ -155,6 +161,53 @@ export class Inventory {
             return false;
         }
         return Object.values(value).every(isUsed => isUsed === true);
+    }
+    reconstructItemOrigins() {
+        var _a;
+        const origins = {};
+        for (const key of Object.keys(this.usedCoordinates)) {
+            const origin = this.parseOrigin(key);
+            if (origin === null) {
+                continue;
+            }
+            const coordinates = new Coordinates(origin.latitude, origin.longitude);
+            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.depth);
+            if (action === null) {
+                continue;
+            }
+            this.addOrigins(origins, action.name, 1, origin);
+            for (const change of action.prizes()) {
+                if (change.quantity > 0) {
+                    this.addOrigins(origins, change.itemType.name, change.quantity, origin);
+                }
+                else {
+                    // Spend old instances first, leaving recent pickups available for card art.
+                    (_a = origins[change.itemType.name]) === null || _a === void 0 ? void 0 : _a.splice(change.quantity);
+                }
+            }
+        }
+        return origins;
+    }
+    addOrigins(origins, itemName, quantity, origin) {
+        var _a;
+        (_a = origins[itemName]) !== null && _a !== void 0 ? _a : (origins[itemName] = []);
+        for (let index = 0; index < quantity; index++) {
+            origins[itemName].unshift(Object.assign({}, origin));
+        }
+    }
+    parseOrigin(key) {
+        const parts = key.split(",");
+        if (parts.length !== 3) {
+            return null;
+        }
+        const latitude = Number(parts[0]);
+        const longitude = Number(parts[1]);
+        const depth = Number(parts[2]);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+            || !Number.isSafeInteger(depth)) {
+            return null;
+        }
+        return { latitude, longitude, depth };
     }
     // Update inventory total quantities by adding prizes and inventory.
     updateTotalQuantities() {

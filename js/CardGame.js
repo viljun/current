@@ -1,11 +1,11 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
 export class CardGame {
-    constructor(monster, inventory, seed, requiredItemNames) {
+    constructor(monster, inventory, seed, requiredItemNames, itemOrigins) {
         var _a;
         this.discardPile = [];
         this.monster = monster;
         this.seedState = { value: seed || 1 };
-        this.drawPile = this.buildDeck(inventory);
+        this.drawPile = this.buildDeck(inventory, itemOrigins);
         while (this.drawPile.length < 3) {
             this.drawPile.push({
                 id: "scratch-" + this.drawPile.length,
@@ -14,6 +14,7 @@ export class CardGame {
                 damage: 1,
                 block: 0,
                 healing: 0,
+                origin: null,
             });
         }
         this.shuffle(this.drawPile);
@@ -112,7 +113,8 @@ export class CardGame {
             playerDefeated: false,
         };
     }
-    buildDeck(inventory) {
+    buildDeck(inventory, itemOrigins) {
+        var _a, _b;
         const cards = [];
         for (const [itemName, quantity] of Object.entries(inventory)) {
             const cardType = CardGame.CARD_TYPES[itemName];
@@ -121,7 +123,7 @@ export class CardGame {
             }
             const copies = Math.min(Math.floor(quantity), 3);
             for (let copy = 0; copy < copies; copy++) {
-                cards.push(Object.assign(Object.assign({}, cardType), { id: itemName + "-" + copy }));
+                cards.push(Object.assign(Object.assign({}, cardType), { id: itemName + "-" + copy, origin: (_b = (_a = itemOrigins[itemName]) === null || _a === void 0 ? void 0 : _a[copy]) !== null && _b !== void 0 ? _b : null }));
             }
         }
         return cards;

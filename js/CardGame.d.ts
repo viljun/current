@@ -1,4 +1,5 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
+import type { ItemOrigin } from "./Inventory.js";
 export interface CardDefinition {
     id: string;
     itemName: string;
@@ -6,6 +7,7 @@ export interface CardDefinition {
     damage: number;
     block: number;
     healing: number;
+    origin: ItemOrigin | null;
 }
 export type FightStatus = "playing" | "won" | "lost";
 export interface CardGameState {
@@ -40,7 +42,7 @@ export declare class CardGame {
     private drawPile;
     private discardPile;
     private state;
-    constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[]);
+    constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[], itemOrigins: Record<string, ItemOrigin[]>);
     getState(): CardGameState;
     toggleCard(cardId: string): CardSelectionResult;
     private resolveTurn;

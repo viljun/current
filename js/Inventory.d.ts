@@ -6,6 +6,11 @@ export interface ItemActionResult {
     prizes: ItemTypeAndQuantity[];
     expenses: ItemTypeAndQuantity[];
 }
+export interface ItemOrigin {
+    latitude: number;
+    longitude: number;
+    depth: number;
+}
 export declare class Inventory {
     private static readonly STORAGE_KEY;
     private static readonly SAVE_VERSION;
@@ -14,6 +19,7 @@ export declare class Inventory {
     usedCoordinates: Record<string, boolean>;
     constructor();
     countItems(itemType: ItemType): number;
+    getItemOrigins(itemName: string): ItemOrigin[];
     getText(messageBox: HTMLDivElement): HTMLDivElement | "Welcome! Explore nearby items, then find a stick and a root to craft your first club.";
     isItemTypeTaken(itemType: ItemType): boolean;
     coordinatesToString(coordinates: Coordinates): string;
@@ -24,6 +30,9 @@ export declare class Inventory {
     private isValidSaveData;
     private isQuantityRecord;
     private isUsedCoordinatesRecord;
+    private reconstructItemOrigins;
+    private addOrigins;
+    private parseOrigin;
     updateTotalQuantities(): void;
     getDepth(): number;
 }
