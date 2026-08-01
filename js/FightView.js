@@ -51,10 +51,11 @@ export class FightView {
         closeButton.setAttribute("aria-label", state.status === "playing" ? "Retreat" : "Close fight");
         panel.append(closeButton);
         const title = document.createElement("h1");
-        title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
+        title.textContent = "Battle";
         panel.append(title);
         panel.append(this.createCombatants());
-        panel.append(this.statLine("Monster " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent, "fight-monster-health"));
+        panel.append(this.statLine(this.capitalize(this.itemTakingSummary.itemType.name)
+            + " " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent, "fight-monster-health"));
         panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3", "fight-player-health"));
         if (state.status === "playing") {
             panel.append(this.createHand(state));
@@ -121,7 +122,7 @@ export class FightView {
         };
         const row = document.createElement("div");
         row.className = "fight-combatants";
-        row.append(this.createPortrait(this.itemTakingSummary.itemType.name, "Monster", origin), this.createPortrait("cat", "You", origin));
+        row.append(this.createPortrait(this.itemTakingSummary.itemType.name, this.capitalize(this.itemTakingSummary.itemType.name), origin), this.createPortrait("cat", "You", origin));
         return row;
     }
     createPortrait(itemName, label, origin) {

@@ -71,11 +71,12 @@ export class FightView {
         panel.append(closeButton);
 
         const title = document.createElement("h1");
-        title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
+        title.textContent = "Battle";
         panel.append(title);
         panel.append(this.createCombatants());
         panel.append(this.statLine(
-            "Monster " + state.monsterHealth + " / " + state.monsterMaxHealth,
+            this.capitalize(this.itemTakingSummary.itemType.name)
+                + " " + state.monsterHealth + " / " + state.monsterMaxHealth,
             "Next attack " + state.monsterIntent,
             "fight-monster-health",
         ));
@@ -150,7 +151,11 @@ export class FightView {
         const row = document.createElement("div");
         row.className = "fight-combatants";
         row.append(
-            this.createPortrait(this.itemTakingSummary.itemType.name, "Monster", origin),
+            this.createPortrait(
+                this.itemTakingSummary.itemType.name,
+                this.capitalize(this.itemTakingSummary.itemType.name),
+                origin,
+            ),
             this.createPortrait("cat", "You", origin),
         );
 
