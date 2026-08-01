@@ -60,6 +60,7 @@ export class Effects {
         }
     }
     static showSpentFightCard(card) {
+        card.getAnimations().forEach(animation => animation.cancel());
         card.classList.add("fight-card--spent");
         card.setAttribute("aria-disabled", "true");
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -67,12 +68,10 @@ export class Effects {
             {
                 opacity: 1,
                 filter: "grayscale(0) brightness(1)",
-                transform: "scale(1)",
             },
             {
                 opacity: .28,
                 filter: "grayscale(.9) brightness(.65)",
-                transform: "scale(.94)",
             },
         ], {
             duration: reducedMotion ? 160 : 460,
@@ -216,27 +215,35 @@ export class Effects {
             console.warn("Unable to deal fight cards.", error);
         }
     }
-    // Captures the current hand, then sweeps its clones away after the final attacks land.
+    // Sweeps visual copies away while the hidden originals preserve the board layout.
     static async sweepFightCards(cardElements) {
         try {
             if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
                 return;
             }
             cardElements.forEach((card, index) => {
+                var _a;
                 const bounds = card.getBoundingClientRect();
+                const startingOpacity = getComputedStyle(card).opacity;
                 const clone = card.cloneNode(true);
                 clone.classList.add("effect-fight-card");
                 clone.style.left = bounds.left + "px";
                 clone.style.top = bounds.top + "px";
                 clone.style.width = bounds.width + "px";
                 clone.style.height = bounds.height + "px";
+                clone.style.font = getComputedStyle(card).font;
+                clone.style.textAlign = getComputedStyle(card).textAlign;
                 clone.setAttribute("aria-hidden", "true");
-                document.body.append(clone);
+                const host = (_a = card.closest(".fight-overlay")) !== null && _a !== void 0 ? _a : document.body;
+                host.append(clone);
                 const direction = index % 2 === 0 ? -1 : 1;
                 const turns = 0.45 + (index % 5) * 0.4;
                 const rotation = direction * turns * 360;
                 const animation = clone.animate([
-                    { transform: "translate(0, 0) rotate(0deg)", opacity: 1 },
+                    {
+                        transform: "translate(0, 0) rotate(0deg)",
+                        opacity: startingOpacity,
+                    },
                     {
                         transform: "translate("
                             + direction * (window.innerWidth + bounds.width)
@@ -250,8 +257,8 @@ export class Effects {
                     easing: "cubic-bezier(.55,.05,.8,.25)",
                     fill: "forwards",
                 });
-                animation.addEventListener("finish", () => clone.remove());
-                animation.addEventListener("cancel", () => clone.remove());
+                animation.addEventListener("finish", () => clone.remove(), { once: true });
+                animation.addEventListener("cancel", () => clone.remove(), { once: true });
                 window.setTimeout(() => clone.remove(), 1300);
             });
             const lastDelay = Math.max(0, cardElements.length - 1) * 45;
