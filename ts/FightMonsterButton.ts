@@ -18,8 +18,7 @@ export class FightMonsterButton {
         const button = document.createElement("button");
         button.className = "button";
         button.textContent = "Fight " + this.itemTakingSummary.itemType.name;
-        button.disabled = this.itemTakingSummary.missing.length > 0
-            || (this.inventory.totalQuantities["heart"] ?? 0) <= 0;
+        button.disabled = this.itemTakingSummary.missing.length > 0;
         button.onclick = () => {
             if (!this.map.isWithinTakingRange(this.selectedCoordinates)) {
                 this.map.show({});

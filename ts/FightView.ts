@@ -27,8 +27,7 @@ export class FightView {
 
     open(): void {
         const monster = MonsterDefinition.get(this.itemTakingSummary.itemType.name);
-        const playerHealth = this.inventory.totalQuantities["heart"] ?? 0;
-        if (monster === null || playerHealth <= 0) {
+        if (monster === null) {
             return;
         }
         this.sourceElement = document.querySelector<HTMLElement>(
@@ -38,7 +37,30 @@ export class FightView {
         this.overlay = document.createElement("div");
         this.overlay.className = "fight-overlay";
         document.body.append(this.overlay);
+        if ((this.inventory.totalQuantities["heart"] ?? 0) <= 0) {
+            this.renderMissingHeart();
+
+            return;
+        }
         this.startGame(monster);
+    }
+
+    private renderMissingHeart(): void {
+        if (this.overlay === null) {
+            return;
+        }
+        const panel = document.createElement("section");
+        panel.className = "fight-panel";
+        const closeButton = this.button("×", () => this.close());
+        closeButton.className = "fight-close";
+        closeButton.setAttribute("aria-label", "Close fight");
+        const title = document.createElement("h1");
+        title.textContent = "Battle";
+        const message = document.createElement("p");
+        message.className = "fight-unavailable";
+        message.textContent = "You need at least one heart to fight.";
+        panel.append(closeButton, title, this.createCombatants(), message);
+        this.overlay.append(panel);
     }
 
     private startGame(monster: MonsterDefinition): void {

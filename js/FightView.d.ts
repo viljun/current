@@ -16,6 +16,7 @@ export declare class FightView {
     private shownPlayerHealth;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
     open(): void;
+    private renderMissingHeart;
     private startGame;
     private render;
     private createHand;

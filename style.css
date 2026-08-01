@@ -332,6 +332,14 @@ html,
 }
 .fight-outcome--won { color: #9dffae; }
 .fight-outcome--lost { color: #ff9b9b; }
+.fight-unavailable {
+    margin: 1rem 0 0;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    background: #282d36;
+    color: #ffe173;
+    font-weight: bold;
+}
 .message {
     display: inline-block;
 }
