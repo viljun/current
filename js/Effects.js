@@ -76,6 +76,8 @@ export class Effects {
                 if (firstCard !== undefined) {
                     deckElement.style.width = firstCard.width + "px";
                     deckElement.style.height = firstCard.height + "px";
+                    deckElement.style.left = (window.innerWidth / 2 - firstCard.width / 2) + "px";
+                    deckElement.style.top = (window.innerHeight / 2 - firstCard.height / 2) + "px";
                 }
                 const deck = deckElement.getBoundingClientRect();
                 deckElement.style.opacity = "1";
@@ -126,6 +128,8 @@ export class Effects {
                         deckElement.style.opacity = "";
                         deckElement.style.width = "";
                         deckElement.style.height = "";
+                        deckElement.style.left = "";
+                        deckElement.style.top = "";
                         exit.cancel();
                     };
                     exit.addEventListener("finish", hide, { once: true });

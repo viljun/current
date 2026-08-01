@@ -231,18 +231,20 @@ html,
     margin: 1rem 0;
 }
 .fight-deck {
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: fixed;
+    z-index: 10004;
+    top: 50%;
+    left: 50%;
     width: 7rem;
     min-height: 7rem;
-    height: 100%;
+    height: 9rem;
     border: 2px solid #d9bd6a;
     border-radius: 0.65rem;
     background: repeating-linear-gradient(45deg, #263a58 0 6px, #172338 6px 12px);
     box-shadow: -5px 4px 0 #111923, -10px 8px 0 #34445a;
-    transform-origin: center bottom;
+    transform-origin: center;
     opacity: 0;
+    pointer-events: none;
 }
 .fight-card {
     min-height: 7rem;
