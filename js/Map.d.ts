@@ -2,23 +2,26 @@ export declare const ACCURACY_MULTIPLIER = 10000;
 export declare const ITEM_TAKING_RANGE = 1;
 import { Coordinates } from "./Coordinates.js";
 import { Inventory } from "./Inventory.js";
+export interface MapState {
+    coordinates: Coordinates;
+    selectedCoordinates: Coordinates | null;
+    exploreMode: boolean;
+}
 export declare class Map {
     slidingAnimationInProgress: boolean;
     interactionLocked: boolean;
-    pendingCoordinates: Coordinates | null;
     map: HTMLDivElement;
     messageBox: HTMLDivElement;
     cols: number;
     rows: number;
     inventory: Inventory;
-    coordinates: Coordinates;
-    selected_coordinates: Coordinates | null;
+    private readonly state;
     tile_size: number;
-    isExploreMode: () => boolean;
-    onCoordinatesChanged: (coordinates: Coordinates) => void;
-    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, coordinates: Coordinates, tile_size: number, isExploreMode: () => boolean, onCoordinatesChanged?: (coordinates: Coordinates) => void);
-    show({ new_coordinates, }: {
-        new_coordinates?: Coordinates | null;
+    private readonly onCellSelected;
+    private readonly onInteractionUnlocked;
+    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void);
+    show({ previousCoordinates, }: {
+        previousCoordinates?: Coordinates | null;
     }): void;
     isWithinTakingRange(coordinates: Coordinates): boolean;
     setInteractionLocked(locked: boolean): void;

@@ -10,41 +10,28 @@ import { ItemType } from "./ItemType.js";
 import { TakeItemButton } from "./TakeItemButton.js";
 import { View } from './View.js';
 export class Map {
-    constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size, isExploreMode, onCoordinatesChanged = () => { }) {
+    constructor(map, messageBox, cols, rows, inventory, state, tile_size, onCellSelected, onInteractionUnlocked) {
         this.slidingAnimationInProgress = false;
         this.interactionLocked = false;
-        this.pendingCoordinates = null;
-        this.selected_coordinates = null;
         this.map = map;
         this.messageBox = messageBox;
         this.cols = cols;
         this.rows = rows;
         this.inventory = inventory;
-        this.coordinates = coordinates;
+        this.state = state;
         this.tile_size = tile_size;
-        this.isExploreMode = isExploreMode;
-        this.onCoordinatesChanged = onCoordinatesChanged;
+        this.onCellSelected = onCellSelected;
+        this.onInteractionUnlocked = onInteractionUnlocked;
     }
     // Redraws map.
-    show({ new_coordinates = null, // If null, location does not change.
-     }) {
-        var _a;
-        if (new_coordinates && this.interactionLocked) {
-            this.pendingCoordinates = new_coordinates;
-            return;
-        }
-        const previous_coordinates = this.coordinates; // Save previous coordinates for sliding effect.
-        if (new_coordinates) { // If moving to new coordinates.
-            this.coordinates = new_coordinates;
-            this.onCoordinatesChanged(this.coordinates);
-            console.log("Latitude " + this.coordinates.latitude + ", longitude " + this.coordinates.longitude);
-        }
+    show({ previousCoordinates = null, }) {
         // updateRealWorldMap(latitude, longitude);
+        var _a;
         // Depth is how many dungeon entrances minus stairs up the player has taken.
         let depth = this.inventory.getDepth();
         const dungeon_map_extra_size = 10; // Extra size to make dungeon map big enough. Its edges tend to be a bit shaky.
         let dungeon_map = null;
-        dungeon_map = new DungeonMap(this.cols + dungeon_map_extra_size * 2, this.rows + dungeon_map_extra_size * 2, this.coordinates);
+        dungeon_map = new DungeonMap(this.cols + dungeon_map_extra_size * 2, this.rows + dungeon_map_extra_size * 2, this.state.coordinates);
         // Set map background.
         let style = "";
         if (depth === 0) {
@@ -59,7 +46,7 @@ export class Map {
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
             for (let x = 1; x <= this.cols; x++) {
-                const cell_coordinates = new Coordinates(this.coordinates.latitude + (x - (this.cols + 1) / 2), this.coordinates.longitude + (y - (this.rows + 1) / 2));
+                const cell_coordinates = new Coordinates(this.state.coordinates.latitude + (x - (this.cols + 1) / 2), this.state.coordinates.longitude + (y - (this.rows + 1) / 2));
                 const seed = cell_coordinates.getSeed();
                 let div = this.getCellElement(x, y, cell_coordinates);
                 // Has dungeon wall?
@@ -133,7 +120,7 @@ export class Map {
                     div.append(itemElement);
                 }
                 // If a location has been selected and it is the current location.
-                const selected_coordinates = this.selected_coordinates;
+                const selected_coordinates = this.state.selectedCoordinates;
                 if (selected_coordinates !== null && cell_coordinates.equals(selected_coordinates)) {
                     div.classList.add("selected");
                     // Show "take"-button if item has not been taken.
@@ -161,22 +148,17 @@ export class Map {
             }
         }
         // Map is moved - slide it.
-        if (new_coordinates) {
-            this.slide({ previous_coordinates: previous_coordinates, tile_size: this.tile_size });
+        if (previousCoordinates !== null) {
+            this.slide({ previous_coordinates: previousCoordinates, tile_size: this.tile_size });
         }
     }
     isWithinTakingRange(coordinates) {
-        return this.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
+        return this.state.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
     }
     setInteractionLocked(locked) {
         this.interactionLocked = locked;
-        if (!locked && this.pendingCoordinates !== null) {
-            const coordinates = this.pendingCoordinates;
-            this.pendingCoordinates = null;
-            this.show({ new_coordinates: coordinates });
-        }
-        else if (!locked) {
-            this.show({});
+        if (!locked) {
+            this.onInteractionUnlocked();
         }
     }
     // Effetct that smoothly slides the map after location has changed. Game works well without calling this function.
@@ -189,8 +171,8 @@ export class Map {
         this.slidingAnimationInProgress = true;
         console.log("Start sliding animation.");
         const MAP_SLIDING_STEPS = 30; // How many steps the sliding effect has. Higher value makes the effect slower.
-        let latitudeDifference = this.coordinates.latitude - previous_coordinates.latitude;
-        let longitudeDifference = this.coordinates.longitude - previous_coordinates.longitude;
+        let latitudeDifference = this.state.coordinates.latitude - previous_coordinates.latitude;
+        let longitudeDifference = this.state.coordinates.longitude - previous_coordinates.longitude;
         let stepSizeX = tile_size / MAP_SLIDING_STEPS * Math.abs(latitudeDifference);
         let stepSizeY = tile_size / MAP_SLIDING_STEPS * Math.abs(longitudeDifference);
         let latitudeSign = Math.sign(latitudeDifference);
@@ -253,15 +235,7 @@ export class Map {
         // Select a location, or move to it in Explore mode.
         div.addEventListener("click", () => {
             if (!this.slidingAnimationInProgress && !this.interactionLocked) {
-                this.selected_coordinates = cell_coordinates;
-                if (this.isExploreMode()) {
-                    this.show({
-                        new_coordinates: cell_coordinates,
-                    });
-                }
-                else {
-                    this.show({});
-                }
+                this.onCellSelected(cell_coordinates);
             }
         });
         return div;

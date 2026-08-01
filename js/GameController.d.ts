@@ -1,0 +1,43 @@
+export declare class GameController {
+    private static readonly EXPLORE_STORAGE_KEY;
+    private static readonly EXPLORE_LOCATION_STORAGE_KEY;
+    private static readonly INVENTORY_STORAGE_KEY;
+    private static readonly SAFETY_MARGIN;
+    private static readonly TILE_SIZE;
+    private static readonly MAX_ACCEPTED_GPS_ACCURACY_METERS;
+    private static readonly GPS_SMOOTHING_FACTOR;
+    private static readonly DEFAULT_COORDINATES;
+    private readonly mapContainer;
+    private readonly mapElement;
+    private readonly messageBox;
+    private readonly exploreSwitch;
+    private readonly soundSwitch;
+    private readonly restartControl;
+    private readonly gpsStatus;
+    private readonly inventory;
+    private readonly state;
+    private readonly map;
+    private latestGpsCoordinates;
+    private latestGpsAccuracy;
+    private smoothedGpsLocation;
+    private pendingCoordinates;
+    constructor();
+    start(): void;
+    private configureMapDimensions;
+    private bindControls;
+    private setExploreMode;
+    private selectCoordinates;
+    private moveTo;
+    private resumeMovement;
+    private acceptGpsLocation;
+    private showGpsError;
+    private showCurrentGpsStatus;
+    private setGpsStatus;
+    private loadExploreMode;
+    private loadExploreCoordinates;
+    private saveExploreCoordinates;
+    private save;
+    private restart;
+    private element;
+}
+//# sourceMappingURL=GameController.d.ts.map
