@@ -123,7 +123,6 @@ export class ItemType {
         }
         if (this.name === "orc") {
             return [
-                new ItemTypeAndQuantity(new ItemType("heart"), -1),
                 new ItemTypeAndQuantity(new ItemType("stone axe"), -1),
                 new ItemTypeAndQuantity(new ItemType("coin"), 100),
             ];
@@ -137,7 +136,6 @@ export class ItemType {
         }
         if (this.name === "rat") {
             return [
-                new ItemTypeAndQuantity(new ItemType("heart"), -1),
                 new ItemTypeAndQuantity(new ItemType("club"), -1),
                 new ItemTypeAndQuantity(new ItemType("coin"), 100),
             ];
@@ -163,7 +161,6 @@ export class ItemType {
         }
         if (this.name === "troll") {
             return [
-                new ItemTypeAndQuantity(new ItemType("heart"), -5),
                 new ItemTypeAndQuantity(new ItemType("sword"), -1),
                 new ItemTypeAndQuantity(new ItemType("coin"), 1000),
                 new ItemTypeAndQuantity(new ItemType("club"), 1),
