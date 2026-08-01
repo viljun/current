@@ -80,16 +80,7 @@ export class Inventory {
     }
 
     isItemTypeTaken(itemType: ItemType): boolean {
-        if (this.totalQuantities.hasOwnProperty(itemType.name)) {
-            console.log("Taken?");
-            if (this.totalQuantities[itemType.name] ?? 0 > 0) {
-                console.log("y");
-                return true;
-            }
-            console.log("n");
-        }
-
-        return false;
+        return (this.totalQuantities[itemType.name] ?? 0) > 0;
     }
 
     coordinatesToString(coordinates: Coordinates): string {

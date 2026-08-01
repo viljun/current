@@ -43,15 +43,7 @@ export class Inventory {
     }
     isItemTypeTaken(itemType) {
         var _a;
-        if (this.totalQuantities.hasOwnProperty(itemType.name)) {
-            console.log("Taken?");
-            if ((_a = this.totalQuantities[itemType.name]) !== null && _a !== void 0 ? _a : 0 > 0) {
-                console.log("y");
-                return true;
-            }
-            console.log("n");
-        }
-        return false;
+        return ((_a = this.totalQuantities[itemType.name]) !== null && _a !== void 0 ? _a : 0) > 0;
     }
     // Returns true if item in the given location has been picked up.
     isItemTaken(coordinates) {
