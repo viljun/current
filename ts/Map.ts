@@ -25,6 +25,7 @@ export class Map {
     selected_coordinates: Coordinates | null = null;
     tile_size: number;
     isExploreMode: () => boolean;
+    onCoordinatesChanged: (coordinates: Coordinates) => void;
     constructor(
         map: HTMLDivElement,
         messageBox: HTMLDivElement,
@@ -34,6 +35,7 @@ export class Map {
         coordinates: Coordinates,
         tile_size: number,
         isExploreMode: () => boolean,
+        onCoordinatesChanged: (coordinates: Coordinates) => void = () => {},
     ) {
         this.map = map;
         this.messageBox = messageBox;
@@ -43,6 +45,7 @@ export class Map {
         this.coordinates = coordinates;
         this.tile_size = tile_size;
         this.isExploreMode = isExploreMode;
+        this.onCoordinatesChanged = onCoordinatesChanged;
     }
 
     // Redraws map.
@@ -60,6 +63,7 @@ export class Map {
         const previous_coordinates: Coordinates = this.coordinates;  // Save previous coordinates for sliding effect.
         if (new_coordinates) {  // If moving to new coordinates.
             this.coordinates = new_coordinates;
+            this.onCoordinatesChanged(this.coordinates);
             console.log("Latitude " + this.coordinates.latitude + ", longitude " + this.coordinates.longitude);
         }
 

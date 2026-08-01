@@ -15,7 +15,8 @@ export declare class Map {
     selected_coordinates: Coordinates | null;
     tile_size: number;
     isExploreMode: () => boolean;
-    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, coordinates: Coordinates, tile_size: number, isExploreMode: () => boolean);
+    onCoordinatesChanged: (coordinates: Coordinates) => void;
+    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, coordinates: Coordinates, tile_size: number, isExploreMode: () => boolean, onCoordinatesChanged?: (coordinates: Coordinates) => void);
     show({ new_coordinates, }: {
         new_coordinates?: Coordinates | null;
     }): void;

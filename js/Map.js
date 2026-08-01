@@ -10,7 +10,7 @@ import { ItemType } from "./ItemType.js";
 import { TakeItemButton } from "./TakeItemButton.js";
 import { View } from './View.js';
 export class Map {
-    constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size, isExploreMode) {
+    constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size, isExploreMode, onCoordinatesChanged = () => { }) {
         this.slidingAnimationInProgress = false;
         this.interactionLocked = false;
         this.pendingCoordinates = null;
@@ -23,6 +23,7 @@ export class Map {
         this.coordinates = coordinates;
         this.tile_size = tile_size;
         this.isExploreMode = isExploreMode;
+        this.onCoordinatesChanged = onCoordinatesChanged;
     }
     // Redraws map.
     show({ new_coordinates = null, // If null, location does not change.
@@ -35,6 +36,7 @@ export class Map {
         const previous_coordinates = this.coordinates; // Save previous coordinates for sliding effect.
         if (new_coordinates) { // If moving to new coordinates.
             this.coordinates = new_coordinates;
+            this.onCoordinatesChanged(this.coordinates);
             console.log("Latitude " + this.coordinates.latitude + ", longitude " + this.coordinates.longitude);
         }
         // updateRealWorldMap(latitude, longitude);

@@ -47,6 +47,7 @@
     const inventory          = new Inventory;
     Effects.initialize(soundSwitch);
     const EXPLORE_STORAGE_KEY = "gpsgame.exploreMode";
+    const EXPLORE_LOCATION_STORAGE_KEY = "gpsgame.exploreLocation";
     const tile_size          = 40 + 2;
     const tileOuterDimension = tile_size + 1;
     const cols               = Math.floor(mapContainer.clientWidth  / tileOuterDimension / 2) * 2 + 1 + SAFETY_MARGIN;  // must be odd number
@@ -175,6 +176,25 @@
         Math.round(60.8923514 * ACCURACY_MULTIPLIER),
         Math.round(25.1498475 * ACCURACY_MULTIPLIER),
     )
+    if (exploreMode) {
+        try {
+            const savedLocation = JSON.parse(
+                localStorage.getItem(EXPLORE_LOCATION_STORAGE_KEY) ?? "null",
+            );
+            if (
+                savedLocation !== null
+                && Number.isFinite(savedLocation.latitude)
+                && Number.isFinite(savedLocation.longitude)
+            ) {
+                coordinates = new Coordinates(
+                    savedLocation.latitude,
+                    savedLocation.longitude,
+                );
+            }
+        } catch {
+            // Fall back to the default location when saved data is unavailable.
+        }
+    }
 
     // Huopalahti
     // let latitude  = Math.round(60.1955373 * ACCURACY_MULTIPLIER);
@@ -193,7 +213,23 @@
         coordinates,
         tile_size,
         () => exploreMode,
+        currentCoordinates => {
+            if (!exploreMode) {
+                return;
+            }
+            try {
+                localStorage.setItem(
+                    EXPLORE_LOCATION_STORAGE_KEY,
+                    JSON.stringify(currentCoordinates),
+                );
+            } catch {
+                // Keep exploration functional when browser storage is unavailable.
+            }
+        },
     );
+    if (exploreMode) {
+        map.selected_coordinates = coordinates;
+    }
     map.show({});
 
     exploreSwitch.addEventListener("change", () => {
@@ -201,6 +237,12 @@
         mapContainer.classList.toggle("explore-mode", exploreMode);
         try {
             localStorage.setItem(EXPLORE_STORAGE_KEY, String(exploreMode));
+            if (exploreMode) {
+                localStorage.setItem(
+                    EXPLORE_LOCATION_STORAGE_KEY,
+                    JSON.stringify(map.coordinates),
+                );
+            }
         } catch {
             // Keep mode switching functional when browser storage is unavailable.
         }
@@ -220,6 +262,7 @@
         }
         try {
             localStorage.removeItem("gpsgame.inventory");
+            localStorage.removeItem(EXPLORE_LOCATION_STORAGE_KEY);
         } finally {
             window.location.reload();
         }
