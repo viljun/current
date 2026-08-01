@@ -34,7 +34,7 @@ export class ItemTakingSummary {
         }
         // Missing items.
         if (this.missing.length > 0) {
-            if (JSON.stringify(this.expenses) === JSON.stringify(this.missing)) {
+            if (this.areSameChanges(this.expenses, this.missing)) {
                 if (this.expenses.length === 1 && ((_a = this.expenses[0]) === null || _a === void 0 ? void 0 : _a.quantity) === -1) {
                     additionalText += " Find it somewhere.";
                 }
@@ -51,5 +51,14 @@ export class ItemTakingSummary {
             }
         }
         return { buttonText: buttonText, additionalText: additionalText };
+    }
+    areSameChanges(first, second) {
+        return first.length === second.length
+            && first.every((change, index) => {
+                const other = second[index];
+                return other !== undefined
+                    && change.itemType.name === other.itemType.name
+                    && change.quantity === other.quantity;
+            });
     }
 }

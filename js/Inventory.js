@@ -211,25 +211,22 @@ export class Inventory {
     }
     // Update inventory total quantities by adding prizes and inventory.
     updateTotalQuantities() {
-        var _a, _b, _c, _d, _e;
-        var _f, _g;
+        var _a, _b, _c, _d;
+        var _e, _f;
         this.totalQuantities = {};
         for (const [quantitiesKey, value] of Object.entries(this.quantities)) {
             // Copy value from general this.
             if (!this.totalQuantities.hasOwnProperty(quantitiesKey)) {
                 this.totalQuantities[quantitiesKey] = 0;
             }
-            (_a = (_f = this.totalQuantities)[quantitiesKey]) !== null && _a !== void 0 ? _a : (_f[quantitiesKey] = 0);
+            (_a = (_e = this.totalQuantities)[quantitiesKey]) !== null && _a !== void 0 ? _a : (_e[quantitiesKey] = 0);
             this.totalQuantities[quantitiesKey] += (_b = this.quantities[quantitiesKey]) !== null && _b !== void 0 ? _b : 0;
             // Add prizes.
             const itemType = new ItemType(quantitiesKey);
-            for (const prize of (_c = itemType.prizes()) !== null && _c !== void 0 ? _c : []) {
+            for (const prize of itemType.prizes()) {
                 const itemTypeName = prize.itemType.name;
-                if (!this.totalQuantities.hasOwnProperty(itemType.name)) {
-                    this.totalQuantities[itemTypeName] = 0;
-                }
-                (_d = (_g = this.totalQuantities)[itemTypeName]) !== null && _d !== void 0 ? _d : (_g[itemTypeName] = 0);
-                this.totalQuantities[itemTypeName] += prize.quantity * ((_e = this.quantities[quantitiesKey]) !== null && _e !== void 0 ? _e : 0);
+                (_c = (_f = this.totalQuantities)[itemTypeName]) !== null && _c !== void 0 ? _c : (_f[itemTypeName] = 0);
+                this.totalQuantities[itemTypeName] += prize.quantity * ((_d = this.quantities[quantitiesKey]) !== null && _d !== void 0 ? _d : 0);
             }
         }
     }

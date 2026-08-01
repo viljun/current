@@ -111,8 +111,6 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("dungeon floor"), -300),
             ];
         }
-        if (this.name === "iron ore") {
-        }
         if (this.name === "nature shop") {
             return [
                 new ItemTypeAndQuantity(new ItemType("coin"), -100),

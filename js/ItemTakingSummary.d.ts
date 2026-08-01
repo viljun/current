@@ -10,5 +10,6 @@ export declare class ItemTakingSummary {
         buttonText: string;
         additionalText: string;
     };
+    private areSameChanges;
 }
 //# sourceMappingURL=ItemTakingSummary.d.ts.map

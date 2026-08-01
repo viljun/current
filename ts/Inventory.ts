@@ -278,11 +278,8 @@ export class Inventory {
 
             // Add prizes.
             const itemType = new ItemType(quantitiesKey);
-            for (const prize of itemType.prizes() ?? []) {
+            for (const prize of itemType.prizes()) {
                 const itemTypeName = prize.itemType.name;
-                if (!this.totalQuantities.hasOwnProperty(itemType.name)) {
-                    this.totalQuantities[itemTypeName] = 0;
-                }
                 this.totalQuantities[itemTypeName] ??= 0;
                 this.totalQuantities[itemTypeName] += prize.quantity * (this.quantities[quantitiesKey] ?? 0);
             }
