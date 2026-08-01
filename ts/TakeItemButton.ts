@@ -1,4 +1,5 @@
 import { Coordinates }       from "./Coordinates.js";
+import { Effects }           from "./Effects.js";
 import { ItemTakingSummary } from "./ItemTakingSummary.js";
 import { Inventory }         from "./Inventory.js";
 import { Map }               from "./Map.js";
@@ -44,7 +45,15 @@ export class TakeItemButton {
                 return;
             }
 
-            this.inventory.takeItem(this.selected_coordinates);
+            const sourceElement = document.querySelector<HTMLElement>(
+                ".cell.selected .item.collectible",
+            );
+            const result = this.inventory.takeItem(this.selected_coordinates);
+            if (result === null) {
+                return;
+            }
+
+            Effects.playItemAction(result, sourceElement);
             this.map.show({});
             View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));
         }

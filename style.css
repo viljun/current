@@ -40,11 +40,12 @@ html,
     padding: 1rem;
     color: white;
 }
-#exploreControl {
+#exploreControl,
+#soundControl {
     position: absolute;
     right: 0.75rem;
-    bottom: 0.75rem;
     z-index: 9999;
+    width: 7rem;
     padding: 0.65rem 0.8rem;
     border: 2px solid rgba(255, 255, 255, 0.65);
     border-radius: 999px;
@@ -53,7 +54,14 @@ html,
     font-family: sans-serif;
     user-select: none;
 }
-#exploreControl input {
+#exploreControl {
+    bottom: 0.75rem;
+}
+#soundControl {
+    bottom: 4.1rem;
+}
+#exploreControl input,
+#soundControl input {
     margin-right: 0.35rem;
 }
 .explore-mode #exploreControl {
@@ -79,6 +87,25 @@ html,
 }
 #gpsStatus[data-state="error"] {
     color: #ff9b9b;
+}
+.effect-change {
+    position: fixed;
+    z-index: 10001;
+    padding: 0.2rem 0.45rem;
+    border-radius: 0.4rem;
+    background: rgba(0, 0, 0, 0.72);
+    color: #9dffae;
+    font: 800 1.15rem/1.1 sans-serif;
+    white-space: nowrap;
+    text-shadow: 0 2px 3px black;
+    pointer-events: none;
+}
+.effect-change--negative {
+    color: #ff9b9b;
+}
+.effect-change--rare {
+    color: #ffe173;
+    font-size: 1.3rem;
 }
 .message {
     display: inline-block;

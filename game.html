@@ -10,6 +10,10 @@
         <input id="exploreSwitch" type="checkbox">
         <span>Explore</span>
     </label>
+    <label id="soundControl">
+        <input id="soundSwitch" type="checkbox">
+        <span>Sound</span>
+    </label>
     <div id="gpsStatus" role="status" aria-live="polite">Finding location…</div>
     <div id="map"></div>
 </div>
@@ -22,6 +26,7 @@
     import { ItemTaking }               from './js/ItemTaking.js';
     import { Map, ACCURACY_MULTIPLIER } from './js/Map.js';
     import { Coordinates }              from './js/Coordinates.js';
+    import { Effects }                  from './js/Effects.js';
     import { View }                     from './js/View.js';
 
     // Extra cols and rows to prevent items to appear and
@@ -35,8 +40,10 @@
     const messageBox         = document.getElementById("messageBox");
     const mapContainer       = document.getElementById("mapContainer");
     const exploreSwitch      = document.getElementById("exploreSwitch");
+    const soundSwitch        = document.getElementById("soundSwitch");
     const gpsStatus          = document.getElementById("gpsStatus");
     const inventory          = new Inventory;
+    Effects.initialize(soundSwitch);
     const tile_size          = 40 + 2;
     const tileOuterDimension = tile_size + 1;
     const cols               = Math.floor(mapContainer.clientWidth  / tileOuterDimension / 2) * 2 + 1 + SAFETY_MARGIN;  // must be odd number

@@ -1,11 +1,18 @@
 import { Coordinates } from "./Coordinates.js";
 import { ItemType }    from "./ItemType.js";
+import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { View }        from './View.js';
 
 interface InventorySaveData {
     version: number;
     quantities: Record<string, number>;
     usedCoordinates: Record<string, boolean>;
+}
+
+export interface ItemActionResult {
+    itemType: ItemType;
+    prizes: ItemTypeAndQuantity[];
+    expenses: ItemTypeAndQuantity[];
 }
 
 export class Inventory {
@@ -87,19 +94,19 @@ export class Inventory {
     }
 
     // Adds item in the given coordinates to inventory.
-    takeItem(coordinates: Coordinates): void {
+    takeItem(coordinates: Coordinates): ItemActionResult|null {
         let seed = coordinates.getSeed();
         let itemType = ItemType.getWithSeed(seed, this.getDepth());
         if (itemType === null) {
             console.log("There's no item at " + this.coordinatesToString(coordinates));
 
-            return;
+            return null;
         }
         const coordinatesKey = this.coordinatesToString(coordinates);
         if (this.usedCoordinates.hasOwnProperty(coordinatesKey)) {
             console.log("You have already taken this " + itemType.name + ".");
 
-            return;
+            return null;
         }
 
         this.usedCoordinates[coordinatesKey] = true;
@@ -108,6 +115,14 @@ export class Inventory {
         this.quantities[key]  += 1;
         this.updateTotalQuantities();
         this.save();
+
+        const changes = itemType.prizes();
+
+        return {
+            itemType: itemType,
+            prizes: changes.filter(change => change.quantity > 0),
+            expenses: changes.filter(change => change.quantity < 0),
+        };
     }
 
     private load(): void {

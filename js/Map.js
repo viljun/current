@@ -119,7 +119,9 @@ export class Map {
                     else {
                         takeable = true;
                     }
-                    div.append(Image.getWithItemTypeName(itemType.name, this.tile_size, seed, isTaken, takeable).element());
+                    const itemElement = Image.getWithItemTypeName(itemType.name, this.tile_size, seed, isTaken, takeable).element();
+                    itemElement.classList.add("collectible");
+                    div.append(itemElement);
                 }
                 // If a location has been selected and it is the current location.
                 const selected_coordinates = this.selected_coordinates;

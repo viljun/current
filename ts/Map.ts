@@ -163,13 +163,15 @@ export class Map {
                         takeable = true;
                     }
 
-                    div.append(Image.getWithItemTypeName(
+                    const itemElement = Image.getWithItemTypeName(
                         itemType.name,
                         this.tile_size,
                         seed,
                         isTaken,
                         takeable,
-                    ).element());
+                    ).element();
+                    itemElement.classList.add("collectible");
+                    div.append(itemElement);
                 }
 
                 // If a location has been selected and it is the current location.
