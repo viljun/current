@@ -41,7 +41,8 @@ html,
     color: white;
 }
 #exploreControl,
-#soundControl {
+#soundControl,
+#restartControl {
     position: absolute;
     right: 0.75rem;
     z-index: 9999;
@@ -53,12 +54,24 @@ html,
     color: white;
     font-family: sans-serif;
     user-select: none;
+    min-height: 2.8rem;
 }
 #exploreControl {
     bottom: 0.75rem;
 }
 #soundControl {
     bottom: 4.1rem;
+}
+#restartControl {
+    bottom: 7.45rem;
+    appearance: none;
+    text-align: left;
+    cursor: pointer;
+}
+#restartControl:hover,
+#restartControl:focus-visible {
+    border-color: #ff9b9b;
+    background: rgba(75, 24, 30, 0.9);
 }
 #exploreControl input,
 #soundControl input {

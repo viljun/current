@@ -14,6 +14,7 @@
         <input id="soundSwitch" type="checkbox">
         <span>Sound</span>
     </label>
+    <button id="restartControl" type="button">Restart</button>
     <div id="gpsStatus" role="status" aria-live="polite">Finding location…</div>
     <div id="map"></div>
 </div>
@@ -41,6 +42,7 @@
     const mapContainer       = document.getElementById("mapContainer");
     const exploreSwitch      = document.getElementById("exploreSwitch");
     const soundSwitch        = document.getElementById("soundSwitch");
+    const restartControl     = document.getElementById("restartControl");
     const gpsStatus          = document.getElementById("gpsStatus");
     const inventory          = new Inventory;
     Effects.initialize(soundSwitch);
@@ -209,6 +211,17 @@
             map.show({
                 new_coordinates: coordinates,
             });
+        }
+    });
+
+    restartControl.addEventListener("click", () => {
+        if (!window.confirm("Restart the game? All saved progress and preferences will be cleared.")) {
+            return;
+        }
+        try {
+            localStorage.clear();
+        } finally {
+            window.location.reload();
         }
     });
 
