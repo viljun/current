@@ -2,11 +2,21 @@ import { Coordinates } from "./Coordinates.js";
 import { ItemType }    from "./ItemType.js";
 import { View }        from './View.js';
 
+interface InventorySaveData {
+    version: number;
+    quantities: Record<string, number>;
+    usedCoordinates: Record<string, boolean>;
+}
+
 export class Inventory {
+    private static readonly STORAGE_KEY = "gpsgame.inventory";
+    private static readonly SAVE_VERSION = 1;
+
     quantities:      Record<string, number>  = {};
     totalQuantities: Record<string, number>  = {};
     usedCoordinates: Record<string, boolean> = {};
     constructor() {
+        this.load();
     }
 
     // Returns quantity of the given item type in inventory.
@@ -85,19 +95,91 @@ export class Inventory {
 
             return;
         }
-        if (!this.quantities.hasOwnProperty(itemType.name)) {
-            this.quantities[itemType.name] = 0;
-        }
-        if (this.usedCoordinates.hasOwnProperty(this.coordinatesToString(coordinates))) {
+        const coordinatesKey = this.coordinatesToString(coordinates);
+        if (this.usedCoordinates.hasOwnProperty(coordinatesKey)) {
             console.log("You have already taken this " + itemType.name + ".");
-        } else {
-            this.usedCoordinates[this.coordinatesToString(coordinates)] = true;
-            const key = itemType.name;
-            this.quantities[key] ??= 0;
-            this.quantities[key]  += 1;
+
+            return;
         }
 
+        this.usedCoordinates[coordinatesKey] = true;
+        const key = itemType.name;
+        this.quantities[key] ??= 0;
+        this.quantities[key]  += 1;
         this.updateTotalQuantities();
+        this.save();
+    }
+
+    private load(): void {
+        try {
+            const serialized = localStorage.getItem(Inventory.STORAGE_KEY);
+            if (serialized === null) {
+                return;
+            }
+
+            const saveData: unknown = JSON.parse(serialized);
+            if (!this.isValidSaveData(saveData)) {
+                console.warn("Ignoring invalid inventory save data.");
+
+                return;
+            }
+
+            this.quantities = { ...saveData.quantities };
+            this.usedCoordinates = { ...saveData.usedCoordinates };
+            this.updateTotalQuantities();
+        } catch (error) {
+            console.warn("Unable to load inventory save data.", error);
+        }
+    }
+
+    private save(): void {
+        const saveData: InventorySaveData = {
+            version: Inventory.SAVE_VERSION,
+            quantities: this.quantities,
+            usedCoordinates: this.usedCoordinates,
+        };
+
+        try {
+            localStorage.setItem(Inventory.STORAGE_KEY, JSON.stringify(saveData));
+        } catch (error) {
+            console.warn("Unable to save inventory.", error);
+        }
+    }
+
+    private isValidSaveData(saveData: unknown): saveData is InventorySaveData {
+        if (typeof saveData !== "object" || saveData === null) {
+            return false;
+        }
+
+        const value = saveData as Record<string, unknown>;
+        if (value.version !== Inventory.SAVE_VERSION
+            || !this.isQuantityRecord(value.quantities)
+            || !this.isUsedCoordinatesRecord(value.usedCoordinates)
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private isQuantityRecord(value: unknown): value is Record<string, number> {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+            return false;
+        }
+
+        return Object.values(value).every(quantity =>
+            typeof quantity === "number"
+            && Number.isSafeInteger(quantity)
+            && quantity >= 0
+        );
+    }
+
+    private isUsedCoordinatesRecord(value: unknown): value is Record<string, boolean> {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+            return false;
+        }
+
+        return Object.values(value).every(isUsed => isUsed === true);
     }
 
     // Update inventory total quantities by adding prizes and inventory.

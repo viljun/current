@@ -1,6 +1,8 @@
 import { Coordinates } from "./Coordinates.js";
 import { ItemType } from "./ItemType.js";
 export declare class Inventory {
+    private static readonly STORAGE_KEY;
+    private static readonly SAVE_VERSION;
     quantities: Record<string, number>;
     totalQuantities: Record<string, number>;
     usedCoordinates: Record<string, boolean>;
@@ -11,6 +13,11 @@ export declare class Inventory {
     coordinatesToString(coordinates: Coordinates): string;
     isItemTaken(coordinates: Coordinates): boolean;
     takeItem(coordinates: Coordinates): void;
+    private load;
+    private save;
+    private isValidSaveData;
+    private isQuantityRecord;
+    private isUsedCoordinatesRecord;
     updateTotalQuantities(): void;
     getDepth(): number;
 }

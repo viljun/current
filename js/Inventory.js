@@ -6,6 +6,7 @@ export class Inventory {
         this.quantities = {};
         this.totalQuantities = {};
         this.usedCoordinates = {};
+        this.load();
     }
     // Returns quantity of the given item type in inventory.
     countItems(itemType) {
@@ -78,19 +79,75 @@ export class Inventory {
             console.log("There's no item at " + this.coordinatesToString(coordinates));
             return;
         }
-        if (!this.quantities.hasOwnProperty(itemType.name)) {
-            this.quantities[itemType.name] = 0;
-        }
-        if (this.usedCoordinates.hasOwnProperty(this.coordinatesToString(coordinates))) {
+        const coordinatesKey = this.coordinatesToString(coordinates);
+        if (this.usedCoordinates.hasOwnProperty(coordinatesKey)) {
             console.log("You have already taken this " + itemType.name + ".");
+            return;
         }
-        else {
-            this.usedCoordinates[this.coordinatesToString(coordinates)] = true;
-            const key = itemType.name;
-            (_a = (_b = this.quantities)[key]) !== null && _a !== void 0 ? _a : (_b[key] = 0);
-            this.quantities[key] += 1;
-        }
+        this.usedCoordinates[coordinatesKey] = true;
+        const key = itemType.name;
+        (_a = (_b = this.quantities)[key]) !== null && _a !== void 0 ? _a : (_b[key] = 0);
+        this.quantities[key] += 1;
         this.updateTotalQuantities();
+        this.save();
+    }
+    load() {
+        try {
+            const serialized = localStorage.getItem(Inventory.STORAGE_KEY);
+            if (serialized === null) {
+                return;
+            }
+            const saveData = JSON.parse(serialized);
+            if (!this.isValidSaveData(saveData)) {
+                console.warn("Ignoring invalid inventory save data.");
+                return;
+            }
+            this.quantities = Object.assign({}, saveData.quantities);
+            this.usedCoordinates = Object.assign({}, saveData.usedCoordinates);
+            this.updateTotalQuantities();
+        }
+        catch (error) {
+            console.warn("Unable to load inventory save data.", error);
+        }
+    }
+    save() {
+        const saveData = {
+            version: Inventory.SAVE_VERSION,
+            quantities: this.quantities,
+            usedCoordinates: this.usedCoordinates,
+        };
+        try {
+            localStorage.setItem(Inventory.STORAGE_KEY, JSON.stringify(saveData));
+        }
+        catch (error) {
+            console.warn("Unable to save inventory.", error);
+        }
+    }
+    isValidSaveData(saveData) {
+        if (typeof saveData !== "object" || saveData === null) {
+            return false;
+        }
+        const value = saveData;
+        if (value.version !== Inventory.SAVE_VERSION
+            || !this.isQuantityRecord(value.quantities)
+            || !this.isUsedCoordinatesRecord(value.usedCoordinates)) {
+            return false;
+        }
+        return true;
+    }
+    isQuantityRecord(value) {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+            return false;
+        }
+        return Object.values(value).every(quantity => typeof quantity === "number"
+            && Number.isSafeInteger(quantity)
+            && quantity >= 0);
+    }
+    isUsedCoordinatesRecord(value) {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+            return false;
+        }
+        return Object.values(value).every(isUsed => isUsed === true);
     }
     // Update inventory total quantities by adding prizes and inventory.
     updateTotalQuantities() {
@@ -121,3 +178,5 @@ export class Inventory {
         return this.countItems(new ItemType("dungeon entrance")) - this.countItems(new ItemType("stairs up"));
     }
 }
+Inventory.STORAGE_KEY = "gpsgame.inventory";
+Inventory.SAVE_VERSION = 1;
