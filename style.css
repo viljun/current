@@ -229,18 +229,18 @@ html,
     grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
     gap: 0.6rem;
     margin: 1rem 0;
-    padding-top: 1.8rem;
 }
 .fight-deck {
     position: absolute;
-    top: -0.5rem;
-    right: 0.7rem;
-    width: 2.8rem;
-    height: 3.8rem;
+    top: 0;
+    right: 0;
+    width: 7rem;
+    min-height: 7rem;
+    height: 100%;
     border: 2px solid #d9bd6a;
-    border-radius: 0.35rem;
+    border-radius: 0.65rem;
     background: repeating-linear-gradient(45deg, #263a58 0 6px, #172338 6px 12px);
-    box-shadow: -4px 3px 0 #111923, -8px 6px 0 #34445a;
+    box-shadow: -5px 4px 0 #111923, -10px 8px 0 #34445a;
     transform-origin: center bottom;
     opacity: 0;
 }

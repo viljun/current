@@ -71,14 +71,25 @@ export class Effects {
             }
             cardElements.forEach(card => card.style.opacity = "0");
             window.requestAnimationFrame(() => {
+                var _a;
+                const firstCard = (_a = cardElements[0]) === null || _a === void 0 ? void 0 : _a.getBoundingClientRect();
+                if (firstCard !== undefined) {
+                    deckElement.style.width = firstCard.width + "px";
+                    deckElement.style.height = firstCard.height + "px";
+                }
                 const deck = deckElement.getBoundingClientRect();
                 deckElement.style.opacity = "1";
-                deckElement.animate([
-                    { transform: "rotate(0deg) translateX(0)" },
-                    { transform: "rotate(-8deg) translateX(-7px)" },
-                    { transform: "rotate(7deg) translateX(6px)" },
-                    { transform: "rotate(0deg) translateX(0)" },
-                ], { duration: 420, easing: "ease-in-out" });
+                const entrance = deckElement.animate([
+                    { transform: "translateX(130%) scale(.55) rotate(16deg)", opacity: 0 },
+                    { transform: "translateX(0) scale(1.06) rotate(0deg)", opacity: 1, offset: .58 },
+                    { transform: "translateX(-7px) scale(1) rotate(-7deg)", opacity: 1, offset: .72 },
+                    { transform: "translateX(6px) scale(1) rotate(6deg)", opacity: 1, offset: .86 },
+                    { transform: "translateX(0) scale(1) rotate(0deg)", opacity: 1 },
+                ], {
+                    duration: 520,
+                    easing: "cubic-bezier(.2,.8,.2,1)",
+                    fill: "forwards",
+                });
                 cardElements.forEach((card, index) => {
                     const target = card.getBoundingClientRect();
                     const x = deck.left + deck.width / 2 - (target.left + target.width / 2);
@@ -87,7 +98,7 @@ export class Effects {
                         { transform: "translate(" + x + "px, " + y + "px) rotate(12deg) scale(.35)", opacity: 0 },
                         { transform: "translate(0, 0) rotate(0deg) scale(1)", opacity: 1 },
                     ], {
-                        delay: 110 + index * 90,
+                        delay: 360 + index * 90,
                         duration: 430,
                         easing: "cubic-bezier(.2,.8,.2,1)",
                         fill: "forwards",
@@ -97,10 +108,29 @@ export class Effects {
                         animation.cancel();
                     };
                     animation.addEventListener("finish", finish, { once: true });
-                    window.setTimeout(finish, 800 + index * 90);
+                    window.setTimeout(finish, 1050 + index * 90);
                 });
                 const lastCardDelay = Math.max(0, cardElements.length - 1) * 90;
-                window.setTimeout(() => deckElement.style.opacity = "", 600 + lastCardDelay);
+                const exitDelay = 790 + lastCardDelay;
+                window.setTimeout(() => {
+                    entrance.cancel();
+                    const exit = deckElement.animate([
+                        { transform: "translateX(0) scale(1) rotate(0deg)", opacity: 1 },
+                        { transform: "translateX(135%) scale(.45) rotate(18deg)", opacity: 0 },
+                    ], {
+                        duration: 340,
+                        easing: "cubic-bezier(.55,.05,.8,.25)",
+                        fill: "forwards",
+                    });
+                    const hide = () => {
+                        deckElement.style.opacity = "";
+                        deckElement.style.width = "";
+                        deckElement.style.height = "";
+                        exit.cancel();
+                    };
+                    exit.addEventListener("finish", hide, { once: true });
+                    window.setTimeout(hide, 430);
+                }, exitDelay);
             });
         }
         catch (error) {
