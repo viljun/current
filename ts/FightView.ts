@@ -605,7 +605,7 @@ export class FightView {
             return "Round complete — dealing new cards";
         }
 
-        return "Your turn — play a card";
+        return "";
     }
 
     private showRoundEffect(state: CardGameState, board: HTMLElement): void {

@@ -429,20 +429,39 @@ html,
     flex-direction: column;
     gap: 0.35rem;
 }
-.fight-card:not(:disabled):not(.fight-card--blocking) {
+button.fight-card:not(:disabled):not(.fight-card--blocking) {
     cursor: pointer;
+    animation: fight-card-ready 1.8s ease-in-out infinite;
     transition:
         transform 140ms ease,
         border-color 140ms ease,
         background-color 140ms ease,
         box-shadow 140ms ease;
 }
-.fight-card:not(:disabled):not(.fight-card--blocking):hover,
-.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
+button.fight-card:not(:disabled):not(.fight-card--blocking):hover,
+button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
+    animation: none;
     border-color: #ffe173;
     background: #2b3d56;
     box-shadow: 0 0 0 3px rgba(255, 225, 115, 0.24);
     transform: translateY(-0.3rem);
+}
+@keyframes fight-card-ready {
+    0%, 100% {
+        border-color: #7fa7d8;
+        box-shadow: 0 0 0 0 rgba(255, 225, 115, 0);
+    }
+    50% {
+        border-color: #d6c66f;
+        box-shadow: 0 0 0 2px rgba(255, 225, 115, 0.16);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    button.fight-card:not(:disabled):not(.fight-card--blocking) {
+        animation: none;
+        border-color: #d6c66f;
+        box-shadow: 0 0 0 2px rgba(255, 225, 115, 0.12);
+    }
 }
 .fight-card-art {
     height: 5.5rem;

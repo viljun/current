@@ -431,7 +431,7 @@ export class FightView {
         if (state.phase === "dealing") {
             return "Round complete — dealing new cards";
         }
-        return "Your turn — play a card";
+        return "";
     }
     showRoundEffect(state, board) {
         if (state.status !== "playing" || state.phase !== "player") {
