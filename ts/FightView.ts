@@ -58,7 +58,7 @@ export class FightView {
         title.textContent = "Battle";
         const message = document.createElement("p");
         message.className = "fight-unavailable";
-        message.textContent = "You need at least one heart to fight.";
+        message.textContent = "You need to find at least one heart to fight.";
         panel.append(closeButton, title, this.createCombatants(), message);
         this.overlay.append(panel);
     }
