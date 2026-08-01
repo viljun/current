@@ -7,7 +7,6 @@ import { ItemTaking }             from "./ItemTaking.js";
 import type { ItemTakingSummary } from "./ItemTakingSummary.js";
 import type { Map }               from "./Map.js";
 import { MonsterDefinition }      from "./MonsterDefinition.js";
-import { View }                   from "./View.js";
 
 export class FightView {
     private overlay: HTMLDivElement|null = null;
@@ -20,7 +19,6 @@ export class FightView {
         private inventory: Inventory,
         private coordinates: Coordinates,
         private map: Map,
-        private messageBox: HTMLDivElement,
     ) {}
 
     open(): void {
@@ -61,6 +59,11 @@ export class FightView {
         const panel = document.createElement("section");
         panel.className = "fight-panel";
 
+        const closeButton = this.button("×", () => this.requestClose(state));
+        closeButton.className = "fight-close";
+        closeButton.setAttribute("aria-label", state.status === "playing" ? "Retreat" : "Close fight");
+        panel.append(closeButton);
+
         const title = document.createElement("h1");
         title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
         panel.append(title);
@@ -75,10 +78,6 @@ export class FightView {
 
         if (state.status === "playing") {
             panel.append(this.createHand(state));
-            const actions = document.createElement("div");
-            actions.className = "fight-actions";
-            actions.append(this.button("Retreat", () => this.close()));
-            panel.append(actions);
         } else {
             const outcome = document.createElement("div");
             outcome.className = "fight-outcome fight-outcome--" + state.status;
@@ -92,7 +91,6 @@ export class FightView {
                     panel.append(this.button("Try again", () => this.startGame(monster)));
                 }
             }
-            panel.append(this.button("Close", () => this.close()));
         }
 
         this.overlay.append(panel);
@@ -146,7 +144,16 @@ export class FightView {
         this.overlay?.remove();
         this.overlay = null;
         this.map.setInteractionLocked(false);
-        View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));
+    }
+
+    private requestClose(state: CardGameState): void {
+        if (state.status === "playing"
+            && !window.confirm("Retreat from this fight? Your inventory will not change.")
+        ) {
+            return;
+        }
+
+        this.close();
     }
 
     private statLine(leftText: string, rightText: string): HTMLDivElement {

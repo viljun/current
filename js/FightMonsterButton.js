@@ -2,12 +2,11 @@ import { Coordinates } from "./Coordinates.js";
 import { FightView } from "./FightView.js";
 import { Inventory } from "./Inventory.js";
 export class FightMonsterButton {
-    constructor(itemTakingSummary, inventory, selectedCoordinates, map, messageBox) {
+    constructor(itemTakingSummary, inventory, selectedCoordinates, map) {
         this.itemTakingSummary = itemTakingSummary;
         this.inventory = inventory;
         this.selectedCoordinates = selectedCoordinates;
         this.map = map;
-        this.messageBox = messageBox;
     }
     element() {
         const container = document.createElement("div");
@@ -21,7 +20,7 @@ export class FightMonsterButton {
                 this.map.show({});
                 return;
             }
-            new FightView(this.itemTakingSummary, this.inventory, this.selectedCoordinates, this.map, this.messageBox).open();
+            new FightView(this.itemTakingSummary, this.inventory, this.selectedCoordinates, this.map).open();
         };
         container.append(button);
         const text = this.itemTakingSummary.getTakeButtonText().additionalText;

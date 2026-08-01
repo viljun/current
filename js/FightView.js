@@ -4,14 +4,12 @@ import { Effects } from "./Effects.js";
 import { Inventory } from "./Inventory.js";
 import { ItemTaking } from "./ItemTaking.js";
 import { MonsterDefinition } from "./MonsterDefinition.js";
-import { View } from "./View.js";
 export class FightView {
-    constructor(itemTakingSummary, inventory, coordinates, map, messageBox) {
+    constructor(itemTakingSummary, inventory, coordinates, map) {
         this.itemTakingSummary = itemTakingSummary;
         this.inventory = inventory;
         this.coordinates = coordinates;
         this.map = map;
-        this.messageBox = messageBox;
         this.overlay = null;
         this.game = null;
         this.victoryApplied = false;
@@ -43,6 +41,10 @@ export class FightView {
         this.overlay.innerHTML = "";
         const panel = document.createElement("section");
         panel.className = "fight-panel";
+        const closeButton = this.button("×", () => this.requestClose(state));
+        closeButton.className = "fight-close";
+        closeButton.setAttribute("aria-label", state.status === "playing" ? "Retreat" : "Close fight");
+        panel.append(closeButton);
         const title = document.createElement("h1");
         title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
         panel.append(title);
@@ -50,10 +52,6 @@ export class FightView {
         panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Block " + state.block + " · Chosen " + state.selectedCardIds.length + " / 3"));
         if (state.status === "playing") {
             panel.append(this.createHand(state));
-            const actions = document.createElement("div");
-            actions.className = "fight-actions";
-            actions.append(this.button("Retreat", () => this.close()));
-            panel.append(actions);
         }
         else {
             const outcome = document.createElement("div");
@@ -69,7 +67,6 @@ export class FightView {
                     panel.append(this.button("Try again", () => this.startGame(monster)));
                 }
             }
-            panel.append(this.button("Close", () => this.close()));
         }
         this.overlay.append(panel);
     }
@@ -117,7 +114,13 @@ export class FightView {
         (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.remove();
         this.overlay = null;
         this.map.setInteractionLocked(false);
-        View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));
+    }
+    requestClose(state) {
+        if (state.status === "playing"
+            && !window.confirm("Retreat from this fight? Your inventory will not change.")) {
+            return;
+        }
+        this.close();
     }
     statLine(leftText, rightText) {
         const line = document.createElement("div");

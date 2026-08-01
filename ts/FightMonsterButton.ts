@@ -10,7 +10,6 @@ export class FightMonsterButton {
         private inventory: Inventory,
         private selectedCoordinates: Coordinates,
         private map: Map,
-        private messageBox: HTMLDivElement,
     ) {}
 
     element(): HTMLDivElement {
@@ -31,7 +30,6 @@ export class FightMonsterButton {
                 this.inventory,
                 this.selectedCoordinates,
                 this.map,
-                this.messageBox,
             ).open();
         };
         container.append(button);

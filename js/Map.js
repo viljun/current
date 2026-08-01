@@ -141,7 +141,7 @@ export class Map {
                     ) {
                         if (this.isWithinTakingRange(selected_coordinates)) {
                             const actionButton = itemType.isMonster()
-                                ? new FightMonsterButton(item_taking_summary, this.inventory, selected_coordinates, this, this.messageBox).element()
+                                ? new FightMonsterButton(item_taking_summary, this.inventory, selected_coordinates, this).element()
                                 : new TakeItemButton(item_taking_summary, this.inventory, selected_coordinates, this, this.messageBox).element();
                             View.setMessage(this.messageBox, actionButton);
                         }

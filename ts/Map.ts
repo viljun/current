@@ -200,7 +200,6 @@ export class Map {
                                     this.inventory,
                                     selected_coordinates,
                                     this,
-                                    this.messageBox,
                                 ).element()
                                 : new TakeItemButton(
                                     item_taking_summary,

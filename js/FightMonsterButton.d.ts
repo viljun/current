@@ -7,8 +7,7 @@ export declare class FightMonsterButton {
     private inventory;
     private selectedCoordinates;
     private map;
-    private messageBox;
-    constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, selectedCoordinates: Coordinates, map: Map, messageBox: HTMLDivElement);
+    constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, selectedCoordinates: Coordinates, map: Map);
     element(): HTMLDivElement;
 }
 //# sourceMappingURL=FightMonsterButton.d.ts.map

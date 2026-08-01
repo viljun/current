@@ -119,6 +119,7 @@ html,
     font-family: sans-serif;
 }
 .fight-panel {
+    position: relative;
     width: min(42rem, 100%);
     max-height: 100%;
     overflow: auto;
@@ -127,6 +128,42 @@ html,
     border-radius: 1rem;
     background: #171a20;
     text-align: center;
+}
+.fight-close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    place-items: center;
+    border: 2px solid #7b8492;
+    border-radius: 50%;
+    background: #282d36;
+    color: white;
+    font-size: 0;
+    appearance: none;
+}
+.fight-close::before,
+.fight-close::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.15rem;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+.fight-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+.fight-close:hover,
+.fight-close:focus-visible {
+    border-color: #ff9b9b;
+    background: #4a2529;
 }
 .fight-panel h1 {
     margin: 0 0 1rem;
@@ -165,12 +202,6 @@ html,
     box-shadow: 0 0 0 3px rgba(255, 225, 115, 0.28);
     transform: translateY(-0.25rem);
 }
-.fight-actions {
-    display: flex;
-    justify-content: center;
-    gap: 0.75rem;
-}
-.fight-actions button,
 .fight-outcome + button,
 .fight-panel > button {
     min-height: 2.75rem;
