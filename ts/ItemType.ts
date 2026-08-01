@@ -15,6 +15,10 @@ export class ItemType {
         ].includes(this.name);
     }
 
+    isMonster(): boolean {
+        return ["rat", "orc", "troll"].includes(this.name);
+    }
+
     // Returns item type by seed or null if there is no item in the location with the given seed.
     static getWithSeed(seed: number, depth: number): ItemType|null {
         let name = null;

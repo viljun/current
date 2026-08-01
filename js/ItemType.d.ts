@@ -3,6 +3,7 @@ export declare class ItemType {
     name: string;
     constructor(name: string);
     canBeTakenOnlyOnce(): boolean;
+    isMonster(): boolean;
     static getWithSeed(seed: number, depth: number): ItemType | null;
     prizes(): ItemTypeAndQuantity[];
 }

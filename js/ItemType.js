@@ -11,6 +11,9 @@ export class ItemType {
             "weapon shop",
         ].includes(this.name);
     }
+    isMonster() {
+        return ["rat", "orc", "troll"].includes(this.name);
+    }
     // Returns item type by seed or null if there is no item in the location with the given seed.
     static getWithSeed(seed, depth) {
         let name = null;
