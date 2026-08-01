@@ -37,42 +37,64 @@ export class CardGame {
     }
     toggleCard(cardId) {
         if (this.state.status !== "playing") {
-            return false;
+            return { selected: false, turnResolution: null };
         }
         if (!this.state.hand.some(card => card.id === cardId)) {
-            return false;
+            return { selected: false, turnResolution: null };
         }
         const selectedIndex = this.state.selectedCardIds.indexOf(cardId);
         if (selectedIndex >= 0) {
             this.state.selectedCardIds.splice(selectedIndex, 1);
-            return true;
+            return { selected: false, turnResolution: null };
         }
         this.state.selectedCardIds.push(cardId);
         if (this.state.selectedCardIds.length === 3) {
-            this.resolveTurn();
+            return { selected: true, turnResolution: this.resolveTurn() };
         }
-        return true;
+        return { selected: true, turnResolution: null };
     }
     resolveTurn() {
         var _a;
         const selectedCards = this.state.selectedCardIds
             .map(cardId => this.state.hand.find(card => card.id === cardId))
             .filter((card) => card !== undefined);
+        const monsterHealthBefore = this.state.monsterHealth;
+        const playerHealthBefore = this.state.playerHealth;
+        const block = selectedCards.reduce((total, card) => total + card.block, 0);
         for (const card of selectedCards) {
             this.state.monsterHealth = Math.max(0, this.state.monsterHealth - card.damage);
             this.state.block += card.block;
             this.state.playerHealth = Math.min(this.state.playerMaxHealth, this.state.playerHealth + card.healing);
         }
+        const monsterDamage = monsterHealthBefore - this.state.monsterHealth;
+        const healing = Math.max(0, this.state.playerHealth - playerHealthBefore);
+        const playerHealthAfterCards = this.state.playerHealth;
         this.state.selectedCardIds = [];
         if (this.state.monsterHealth === 0) {
             this.state.status = "won";
-            return;
+            return {
+                cards: [...selectedCards],
+                monsterDamage: monsterDamage,
+                playerDamage: 0,
+                healing: healing,
+                block: block,
+                monsterDefeated: true,
+                playerDefeated: false,
+            };
         }
         const damage = Math.max(0, this.state.monsterIntent - this.state.block);
         this.state.playerHealth = Math.max(0, this.state.playerHealth - damage);
         if (this.state.playerHealth === 0) {
             this.state.status = "lost";
-            return;
+            return {
+                cards: [...selectedCards],
+                monsterDamage: monsterDamage,
+                playerDamage: playerHealthAfterCards,
+                healing: healing,
+                block: block,
+                monsterDefeated: false,
+                playerDefeated: true,
+            };
         }
         this.discardPile.push(...this.state.hand);
         this.state.hand = [];
@@ -80,6 +102,15 @@ export class CardGame {
         this.state.turn++;
         this.state.monsterIntent = (_a = this.monster.attackPattern[(this.state.turn - 1) % this.monster.attackPattern.length]) !== null && _a !== void 0 ? _a : 0;
         this.drawCards(this.monster.handSize);
+        return {
+            cards: [...selectedCards],
+            monsterDamage: monsterDamage,
+            playerDamage: damage,
+            healing: healing,
+            block: block,
+            monsterDefeated: false,
+            playerDefeated: false,
+        };
     }
     buildDeck(inventory) {
         const cards = [];

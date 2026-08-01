@@ -20,6 +20,19 @@ export interface CardGameState {
     status: FightStatus;
     turn: number;
 }
+export interface TurnResolution {
+    cards: CardDefinition[];
+    monsterDamage: number;
+    playerDamage: number;
+    healing: number;
+    block: number;
+    monsterDefeated: boolean;
+    playerDefeated: boolean;
+}
+export interface CardSelectionResult {
+    selected: boolean;
+    turnResolution: TurnResolution | null;
+}
 export declare class CardGame {
     private static readonly CARD_TYPES;
     private readonly monster;
@@ -29,7 +42,7 @@ export declare class CardGame {
     private state;
     constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[]);
     getState(): CardGameState;
-    toggleCard(cardId: string): boolean;
+    toggleCard(cardId: string): CardSelectionResult;
     private resolveTurn;
     private buildDeck;
     private drawCards;
