@@ -1,4 +1,5 @@
 export declare const ACCURACY_MULTIPLIER = 10000;
+export declare const ITEM_TAKING_RANGE = 1;
 import { Coordinates } from "./Coordinates.js";
 import { Inventory } from "./Inventory.js";
 export declare class Map {
@@ -16,6 +17,7 @@ export declare class Map {
     show({ new_coordinates, }: {
         new_coordinates?: Coordinates | null;
     }): void;
+    isWithinTakingRange(coordinates: Coordinates): boolean;
     slide({ previous_coordinates, tile_size, }: {
         previous_coordinates: Coordinates;
         tile_size: number;

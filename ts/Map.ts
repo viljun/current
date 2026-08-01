@@ -1,4 +1,5 @@
 export const ACCURACY_MULTIPLIER = 10_000;
+export const ITEM_TAKING_RANGE = 1;
 
 import { Coordinates }    from "./Coordinates.js";
 import { DungeonMap }     from "./DungeonMap.js";
@@ -73,6 +74,9 @@ export class Map {
             style = "background-image: url(images/dirt2.png);";
         }
         this.map.setAttribute("style", style);
+
+        // Inventory is the default whenever the selected location has no action.
+        View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));
 
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
@@ -171,19 +175,28 @@ export class Map {
                 // If a location has been selected and it is the current location.
                 const selected_coordinates = this.selected_coordinates;
                 if (selected_coordinates !== null && cell_coordinates.equals(selected_coordinates)) {
+                    div.classList.add("selected");
+
                     // Show "take"-button if item has not been taken.
                     if (isTaken === false
                         && item_taking_summary !== null  // to satisfy ts compiler
                         && itemType !== null             // to satisfy ts compiler
                     ) {
-                        const takeItemButton = (new TakeItemButton(
-                            item_taking_summary,
-                            this.inventory,
-                            selected_coordinates,
-                            this,
-                            this.messageBox,
-                        )).element();
-                        View.setMessage(this.messageBox, takeItemButton);
+                        if (this.isWithinTakingRange(selected_coordinates)) {
+                            const takeItemButton = (new TakeItemButton(
+                                item_taking_summary,
+                                this.inventory,
+                                selected_coordinates,
+                                this,
+                                this.messageBox,
+                            )).element();
+                            View.setMessage(this.messageBox, takeItemButton);
+                        } else {
+                            View.setMessage(
+                                this.messageBox,
+                                "Walk closer to take this " + itemType.name + ".",
+                            );
+                        }
                     }
                 }
                 
@@ -201,6 +214,10 @@ export class Map {
         if (new_coordinates) {
             this.slide({ previous_coordinates: previous_coordinates, tile_size: this.tile_size });
         }
+    }
+
+    isWithinTakingRange(coordinates: Coordinates): boolean {
+        return this.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
     }
 
     // Effetct that smoothly slides the map after location has changed. Game works well without calling this function.

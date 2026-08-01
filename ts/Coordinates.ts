@@ -15,4 +15,12 @@ export class Coordinates {
     equals(coordinates: Coordinates) {
         return this?.latitude === coordinates?.latitude && this?.longitude === coordinates?.longitude;
     }
+
+    // Returns distance in world-grid cells.
+    distanceFrom(coordinates: Coordinates): number {
+        return Math.hypot(
+            this.latitude - coordinates.latitude,
+            this.longitude - coordinates.longitude,
+        );
+    }
 }

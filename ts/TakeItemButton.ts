@@ -38,6 +38,12 @@ export class TakeItemButton {
         var takeButtonText = this.item_taking_summary.getTakeButtonText()
         button.setAttribute("value", takeButtonText.buttonText);
         button.onclick = () => {
+            if (!this.map.isWithinTakingRange(this.selected_coordinates)) {
+                this.map.show({});
+
+                return;
+            }
+
             this.inventory.takeItem(this.selected_coordinates);
             this.map.show({});
             View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));

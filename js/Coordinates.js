@@ -10,4 +10,8 @@ export class Coordinates {
     equals(coordinates) {
         return (this === null || this === void 0 ? void 0 : this.latitude) === (coordinates === null || coordinates === void 0 ? void 0 : coordinates.latitude) && (this === null || this === void 0 ? void 0 : this.longitude) === (coordinates === null || coordinates === void 0 ? void 0 : coordinates.longitude);
     }
+    // Returns distance in world-grid cells.
+    distanceFrom(coordinates) {
+        return Math.hypot(this.latitude - coordinates.latitude, this.longitude - coordinates.longitude);
+    }
 }
