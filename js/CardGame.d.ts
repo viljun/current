@@ -3,7 +3,6 @@ export interface CardDefinition {
     id: string;
     itemName: string;
     title: string;
-    energy: number;
     damage: number;
     block: number;
     healing: number;
@@ -15,9 +14,9 @@ export interface CardGameState {
     playerHealth: number;
     playerMaxHealth: number;
     block: number;
-    energy: number;
     monsterIntent: number;
     hand: CardDefinition[];
+    selectedCardIds: string[];
     status: FightStatus;
     turn: number;
 }
@@ -30,8 +29,8 @@ export declare class CardGame {
     private state;
     constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[]);
     getState(): CardGameState;
-    playCard(cardId: string): boolean;
-    endTurn(): boolean;
+    toggleCard(cardId: string): boolean;
+    private resolveTurn;
     private buildDeck;
     private drawCards;
     private ensureRequiredCards;

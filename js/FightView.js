@@ -47,16 +47,11 @@ export class FightView {
         title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
         panel.append(title);
         panel.append(this.statLine("Monster " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent));
-        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Block " + state.block + " · Energy " + state.energy));
+        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Block " + state.block + " · Chosen " + state.selectedCardIds.length + " / 3"));
         if (state.status === "playing") {
             panel.append(this.createHand(state));
             const actions = document.createElement("div");
             actions.className = "fight-actions";
-            actions.append(this.button("End turn", () => {
-                var _a;
-                (_a = this.game) === null || _a === void 0 ? void 0 : _a.endTurn();
-                this.render();
-            }));
             actions.append(this.button("Retreat", () => this.close()));
             panel.append(actions);
         }
@@ -89,13 +84,15 @@ export class FightView {
                 details.push(card.block + " block");
             if (card.healing > 0)
                 details.push(card.healing + " heal");
-            const cardButton = this.button(card.title + "\n" + details.join(" · ") + "\n" + card.energy + " energy", () => {
+            const cardButton = this.button(card.title + "\n" + details.join(" · "), () => {
                 var _a;
-                (_a = this.game) === null || _a === void 0 ? void 0 : _a.playCard(card.id);
+                (_a = this.game) === null || _a === void 0 ? void 0 : _a.toggleCard(card.id);
                 this.render();
             });
             cardButton.classList.add("fight-card");
-            cardButton.disabled = card.energy > state.energy;
+            if (state.selectedCardIds.includes(card.id)) {
+                cardButton.classList.add("fight-card--selected");
+            }
             hand.append(cardButton);
         });
         return hand;

@@ -70,17 +70,13 @@ export class FightView {
         ));
         panel.append(this.statLine(
             "You " + state.playerHealth + " / " + state.playerMaxHealth,
-            "Block " + state.block + " · Energy " + state.energy,
+            "Block " + state.block + " · Chosen " + state.selectedCardIds.length + " / 3",
         ));
 
         if (state.status === "playing") {
             panel.append(this.createHand(state));
             const actions = document.createElement("div");
             actions.className = "fight-actions";
-            actions.append(this.button("End turn", () => {
-                this.game?.endTurn();
-                this.render();
-            }));
             actions.append(this.button("Retreat", () => this.close()));
             panel.append(actions);
         } else {
@@ -111,14 +107,16 @@ export class FightView {
             if (card.block > 0) details.push(card.block + " block");
             if (card.healing > 0) details.push(card.healing + " heal");
             const cardButton = this.button(
-                card.title + "\n" + details.join(" · ") + "\n" + card.energy + " energy",
+                card.title + "\n" + details.join(" · "),
                 () => {
-                    this.game?.playCard(card.id);
+                    this.game?.toggleCard(card.id);
                     this.render();
                 },
             );
             cardButton.classList.add("fight-card");
-            cardButton.disabled = card.energy > state.energy;
+            if (state.selectedCardIds.includes(card.id)) {
+                cardButton.classList.add("fight-card--selected");
+            }
             hand.append(cardButton);
         });
 

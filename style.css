@@ -159,6 +159,12 @@ html,
 .fight-card:disabled {
     opacity: 0.4;
 }
+.fight-card--selected {
+    border-color: #ffe173;
+    background: #594a18;
+    box-shadow: 0 0 0 3px rgba(255, 225, 115, 0.28);
+    transform: translateY(-0.25rem);
+}
 .fight-actions {
     display: flex;
     justify-content: center;

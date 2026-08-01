@@ -4,7 +4,6 @@ export interface CardDefinition {
     id: string;
     itemName: string;
     title: string;
-    energy: number;
     damage: number;
     block: number;
     healing: number;
@@ -18,25 +17,25 @@ export interface CardGameState {
     playerHealth: number;
     playerMaxHealth: number;
     block: number;
-    energy: number;
     monsterIntent: number;
     hand: CardDefinition[];
+    selectedCardIds: string[];
     status: FightStatus;
     turn: number;
 }
 
 export class CardGame {
     private static readonly CARD_TYPES: Record<string, Omit<CardDefinition, "id">> = {
-        stick:     { itemName: "stick",     title: "Stick",     energy: 1, damage: 1, block: 0, healing: 0 },
-        stone:     { itemName: "stone",     title: "Stone",     energy: 1, damage: 0, block: 2, healing: 0 },
-        root:      { itemName: "root",      title: "Root",      energy: 1, damage: 0, block: 0, healing: 1 },
-        hay:       { itemName: "hay",       title: "Hay",       energy: 1, damage: 0, block: 1, healing: 0 },
-        "iron ore": { itemName: "iron ore", title: "Iron ore", energy: 1, damage: 1, block: 1, healing: 0 },
-        iron:      { itemName: "iron",      title: "Iron",      energy: 1, damage: 0, block: 3, healing: 0 },
-        club:      { itemName: "club",      title: "Club",      energy: 1, damage: 3, block: 0, healing: 0 },
-        "stone axe": { itemName: "stone axe", title: "Stone axe", energy: 2, damage: 4, block: 0, healing: 0 },
-        sword:     { itemName: "sword",     title: "Sword",     energy: 2, damage: 6, block: 0, healing: 0 },
-        heart:     { itemName: "heart",     title: "Heart",     energy: 1, damage: 0, block: 0, healing: 3 },
+        stick:     { itemName: "stick",     title: "Stick",     damage: 1, block: 0, healing: 0 },
+        stone:     { itemName: "stone",     title: "Stone",     damage: 0, block: 2, healing: 0 },
+        root:      { itemName: "root",      title: "Root",      damage: 0, block: 0, healing: 1 },
+        hay:       { itemName: "hay",       title: "Hay",       damage: 0, block: 1, healing: 0 },
+        "iron ore": { itemName: "iron ore", title: "Iron ore", damage: 1, block: 1, healing: 0 },
+        iron:      { itemName: "iron",      title: "Iron",      damage: 0, block: 3, healing: 0 },
+        club:      { itemName: "club",      title: "Club",      damage: 3, block: 0, healing: 0 },
+        "stone axe": { itemName: "stone axe", title: "Stone axe", damage: 4, block: 0, healing: 0 },
+        sword:     { itemName: "sword",     title: "Sword",     damage: 6, block: 0, healing: 0 },
+        heart:     { itemName: "heart",     title: "Heart",     damage: 0, block: 0, healing: 3 },
     };
 
     private readonly monster: MonsterDefinition;
@@ -54,12 +53,11 @@ export class CardGame {
         this.monster = monster;
         this.seedState = { value: seed || 1 };
         this.drawPile = this.buildDeck(inventory);
-        if (this.drawPile.length === 0) {
+        while (this.drawPile.length < 3) {
             this.drawPile.push({
-                id: "scratch-0",
+                id: "scratch-" + this.drawPile.length,
                 itemName: "scratch",
                 title: "Scratch",
-                energy: 1,
                 damage: 1,
                 block: 0,
                 healing: 0,
@@ -72,9 +70,9 @@ export class CardGame {
             playerHealth: 10,
             playerMaxHealth: 10,
             block: 0,
-            energy: 3,
             monsterIntent: monster.attackPattern[0] ?? 0,
             hand: [],
+            selectedCardIds: [],
             status: "playing",
             turn: 1,
         };
@@ -86,59 +84,67 @@ export class CardGame {
         return {
             ...this.state,
             hand: [...this.state.hand],
+            selectedCardIds: [...this.state.selectedCardIds],
         };
     }
 
-    playCard(cardId: string): boolean {
+    toggleCard(cardId: string): boolean {
         if (this.state.status !== "playing") {
             return false;
         }
-        const index = this.state.hand.findIndex(card => card.id === cardId);
-        const card = this.state.hand[index];
-        if (card === undefined || card.energy > this.state.energy) {
+        if (!this.state.hand.some(card => card.id === cardId)) {
             return false;
         }
 
-        this.state.energy -= card.energy;
-        this.state.monsterHealth = Math.max(0, this.state.monsterHealth - card.damage);
-        this.state.block += card.block;
-        this.state.playerHealth = Math.min(
-            this.state.playerMaxHealth,
-            this.state.playerHealth + card.healing,
-        );
-        this.state.hand.splice(index, 1);
-        this.discardPile.push(card);
-        if (this.state.monsterHealth === 0) {
-            this.state.status = "won";
+        const selectedIndex = this.state.selectedCardIds.indexOf(cardId);
+        if (selectedIndex >= 0) {
+            this.state.selectedCardIds.splice(selectedIndex, 1);
+
+            return true;
+        }
+        this.state.selectedCardIds.push(cardId);
+        if (this.state.selectedCardIds.length === 3) {
+            this.resolveTurn();
         }
 
         return true;
     }
 
-    endTurn(): boolean {
-        if (this.state.status !== "playing") {
-            return false;
+    private resolveTurn(): void {
+        const selectedCards = this.state.selectedCardIds
+            .map(cardId => this.state.hand.find(card => card.id === cardId))
+            .filter((card): card is CardDefinition => card !== undefined);
+        for (const card of selectedCards) {
+            this.state.monsterHealth = Math.max(0, this.state.monsterHealth - card.damage);
+            this.state.block += card.block;
+            this.state.playerHealth = Math.min(
+                this.state.playerMaxHealth,
+                this.state.playerHealth + card.healing,
+            );
         }
+        this.state.selectedCardIds = [];
+        if (this.state.monsterHealth === 0) {
+            this.state.status = "won";
 
+            return;
+        }
         const damage = Math.max(0, this.state.monsterIntent - this.state.block);
         this.state.playerHealth = Math.max(0, this.state.playerHealth - damage);
         if (this.state.playerHealth === 0) {
             this.state.status = "lost";
 
-            return true;
+            return;
         }
 
         this.discardPile.push(...this.state.hand);
         this.state.hand = [];
         this.state.block = 0;
-        this.state.energy = 3;
         this.state.turn++;
         this.state.monsterIntent = this.monster.attackPattern[
             (this.state.turn - 1) % this.monster.attackPattern.length
         ] ?? 0;
         this.drawCards(this.monster.handSize);
 
-        return true;
     }
 
     private buildDeck(inventory: Record<string, number>): CardDefinition[] {
