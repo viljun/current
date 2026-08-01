@@ -156,7 +156,7 @@ export class Effects {
             cardElements.forEach((card, index) => {
                 const bounds = card.getBoundingClientRect();
                 const clone = card.cloneNode(true);
-                clone.className = "effect-fight-card";
+                clone.classList.add("effect-fight-card");
                 clone.style.left = bounds.left + "px";
                 clone.style.top = bounds.top + "px";
                 clone.style.width = bounds.width + "px";
@@ -266,7 +266,7 @@ export class Effects {
             return;
         }
         const clone = sourceElement.cloneNode(true);
-        clone.className = "effect-fight-card";
+        clone.classList.add("effect-fight-card");
         clone.style.left = source.left + "px";
         clone.style.top = source.top + "px";
         clone.style.width = source.width + "px";
