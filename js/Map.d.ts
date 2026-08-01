@@ -10,19 +10,14 @@ export declare class Map {
     inventory: Inventory;
     coordinates: Coordinates;
     selected_coordinates: Coordinates | null;
-    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, coordinates: Coordinates);
+    tile_size: number;
+    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, coordinates: Coordinates, tile_size: number);
     show({ new_coordinates, }: {
         new_coordinates?: Coordinates | null;
     }): void;
-    slide({ previous_coordinates, stepNumber, originalMargins, }: {
+    slide({ previous_coordinates, tile_size, }: {
         previous_coordinates: Coordinates;
-        stepNumber?: number;
-        originalMargins?: {
-            mapLeft: number;
-            mapTop: number;
-            catLeft: number;
-            catTop: number;
-        } | null;
+        tile_size: number;
     }): void;
     slideAnimation({ stepNumber, signedStepSizeX, signedStepSizeY, originalMargins, }: {
         stepNumber: number;

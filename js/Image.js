@@ -1,6 +1,5 @@
-export const TILE_WIDTH = 40 + 2;
 export class Image {
-    constructor(dimension, src, style, isTaken, takeable, rotate, domId, zIndex) {
+    constructor(dimension, src, style, isTaken, takeable, rotate, domId, zIndex, tile_size) {
         this.dimension = dimension;
         this.src = src;
         this.style = style;
@@ -9,9 +8,10 @@ export class Image {
         this.rotate = rotate;
         this.domId = domId;
         this.zIndex = zIndex;
+        this.tile_size = tile_size;
     }
     // Returns image for item type.
-    static getWithItemTypeName(name, seed = 0, isTaken = false, takeable = true) {
+    static getWithItemTypeName(name, tile_size, seed = 0, isTaken = false, takeable = true) {
         var _a;
         let srcs = [];
         let rotate = 0;
@@ -345,14 +345,14 @@ export class Image {
         else {
             console.log("getWithItemTypeName: faulty name " + name);
         }
-        return new Image(dimension, (_a = srcs[seed % srcs.length]) !== null && _a !== void 0 ? _a : "", style, isTaken, takeable, rotate, domId, zIndex);
+        return new Image(dimension, (_a = srcs[seed % srcs.length]) !== null && _a !== void 0 ? _a : "", style, isTaken, takeable, rotate, domId, zIndex, tile_size);
     }
     // Returns image as html element.
     element() {
         let margin = (this.dimension - 1) / 2;
-        margin *= TILE_WIDTH;
+        margin *= this.tile_size;
         margin = -Math.round(margin);
-        let dimension = this.dimension * TILE_WIDTH;
+        let dimension = this.dimension * this.tile_size;
         dimension = Math.round(dimension);
         // Style.
         let style = this.style;

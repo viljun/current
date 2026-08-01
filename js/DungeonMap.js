@@ -1,4 +1,3 @@
-import { ACCURACY_MULTIPLIER } from "./Map.js";
 export class DungeonMap {
     constructor(width, height, coordinates) {
         this.width = width;

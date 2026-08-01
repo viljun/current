@@ -93,36 +93,36 @@ export class Map {
                 if (depth > 0 && dungeon_map) {
                     // Dungeon map.
                     if ($has_dungeon_wall) {
-                        div.append(Image.getWithItemTypeName("road", seed, this.tile_size).element());
-                        div.append(Image.getWithItemTypeName("dungeon wall", seed, this.tile_size).element());
+                        div.append(Image.getWithItemTypeName("road", this.tile_size, seed).element());
+                        div.append(Image.getWithItemTypeName("dungeon wall", this.tile_size, seed).element());
                     } else {
-                        div.append(Image.getWithItemTypeName("dungeon floor", seed, this.tile_size).element());
+                        div.append(Image.getWithItemTypeName("dungeon floor", this.tile_size, seed).element());
                     }
                 } else {
                     // Sand.
-                    div.append(Image.getWithItemTypeName('sand', seed, this.tile_size).element());
+                    div.append(Image.getWithItemTypeName('sand', this.tile_size, seed).element());
 
                     // // Grass.
-                    div.append(Image.getWithItemTypeName('grass', seed, this.tile_size).element());
+                    div.append(Image.getWithItemTypeName('grass', this.tile_size, seed).element());
 
                     // Tree.
                     if (!(seed % 21)) {
-                        div.append(Image.getWithItemTypeName('tree', seed, this.tile_size).element());
+                        div.append(Image.getWithItemTypeName('tree', this.tile_size, seed).element());
                     }
 
                     // Rock formation.
                     if ($has_dungeon_wall && !(seed % 177)) {
-                        div.append(Image.getWithItemTypeName("rock formation", seed, this.tile_size).element());
+                        div.append(Image.getWithItemTypeName("rock formation", this.tile_size, seed).element());
                     }
 
                     // Big rock.
                     if (!(seed % 997)) {
-                        div.append(Image.getWithItemTypeName("big rock", seed, this.tile_size).element());
+                        div.append(Image.getWithItemTypeName("big rock", this.tile_size, seed).element());
                     }
 
                     // Cloud.
                     if (!(seed % 99)) {
-                        div.append(Image.getWithItemTypeName("cloud", seed, this.tile_size).element());
+                        div.append(Image.getWithItemTypeName("cloud", this.tile_size, seed).element());
                     }
                 }
 
@@ -156,7 +156,13 @@ export class Map {
                         takeable = true;
                     }
 
-                    div.append(Image.getWithItemTypeName(itemType.name, seed, isTaken, takeable).element());
+                    div.append(Image.getWithItemTypeName(
+                        itemType.name,
+                        this.tile_size,
+                        seed,
+                        isTaken,
+                        takeable,
+                    ).element());
                 }
 
                 // If a location has been selected and it is the current location.
@@ -181,7 +187,7 @@ export class Map {
                 // Current location.
                 if (x === (this.cols + 1) / 2 && y === (this.rows + 1) / 2) {
                     // Cat.
-                    div.append(Image.getWithItemTypeName("cat", seed, this.tile_size).element());
+                    div.append(Image.getWithItemTypeName("cat", this.tile_size, seed).element());
                 }
 
                 this.map.append(div);

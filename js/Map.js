@@ -1,14 +1,14 @@
 export const ACCURACY_MULTIPLIER = 10000;
 import { Coordinates } from "./Coordinates.js";
 import { DungeonMap } from "./DungeonMap.js";
-import { Image, TILE_WIDTH } from "./Image.js";
+import { Image } from "./Image.js";
 import { Inventory } from "./Inventory.js";
 import { ItemTaking } from "./ItemTaking.js";
 import { ItemType } from "./ItemType.js";
 import { TakeItemButton } from "./TakeItemButton.js";
 import { View } from './View.js';
 export class Map {
-    constructor(map, messageBox, cols, rows, inventory, coordinates) {
+    constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size) {
         this.slidingAnimationInProgress = false;
         this.selected_coordinates = null;
         this.map = map;
@@ -17,6 +17,7 @@ export class Map {
         this.rows = rows;
         this.inventory = inventory;
         this.coordinates = coordinates;
+        this.tile_size = tile_size;
     }
     // Redraws map.
     show({ new_coordinates = null, // If null, location does not change.
@@ -59,33 +60,33 @@ export class Map {
                 if (depth > 0 && dungeon_map) {
                     // Dungeon map.
                     if ($has_dungeon_wall) {
-                        div.append(Image.getWithItemTypeName("road", seed).element());
-                        div.append(Image.getWithItemTypeName("dungeon wall", seed).element());
+                        div.append(Image.getWithItemTypeName("road", this.tile_size, seed).element());
+                        div.append(Image.getWithItemTypeName("dungeon wall", this.tile_size, seed).element());
                     }
                     else {
-                        div.append(Image.getWithItemTypeName("dungeon floor", seed).element());
+                        div.append(Image.getWithItemTypeName("dungeon floor", this.tile_size, seed).element());
                     }
                 }
                 else {
                     // Sand.
-                    div.append(Image.getWithItemTypeName('sand', seed).element());
+                    div.append(Image.getWithItemTypeName('sand', this.tile_size, seed).element());
                     // // Grass.
-                    div.append(Image.getWithItemTypeName('grass', seed).element());
+                    div.append(Image.getWithItemTypeName('grass', this.tile_size, seed).element());
                     // Tree.
                     if (!(seed % 21)) {
-                        div.append(Image.getWithItemTypeName('tree', seed).element());
+                        div.append(Image.getWithItemTypeName('tree', this.tile_size, seed).element());
                     }
                     // Rock formation.
                     if ($has_dungeon_wall && !(seed % 177)) {
-                        div.append(Image.getWithItemTypeName("rock formation", seed).element());
+                        div.append(Image.getWithItemTypeName("rock formation", this.tile_size, seed).element());
                     }
                     // Big rock.
                     if (!(seed % 997)) {
-                        div.append(Image.getWithItemTypeName("big rock", seed).element());
+                        div.append(Image.getWithItemTypeName("big rock", this.tile_size, seed).element());
                     }
                     // Cloud.
                     if (!(seed % 99)) {
-                        div.append(Image.getWithItemTypeName("cloud", seed).element());
+                        div.append(Image.getWithItemTypeName("cloud", this.tile_size, seed).element());
                     }
                 }
                 // Get item type.
@@ -114,7 +115,7 @@ export class Map {
                     else {
                         takeable = true;
                     }
-                    div.append(Image.getWithItemTypeName(itemType.name, seed, isTaken, takeable).element());
+                    div.append(Image.getWithItemTypeName(itemType.name, this.tile_size, seed, isTaken, takeable).element());
                 }
                 // If a location has been selected and it is the current location.
                 const selected_coordinates = this.selected_coordinates;
@@ -131,19 +132,18 @@ export class Map {
                 // Current location.
                 if (x === (this.cols + 1) / 2 && y === (this.rows + 1) / 2) {
                     // Cat.
-                    div.append(Image.getWithItemTypeName("cat", seed).element());
+                    div.append(Image.getWithItemTypeName("cat", this.tile_size, seed).element());
                 }
                 this.map.append(div);
             }
         }
         // Map is moved - slide it.
         if (new_coordinates) {
-            this.slide({ previous_coordinates: previous_coordinates });
+            this.slide({ previous_coordinates: previous_coordinates, tile_size: this.tile_size });
         }
     }
     // Effetct that smoothly slides the map after location has changed. Game works well without calling this function.
-    // function slide({ map, cat, latitude, longitude, previousLatitude, previousLongitude, stepNumber = 0, originalMargins = null}) {
-    slide({ previous_coordinates, stepNumber = 0, originalMargins = null, }) {
+    slide({ previous_coordinates, tile_size, }) {
         var _a;
         if (this.slidingAnimationInProgress) {
             console.log("Animation in progress, do not start another.");
@@ -154,20 +154,20 @@ export class Map {
         const MAP_SLIDING_STEPS = 30; // How many steps the sliding effect has. Higher value makes the effect slower.
         let latitudeDifference = this.coordinates.latitude - previous_coordinates.latitude;
         let longitudeDifference = this.coordinates.longitude - previous_coordinates.longitude;
-        let stepSizeX = TILE_WIDTH / MAP_SLIDING_STEPS * Math.abs(latitudeDifference);
-        let stepSizeY = TILE_WIDTH / MAP_SLIDING_STEPS * Math.abs(longitudeDifference);
+        let stepSizeX = tile_size / MAP_SLIDING_STEPS * Math.abs(latitudeDifference);
+        let stepSizeY = tile_size / MAP_SLIDING_STEPS * Math.abs(longitudeDifference);
         let latitudeSign = Math.sign(latitudeDifference);
         let longitudeSign = Math.sign(longitudeDifference);
         const cat = (_a = document.getElementById("cat")) !== null && _a !== void 0 ? _a : new HTMLElement();
         console.log("slide");
-        originalMargins !== null && originalMargins !== void 0 ? originalMargins : (originalMargins = {
+        const originalMargins = {
             mapLeft: parseFloat(window.getComputedStyle(this.map).marginLeft),
             mapTop: parseFloat(window.getComputedStyle(this.map).marginTop),
             catLeft: parseFloat(window.getComputedStyle(cat).marginLeft),
             catTop: parseFloat(window.getComputedStyle(cat).marginTop),
-        });
+        };
         this.slideAnimation({
-            stepNumber: stepNumber,
+            stepNumber: 0,
             signedStepSizeX: stepSizeX * latitudeSign,
             signedStepSizeY: stepSizeY * longitudeSign,
             originalMargins: originalMargins,

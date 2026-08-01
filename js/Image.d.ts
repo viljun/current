@@ -1,4 +1,3 @@
-export declare const TILE_WIDTH: number;
 export declare class Image {
     dimension: number;
     src: string;
@@ -8,8 +7,9 @@ export declare class Image {
     rotate: number;
     domId: string | null;
     zIndex: number;
-    constructor(dimension: number, src: string, style: string, isTaken: boolean, takeable: boolean, rotate: number, domId: string | null, zIndex: number);
-    static getWithItemTypeName(name: string, seed?: number, isTaken?: boolean, takeable?: boolean): Image;
+    tile_size: number;
+    constructor(dimension: number, src: string, style: string, isTaken: boolean, takeable: boolean, rotate: number, domId: string | null, zIndex: number, tile_size: number);
+    static getWithItemTypeName(name: string, tile_size: number, seed?: number, isTaken?: boolean, takeable?: boolean): Image;
     element(): HTMLImageElement;
 }
 //# sourceMappingURL=Image.d.ts.map
