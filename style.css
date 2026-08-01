@@ -241,11 +241,11 @@ html,
 .fight-health-meter::before {
     z-index: 0;
     width: var(--health-fill);
-    background: #a33f43;
+    background: #315d8f;
     transition: width 650ms cubic-bezier(.2,.8,.2,1);
 }
 .fight-health-meter--player::before {
-    background: #287b4b;
+    background: #315d8f;
 }
 .fight-health-meter::after {
     z-index: 1;
