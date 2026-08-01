@@ -197,9 +197,12 @@ html,
     background-size: 7rem;
     isolation: isolate;
 }
-.origin-artwork .item {
-    top: calc(50% - 27px);
-    left: calc(50% - 27px);
+.origin-artwork-cell {
+    position: absolute;
+    top: calc(50% - 27px + var(--origin-y) * 54px);
+    left: calc(50% - 27px + var(--origin-x) * 54px);
+    width: 54px;
+    height: 54px;
 }
 .fight-portrait-art {
     height: 7rem;

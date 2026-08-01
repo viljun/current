@@ -4,26 +4,47 @@ import type { ItemOrigin } from "./Inventory.js";
 
 export class OriginArtwork {
     static create(itemName: string, origin: ItemOrigin, className: string): HTMLDivElement {
-        const coordinates = new Coordinates(origin.latitude, origin.longitude);
-        const seed = coordinates.getSeed();
         const artwork = document.createElement("div");
         artwork.className = className + " origin-artwork";
         artwork.style.backgroundImage = origin.depth === 0
             ? "url(images/seamless-sand-light-beach-square-texture-39125213.jpg)"
             : "url(images/dirt2.png)";
 
-        if (origin.depth === 0) {
-            artwork.append(
-                GameImage.getWithItemTypeName("sand", 54, seed).element(),
-                GameImage.getWithItemTypeName("grass", 54, seed).element(),
-            );
-            if (!(seed % 21)) {
-                artwork.append(GameImage.getWithItemTypeName("tree", 54, seed).element());
+        for (let y = -1; y <= 1; y++) {
+            for (let x = -1; x <= 1; x++) {
+                const coordinates = new Coordinates(
+                    origin.latitude + x,
+                    origin.longitude + y,
+                );
+                const seed = coordinates.getSeed();
+                const cell = document.createElement("div");
+                cell.className = "origin-artwork-cell";
+                cell.style.setProperty("--origin-x", String(x));
+                cell.style.setProperty("--origin-y", String(y));
+
+                if (origin.depth === 0) {
+                    cell.append(
+                        GameImage.getWithItemTypeName("sand", 54, seed).element(),
+                        GameImage.getWithItemTypeName("grass", 54, seed).element(),
+                    );
+                    if (!(seed % 21)) {
+                        cell.append(GameImage.getWithItemTypeName("tree", 54, seed).element());
+                    }
+                    if (!(seed % 997)) {
+                        cell.append(GameImage.getWithItemTypeName("big rock", 54, seed).element());
+                    }
+                    if (!(seed % 99)) {
+                        cell.append(GameImage.getWithItemTypeName("cloud", 54, seed).element());
+                    }
+                } else {
+                    cell.append(GameImage.getWithItemTypeName("dungeon floor", 54, seed).element());
+                }
+                if (x === 0 && y === 0) {
+                    cell.append(GameImage.getWithItemTypeName(itemName, 54, seed).element());
+                }
+                artwork.append(cell);
             }
-        } else {
-            artwork.append(GameImage.getWithItemTypeName("dungeon floor", 54, seed).element());
         }
-        artwork.append(GameImage.getWithItemTypeName(itemName, 54, seed).element());
 
         return artwork;
     }
