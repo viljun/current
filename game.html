@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<div id="mapContainer">
+    <div id="messageBox"></div>
+    <div id="map"></div>
+</div>
+
+<script type="module">
+    import { DungeonMap }               from './js/DungeonMap.js';
+    import { Image }                    from './js/Image.js';
+    import { Inventory }                from './js/Inventory.js';
+    import { ItemType }                 from './js/ItemType.js';
+    import { ItemTaking }               from './js/ItemTaking.js';
+    import { Map, ACCURACY_MULTIPLIER } from './js/Map.js';
+    import { Coordinates }              from './js/Coordinates.js';
+    import { View }                     from './js/View.js';
+
+    // Extra cols and rows to prevent items to appear and
+    // disappear on the edge of the map when player moves.
+    // This may still happen if the player moves very fast (using mouse)
+    // but "2" should be enough for gps tracking.
+    // We need to add some extra because some items are bigger than one tile.
+    const SAFETY_MARGIN      = 6;
+
+    const map_element        = document.getElementById("map");
+    const messageBox         = document.getElementById("messageBox");
+    const mapContainer       = document.getElementById("mapContainer");
+    const inventory          = new Inventory;
+    const tile_size          = 40 + 2;
+    const tileOuterDimension = tile_size + 1;
+    const cols               = Math.floor(mapContainer.clientWidth  / tileOuterDimension / 2) * 2 + 1 + SAFETY_MARGIN;  // must be odd number
+    const rows               = Math.floor(mapContainer.clientHeight / tileOuterDimension / 2) * 2 + 1 + SAFETY_MARGIN;  // must be odd number
+    const mapMarginLeft      = (mapContainer.clientWidth  - ((cols) * tile_size + 1)) / 2;
+    const mapMarginTop       = (mapContainer.clientHeight - ((rows) * tile_size + 1)) / 2;
+    console.log("Container width "  + mapContainer.clientWidth  + " px. Cols width "  + (cols * tile_size + 1));
+    console.log("Container height " + mapContainer.clientHeight + " px. Rows height " + (rows * tile_size + 1));
+
+    // Adds cell dimension css.
+    let style         = document.createElement("style");
+    style.textContent = ".cell {width:" + tile_size + "px;height:" + tile_size + "px;} #map{margin-left:" + mapMarginLeft + "px;margin-top:" + mapMarginTop + "px;}";
+    document.head.appendChild(style);
+    console.log("Style written.");
+
+    // Gps tracking options.
+    const HIGH_ACCURACY                = true;
+    const MAX_CACHE_AGE_MILLISECOND    = 500;
+    const MAX_NEW_POSITION_MILLISECOND = 500;
+    const trackOptions                 = {
+        enableHighAccuracy: HIGH_ACCURACY,
+        maximumAge: MAX_CACHE_AGE_MILLISECOND,
+        timeout: MAX_NEW_POSITION_MILLISECOND,
+    };
+
+    // Starts gps tracking.
+    function startTracking() {
+        if (!navigator.geolocation) {
+            console.log("Tracking not supported.");
+        } else {
+            console.log("Tracking started.");
+
+            return navigator.geolocation.watchPosition(successCallback, showError, trackOptions);
+        }
+    }
+
+    function showError(error) {
+        console.log("getCurrentPosition returned error", error);
+    }
+
+    function successCallback() {
+        console.log("Success callback.");
+        navigator.geolocation.getCurrentPosition(function (location) {
+            coordinates = new Coordinates(
+                Math.round(location.coords.latitude  * ACCURACY_MULTIPLIER),
+                Math.round(location.coords.longitude * ACCURACY_MULTIPLIER),
+            )
+            map.show({
+                new_coordinates: coordinates,
+            });
+        }, showError);
+    }
+
+    // Kalliopirtti.
+    // let latitude  = Math.round(60.8923514 * ACCURACY_MULTIPLIER);
+    // let longitude = Math.round(25.1498475 * ACCURACY_MULTIPLIER);
+    let coordinates = new Coordinates(
+        Math.round(60.8923514 * ACCURACY_MULTIPLIER),
+        Math.round(25.1498475 * ACCURACY_MULTIPLIER),
+    )
+
+    // Huopalahti
+    // let latitude  = Math.round(60.1955373 * ACCURACY_MULTIPLIER);
+    // let longitude = Math.round(24.8472197 * ACCURACY_MULTIPLIER);
+
+    // S-market (koti)
+    // let latitude  = Math.round(60.217 * ACCURACY_MULTIPLIER);
+    // let longitude = Math.round(24.869 * ACCURACY_MULTIPLIER);
+
+    const map = new Map(
+        map_element,
+        messageBox,
+        cols,
+        rows,
+        inventory,
+        coordinates,
+        tile_size,
+    );
+    map.show({});
+
+    startTracking();
+
+    View.appendMessage(messageBox, inventory.getText(messageBox));
+</script>

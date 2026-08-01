@@ -1,0 +1,1 @@
+{"version":3,"file":"ItemTypeAndQuantity.d.ts","sourceRoot":"","sources":["../ts/ItemTypeAndQuantity.ts"],"names":[],"mappings":"AAAA,qBAAa,gBAAgB;IACzB,YAAY,EAAE,MAAM,CAAC;IACrB,QAAQ,EAAE,MAAM,CAAC;gBACL,YAAY,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM;CAIrD"}

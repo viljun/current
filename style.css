@@ -1,0 +1,44 @@
+* {box-sizing: border-box;}
+body,
+html {
+    margin: 0;
+    overflow: hidden;
+    /* background-image: url(images/seamless-sand-light-beach-square-texture-39125213.jpg); */
+    background-repeat: repeat;
+}
+body,
+html,
+#mapContainer {
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+}
+#map {
+    display: grid;
+    overflow: hidden;
+    width: max-content;
+    height: max-content;
+}
+.item {
+    position: absolute;
+    pointer-events: none;
+}
+.cell {
+    border: 1px solid rgba(0, 0, 0, 0.0);
+}
+#messageBox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    width: inherit;
+    background-color: rgba(0, 0, 0, 0.7);
+    text-align: center;
+    padding: 1rem;
+    color: white;
+}
+.message {
+    display: inline-block;
+}
+.button:disabled {
+    color: #333333;
+}
