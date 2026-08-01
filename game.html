@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <head>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -9,6 +10,7 @@
         <input id="exploreSwitch" type="checkbox">
         <span>Explore</span>
     </label>
+    <div id="gpsStatus" role="status" aria-live="polite">Finding location…</div>
     <div id="map"></div>
 </div>
 
@@ -33,6 +35,7 @@
     const messageBox         = document.getElementById("messageBox");
     const mapContainer       = document.getElementById("mapContainer");
     const exploreSwitch      = document.getElementById("exploreSwitch");
+    const gpsStatus          = document.getElementById("gpsStatus");
     const inventory          = new Inventory;
     const tile_size          = 40 + 2;
     const tileOuterDimension = tile_size + 1;
@@ -50,9 +53,11 @@
     console.log("Style written.");
 
     // Gps tracking options.
-    const HIGH_ACCURACY                = true;
-    const MAX_CACHE_AGE_MILLISECOND    = 500;
-    const MAX_NEW_POSITION_MILLISECOND = 500;
+    const HIGH_ACCURACY                       = true;
+    const MAX_CACHE_AGE_MILLISECOND           = 5_000;
+    const MAX_NEW_POSITION_MILLISECOND        = 15_000;
+    const MAX_ACCEPTED_GPS_ACCURACY_METERS    = 50;
+    const GPS_SMOOTHING_FACTOR                = 0.35;
     const trackOptions                 = {
         enableHighAccuracy: HIGH_ACCURACY,
         maximumAge: MAX_CACHE_AGE_MILLISECOND,
@@ -63,8 +68,10 @@
     function startTracking() {
         if (!navigator.geolocation) {
             console.log("Tracking not supported.");
+            setGpsStatus("Location is not supported by this device.", "error");
         } else {
             console.log("Tracking started.");
+            setGpsStatus("Finding location…", "waiting");
 
             return navigator.geolocation.watchPosition(successCallback, showError, trackOptions);
         }
@@ -72,19 +79,70 @@
 
     function showError(error) {
         console.log("getCurrentPosition returned error", error);
+        const messages = {
+            1: "Location permission denied.",
+            2: "Location is unavailable.",
+            3: "Location is taking longer than expected.",
+        };
+        setGpsStatus(messages[error.code] ?? "Unable to read location.", "error");
     }
 
     let exploreMode = false;
     let latestGpsCoordinates = null;
+    let latestGpsAccuracy = null;
+    let smoothedGpsLocation = null;
+
+    function setGpsStatus(message, state = "ready") {
+        gpsStatus.textContent = message;
+        gpsStatus.dataset.state = state;
+    }
+
+    function showCurrentGpsStatus() {
+        if (latestGpsAccuracy === null) {
+            setGpsStatus("Finding location…", "waiting");
+
+            return;
+        }
+
+        setGpsStatus("\u00b1" + Math.round(latestGpsAccuracy) + " m");
+    }
 
     function successCallback(location) {
         console.log("Success callback.");
-        latestGpsCoordinates = new Coordinates(
-            Math.round(location.coords.latitude  * ACCURACY_MULTIPLIER),
-            Math.round(location.coords.longitude * ACCURACY_MULTIPLIER),
-        );
+        const accuracy = location.coords.accuracy;
+        if (accuracy > MAX_ACCEPTED_GPS_ACCURACY_METERS) {
+            setGpsStatus(
+                "\u00b1" + Math.round(accuracy) + " m",
+                "warning",
+            );
 
-        if (!exploreMode) {
+            return;
+        }
+
+        const rawLocation = {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+        };
+        if (smoothedGpsLocation === null) {
+            smoothedGpsLocation = rawLocation;
+        } else {
+            smoothedGpsLocation = {
+                latitude: smoothedGpsLocation.latitude
+                    + (rawLocation.latitude - smoothedGpsLocation.latitude) * GPS_SMOOTHING_FACTOR,
+                longitude: smoothedGpsLocation.longitude
+                    + (rawLocation.longitude - smoothedGpsLocation.longitude) * GPS_SMOOTHING_FACTOR,
+            };
+        }
+
+        latestGpsAccuracy = accuracy;
+        latestGpsCoordinates = new Coordinates(
+            Math.round(smoothedGpsLocation.latitude  * ACCURACY_MULTIPLIER),
+            Math.round(smoothedGpsLocation.longitude * ACCURACY_MULTIPLIER),
+        );
+        showCurrentGpsStatus();
+
+        // Redraw only after the filtered position crosses into another world tile.
+        if (!exploreMode && !coordinates.equals(latestGpsCoordinates)) {
             coordinates = latestGpsCoordinates;
             map.show({
                 new_coordinates: coordinates,

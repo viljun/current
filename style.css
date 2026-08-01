@@ -61,6 +61,25 @@ html,
     background: rgba(80, 55, 0, 0.9);
     color: #ffd65a;
 }
+#gpsStatus {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 9999;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.5rem;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-family: sans-serif;
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+#gpsStatus[data-state="warning"] {
+    color: #ffd65a;
+}
+#gpsStatus[data-state="error"] {
+    color: #ff9b9b;
+}
 .message {
     display: inline-block;
 }
