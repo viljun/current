@@ -6,7 +6,7 @@ export declare class Inventory {
     usedCoordinates: Record<string, boolean>;
     constructor();
     countItems(itemType: ItemType): number;
-    getText(messageBox: HTMLDivElement): HTMLDivElement | "Tap something interesting!";
+    getText(messageBox: HTMLDivElement): HTMLDivElement | "Welcome! Explore nearby items, then find a stick and a root to craft your first club.";
     isItemTypeTaken(itemType: ItemType): boolean;
     coordinatesToString(coordinates: Coordinates): string;
     isItemTaken(coordinates: Coordinates): boolean;
