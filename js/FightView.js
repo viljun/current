@@ -16,6 +16,8 @@ export class FightView {
         this.victoryApplied = false;
         this.sourceElement = null;
         this.dealtTurn = 0;
+        this.shownMonsterHealth = null;
+        this.shownPlayerHealth = null;
     }
     open() {
         const monster = MonsterDefinition.get(this.itemTakingSummary.itemType.name);
@@ -32,6 +34,8 @@ export class FightView {
     startGame(monster) {
         this.victoryApplied = false;
         this.dealtTurn = 0;
+        this.shownMonsterHealth = null;
+        this.shownPlayerHealth = null;
         const requiredNames = this.itemTakingSummary.expenses.map(expense => expense.itemType.name);
         const itemOrigins = {};
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
@@ -56,9 +60,11 @@ export class FightView {
         title.textContent = "Battle";
         panel.append(title);
         panel.append(this.createCombatants());
-        panel.append(this.statLine(this.capitalize(this.itemTakingSummary.itemType.name)
-            + " " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent, "fight-monster-health"));
-        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3", "fight-player-health"));
+        panel.append(this.healthStatLine(this.capitalize(this.itemTakingSummary.itemType.name)
+            + " " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent, "fight-monster-health", "monster", state.monsterHealth, state.monsterMaxHealth, this.shownMonsterHealth));
+        panel.append(this.healthStatLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3", "fight-player-health", "player", state.playerHealth, state.playerMaxHealth, this.shownPlayerHealth));
+        this.shownMonsterHealth = state.monsterHealth;
+        this.shownPlayerHealth = state.playerHealth;
         let hand = null;
         const shouldDeal = state.status === "playing" && state.turn !== this.dealtTurn;
         if (state.status === "playing") {
@@ -201,6 +207,19 @@ export class FightView {
         const right = document.createElement("span");
         right.textContent = rightText;
         line.append(left, right);
+        return line;
+    }
+    healthStatLine(leftText, rightText, leftClass, owner, health, maximum, previousHealth) {
+        const line = this.statLine(leftText, rightText, leftClass);
+        line.classList.add("fight-health-meter", "fight-health-meter--" + owner);
+        const percentage = maximum > 0 ? 100 * health / maximum : 0;
+        const previousPercentage = previousHealth === null || maximum <= 0
+            ? percentage
+            : 100 * previousHealth / maximum;
+        line.style.setProperty("--health-fill", previousPercentage + "%");
+        window.requestAnimationFrame(() => {
+            line.style.setProperty("--health-fill", percentage + "%");
+        });
         return line;
     }
     button(text, action) {

@@ -12,6 +12,8 @@ export declare class FightView {
     private victoryApplied;
     private sourceElement;
     private dealtTurn;
+    private shownMonsterHealth;
+    private shownPlayerHealth;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
     open(): void;
     private startGame;
@@ -24,6 +26,7 @@ export declare class FightView {
     private close;
     private requestClose;
     private statLine;
+    private healthStatLine;
     private button;
     private capitalize;
 }

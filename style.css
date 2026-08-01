@@ -215,6 +215,7 @@ html,
     border-radius: 0.75rem;
 }
 .fight-stats {
+    position: relative;
     display: flex;
     justify-content: space-between;
     gap: 1rem;
@@ -222,6 +223,34 @@ html,
     padding: 0.65rem;
     border-radius: 0.5rem;
     background: #282d36;
+    overflow: hidden;
+    isolation: isolate;
+    text-shadow: 0 1px 3px #000, 0 0 4px #000;
+}
+.fight-stats > span {
+    position: relative;
+    z-index: 2;
+}
+.fight-health-meter::before,
+.fight-health-meter::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    pointer-events: none;
+}
+.fight-health-meter::before {
+    z-index: 0;
+    width: var(--health-fill);
+    background: #a33f43;
+    transition: width 650ms cubic-bezier(.2,.8,.2,1);
+}
+.fight-health-meter--player::before {
+    background: #287b4b;
+}
+.fight-health-meter::after {
+    z-index: 1;
+    width: 100%;
+    background: rgba(7, 10, 14, 0.28);
 }
 .fight-hand {
     position: relative;

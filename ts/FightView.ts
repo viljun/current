@@ -15,6 +15,8 @@ export class FightView {
     private victoryApplied = false;
     private sourceElement: HTMLElement|null = null;
     private dealtTurn = 0;
+    private shownMonsterHealth: number|null = null;
+    private shownPlayerHealth: number|null = null;
 
     constructor(
         private itemTakingSummary: ItemTakingSummary,
@@ -41,6 +43,8 @@ export class FightView {
     private startGame(monster: MonsterDefinition): void {
         this.victoryApplied = false;
         this.dealtTurn = 0;
+        this.shownMonsterHealth = null;
+        this.shownPlayerHealth = null;
         const requiredNames = this.itemTakingSummary.expenses.map(
             expense => expense.itemType.name,
         );
@@ -76,17 +80,27 @@ export class FightView {
         title.textContent = "Battle";
         panel.append(title);
         panel.append(this.createCombatants());
-        panel.append(this.statLine(
+        panel.append(this.healthStatLine(
             this.capitalize(this.itemTakingSummary.itemType.name)
                 + " " + state.monsterHealth + " / " + state.monsterMaxHealth,
             "Next attack " + state.monsterIntent,
             "fight-monster-health",
+            "monster",
+            state.monsterHealth,
+            state.monsterMaxHealth,
+            this.shownMonsterHealth,
         ));
-        panel.append(this.statLine(
+        panel.append(this.healthStatLine(
             "You " + state.playerHealth + " / " + state.playerMaxHealth,
             "Chosen " + state.selectedCardIds.length + " / 3",
             "fight-player-health",
+            "player",
+            state.playerHealth,
+            state.playerMaxHealth,
+            this.shownPlayerHealth,
         ));
+        this.shownMonsterHealth = state.monsterHealth;
+        this.shownPlayerHealth = state.playerHealth;
 
         let hand: HTMLDivElement|null = null;
         const shouldDeal = state.status === "playing" && state.turn !== this.dealtTurn;
@@ -258,6 +272,29 @@ export class FightView {
         const right = document.createElement("span");
         right.textContent = rightText;
         line.append(left, right);
+
+        return line;
+    }
+
+    private healthStatLine(
+        leftText: string,
+        rightText: string,
+        leftClass: string,
+        owner: "monster"|"player",
+        health: number,
+        maximum: number,
+        previousHealth: number|null,
+    ): HTMLDivElement {
+        const line = this.statLine(leftText, rightText, leftClass);
+        line.classList.add("fight-health-meter", "fight-health-meter--" + owner);
+        const percentage = maximum > 0 ? 100 * health / maximum : 0;
+        const previousPercentage = previousHealth === null || maximum <= 0
+            ? percentage
+            : 100 * previousHealth / maximum;
+        line.style.setProperty("--health-fill", previousPercentage + "%");
+        window.requestAnimationFrame(() => {
+            line.style.setProperty("--health-fill", percentage + "%");
+        });
 
         return line;
     }
