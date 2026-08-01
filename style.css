@@ -181,6 +181,32 @@ html,
 .fight-panel h1 {
     margin: 0 0 1rem;
 }
+.fight-combatants {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+.fight-portrait {
+    width: min(10rem, 42%);
+}
+.origin-artwork {
+    position: relative;
+    overflow: hidden;
+    background-repeat: repeat;
+    background-size: 7rem;
+    isolation: isolate;
+}
+.origin-artwork .item {
+    top: 50%;
+    left: 50%;
+}
+.fight-portrait-art {
+    height: 7rem;
+    margin-bottom: 0.3rem;
+    border: 2px solid #7b8492;
+    border-radius: 0.75rem;
+}
 .fight-stats {
     display: flex;
     justify-content: space-between;
@@ -205,6 +231,19 @@ html,
     color: white;
     font-weight: bold;
     white-space: pre-line;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.fight-card-art {
+    height: 5.5rem;
+    margin: -0.7rem -0.7rem 0.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.fight-card > span {
+    font-size: 0.82rem;
+    font-weight: normal;
 }
 .fight-card:disabled {
     opacity: 0.4;

@@ -7,6 +7,7 @@ import { ItemTaking }             from "./ItemTaking.js";
 import type { ItemTakingSummary } from "./ItemTakingSummary.js";
 import type { Map }               from "./Map.js";
 import { MonsterDefinition }      from "./MonsterDefinition.js";
+import { OriginArtwork }          from "./OriginArtwork.js";
 
 export class FightView {
     private overlay: HTMLDivElement|null = null;
@@ -41,11 +42,16 @@ export class FightView {
         const requiredNames = this.itemTakingSummary.expenses.map(
             expense => expense.itemType.name,
         );
+        const itemOrigins: Record<string, ReturnType<Inventory["getItemOrigins"]>> = {};
+        for (const itemName of Object.keys(this.inventory.totalQuantities)) {
+            itemOrigins[itemName] = this.inventory.getItemOrigins(itemName);
+        }
         this.game = new CardGame(
             monster,
             this.inventory.totalQuantities,
             this.coordinates.getSeed(),
             requiredNames,
+            itemOrigins,
         );
         this.render();
     }
@@ -67,6 +73,7 @@ export class FightView {
         const title = document.createElement("h1");
         title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
         panel.append(title);
+        panel.append(this.createCombatants());
         panel.append(this.statLine(
             "Monster " + state.monsterHealth + " / " + state.monsterMaxHealth,
             "Next attack " + state.monsterIntent,
@@ -106,9 +113,7 @@ export class FightView {
             if (card.damage > 0) details.push(card.damage + " damage");
             if (card.block > 0) details.push(card.block + " block");
             if (card.healing > 0) details.push(card.healing + " heal");
-            const cardButton = this.button(
-                card.title + "\n" + details.join(" · "),
-                () => {
+            const cardButton = this.button("", () => {
                     const selection = this.game?.toggleCard(card.id);
                     if (selection?.turnResolution !== null
                         && selection?.turnResolution !== undefined
@@ -116,17 +121,55 @@ export class FightView {
                         this.playTurnEffects(selection.turnResolution);
                     }
                     this.render();
-                },
-            );
+            });
             cardButton.classList.add("fight-card");
             cardButton.dataset.cardId = card.id;
             if (state.selectedCardIds.includes(card.id)) {
                 cardButton.classList.add("fight-card--selected");
             }
+            if (card.origin !== null) {
+                cardButton.append(OriginArtwork.create(card.itemName, card.origin, "fight-card-art"));
+            }
+            const name = document.createElement("strong");
+            name.textContent = card.title;
+            const effect = document.createElement("span");
+            effect.textContent = details.join(" · ");
+            cardButton.append(name, effect);
             hand.append(cardButton);
         });
 
         return hand;
+    }
+
+    private createCombatants(): HTMLDivElement {
+        const origin = {
+            latitude: this.coordinates.latitude,
+            longitude: this.coordinates.longitude,
+            depth: this.inventory.getDepth(),
+        };
+        const row = document.createElement("div");
+        row.className = "fight-combatants";
+        row.append(
+            this.createPortrait(this.itemTakingSummary.itemType.name, "Monster", origin),
+            this.createPortrait("cat", "You", origin),
+        );
+
+        return row;
+    }
+
+    private createPortrait(
+        itemName: string,
+        label: string,
+        origin: { latitude: number; longitude: number; depth: number },
+    ): HTMLDivElement {
+        const portrait = OriginArtwork.create(itemName, origin, "fight-portrait-art");
+        const wrapper = document.createElement("div");
+        wrapper.className = "fight-portrait";
+        const caption = document.createElement("strong");
+        caption.textContent = label;
+        wrapper.append(portrait, caption);
+
+        return wrapper;
     }
 
     private playTurnEffects(resolution: TurnResolution): void {
