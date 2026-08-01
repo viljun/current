@@ -242,6 +242,7 @@ html,
     background: repeating-linear-gradient(45deg, #263a58 0 6px, #172338 6px 12px);
     box-shadow: -4px 3px 0 #111923, -8px 6px 0 #34445a;
     transform-origin: center bottom;
+    opacity: 0;
 }
 .fight-card {
     min-height: 7rem;

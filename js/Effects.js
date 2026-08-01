@@ -72,6 +72,7 @@ export class Effects {
             cardElements.forEach(card => card.style.opacity = "0");
             window.requestAnimationFrame(() => {
                 const deck = deckElement.getBoundingClientRect();
+                deckElement.style.opacity = "1";
                 deckElement.animate([
                     { transform: "rotate(0deg) translateX(0)" },
                     { transform: "rotate(-8deg) translateX(-7px)" },
@@ -98,6 +99,8 @@ export class Effects {
                     animation.addEventListener("finish", finish, { once: true });
                     window.setTimeout(finish, 800 + index * 90);
                 });
+                const lastCardDelay = Math.max(0, cardElements.length - 1) * 90;
+                window.setTimeout(() => deckElement.style.opacity = "", 600 + lastCardDelay);
             });
         }
         catch (error) {
