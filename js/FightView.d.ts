@@ -29,5 +29,6 @@ export declare class FightView {
     private healthStatLine;
     private button;
     private capitalize;
+    private describeMonsterIntent;
 }
 //# sourceMappingURL=FightView.d.ts.map

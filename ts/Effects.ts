@@ -86,6 +86,26 @@ export class Effects {
                     150,
                 );
             }
+            if (monsterTarget !== null && resolution.monsterHealing > 0) {
+                Effects.floatText(
+                    "+" + resolution.monsterHealing,
+                    "effect-change effect-change--positive effect-change--fight",
+                    monsterTarget,
+                    { x: -35, y: -50 },
+                    -5,
+                    600,
+                );
+            }
+            if (monsterTarget !== null && resolution.monsterBlock > 0) {
+                Effects.floatText(
+                    "+" + resolution.monsterBlock + " block",
+                    "effect-change effect-change--block effect-change--fight",
+                    monsterTarget,
+                    { x: 40, y: -45 },
+                    5,
+                    600,
+                );
+            }
             if (playerTarget !== null && resolution.healing > 0) {
                 Effects.floatText(
                     "+" + resolution.healing,

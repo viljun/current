@@ -83,7 +83,7 @@ export class FightView {
         panel.append(this.healthStatLine(
             this.capitalize(this.itemTakingSummary.itemType.name)
                 + " " + state.monsterHealth + " / " + state.monsterMaxHealth,
-            "Next attack " + state.monsterIntent,
+            "Next: " + this.describeMonsterIntent(state.monsterIntent),
             "fight-monster-health",
             "monster",
             state.monsterHealth,
@@ -310,5 +310,14 @@ export class FightView {
 
     private capitalize(text: string): string {
         return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    private describeMonsterIntent(intent: CardGameState["monsterIntent"]): string {
+        const actions: string[] = [];
+        if (intent.damage > 0) actions.push(intent.damage + " damage");
+        if (intent.block > 0) actions.push(intent.block + " block");
+        if (intent.healing > 0) actions.push(intent.healing + " heal");
+
+        return actions.length === 0 ? "Wait" : actions.join(" · ");
     }
 }
