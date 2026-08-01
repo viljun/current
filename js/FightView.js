@@ -48,8 +48,8 @@ export class FightView {
         const title = document.createElement("h1");
         title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
         panel.append(title);
-        panel.append(this.statLine("Monster " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent));
-        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3"));
+        panel.append(this.statLine("Monster " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent, "fight-monster-health"));
+        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3", "fight-player-health"));
         if (state.status === "playing") {
             panel.append(this.createHand(state));
         }
@@ -83,16 +83,32 @@ export class FightView {
                 details.push(card.healing + " heal");
             const cardButton = this.button(card.title + "\n" + details.join(" · "), () => {
                 var _a;
-                (_a = this.game) === null || _a === void 0 ? void 0 : _a.toggleCard(card.id);
+                const selection = (_a = this.game) === null || _a === void 0 ? void 0 : _a.toggleCard(card.id);
+                if ((selection === null || selection === void 0 ? void 0 : selection.turnResolution) !== null
+                    && (selection === null || selection === void 0 ? void 0 : selection.turnResolution) !== undefined) {
+                    this.playTurnEffects(selection.turnResolution);
+                }
                 this.render();
             });
             cardButton.classList.add("fight-card");
+            cardButton.dataset.cardId = card.id;
             if (state.selectedCardIds.includes(card.id)) {
                 cardButton.classList.add("fight-card--selected");
             }
             hand.append(cardButton);
         });
         return hand;
+    }
+    playTurnEffects(resolution) {
+        var _a, _b, _c, _d;
+        const cardElements = resolution.cards.map(card => {
+            var _a;
+            const elements = this.overlay === null
+                ? []
+                : Array.from(this.overlay.querySelectorAll(".fight-card"));
+            return (_a = [...elements].find(element => element.dataset.cardId === card.id)) !== null && _a !== void 0 ? _a : null;
+        });
+        Effects.playFightTurn(resolution, cardElements, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-monster-health")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-player-health")) !== null && _d !== void 0 ? _d : null);
     }
     applyVictory() {
         if (this.victoryApplied) {
@@ -122,11 +138,12 @@ export class FightView {
         }
         this.close();
     }
-    statLine(leftText, rightText) {
+    statLine(leftText, rightText, leftClass) {
         const line = document.createElement("div");
         line.className = "fight-stats";
         const left = document.createElement("span");
         left.textContent = leftText;
+        left.className = leftClass;
         const right = document.createElement("span");
         right.textContent = rightText;
         line.append(left, right);

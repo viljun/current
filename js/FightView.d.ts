@@ -16,6 +16,7 @@ export declare class FightView {
     private startGame;
     private render;
     private createHand;
+    private playTurnEffects;
     private applyVictory;
     private close;
     private requestClose;

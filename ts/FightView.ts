@@ -1,5 +1,5 @@
 import { CardGame }                from "./CardGame.js";
-import type { CardGameState }      from "./CardGame.js";
+import type { CardGameState, TurnResolution } from "./CardGame.js";
 import { Coordinates }            from "./Coordinates.js";
 import { Effects }                from "./Effects.js";
 import { Inventory }              from "./Inventory.js";
@@ -70,10 +70,12 @@ export class FightView {
         panel.append(this.statLine(
             "Monster " + state.monsterHealth + " / " + state.monsterMaxHealth,
             "Next attack " + state.monsterIntent,
+            "fight-monster-health",
         ));
         panel.append(this.statLine(
             "You " + state.playerHealth + " / " + state.playerMaxHealth,
             "Chosen " + state.selectedCardIds.length + " / 3",
+            "fight-player-health",
         ));
 
         if (state.status === "playing") {
@@ -107,11 +109,17 @@ export class FightView {
             const cardButton = this.button(
                 card.title + "\n" + details.join(" · "),
                 () => {
-                    this.game?.toggleCard(card.id);
+                    const selection = this.game?.toggleCard(card.id);
+                    if (selection?.turnResolution !== null
+                        && selection?.turnResolution !== undefined
+                    ) {
+                        this.playTurnEffects(selection.turnResolution);
+                    }
                     this.render();
                 },
             );
             cardButton.classList.add("fight-card");
+            cardButton.dataset.cardId = card.id;
             if (state.selectedCardIds.includes(card.id)) {
                 cardButton.classList.add("fight-card--selected");
             }
@@ -119,6 +127,22 @@ export class FightView {
         });
 
         return hand;
+    }
+
+    private playTurnEffects(resolution: TurnResolution): void {
+        const cardElements = resolution.cards.map(card => {
+            const elements = this.overlay === null
+                ? []
+                : Array.from(this.overlay.querySelectorAll<HTMLElement>(".fight-card"));
+
+            return [...elements].find(element => element.dataset.cardId === card.id) ?? null;
+        });
+        Effects.playFightTurn(
+            resolution,
+            cardElements,
+            this.overlay?.querySelector<HTMLElement>(".fight-monster-health") ?? null,
+            this.overlay?.querySelector<HTMLElement>(".fight-player-health") ?? null,
+        );
     }
 
     private applyVictory(): void {
@@ -156,11 +180,12 @@ export class FightView {
         this.close();
     }
 
-    private statLine(leftText: string, rightText: string): HTMLDivElement {
+    private statLine(leftText: string, rightText: string, leftClass: string): HTMLDivElement {
         const line = document.createElement("div");
         line.className = "fight-stats";
         const left = document.createElement("span");
         left.textContent = leftText;
+        left.className = leftClass;
         const right = document.createElement("span");
         right.textContent = rightText;
         line.append(left, right);

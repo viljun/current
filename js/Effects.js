@@ -29,6 +29,40 @@ export class Effects {
             console.warn("Unable to play item effect.", error);
         }
     }
+    // Captures all DOM positions synchronously, then lets the turn effects finish independently.
+    static playFightTurn(resolution, cardElements, monsterHealthElement, playerHealthElement) {
+        try {
+            const monsterBounds = monsterHealthElement === null || monsterHealthElement === void 0 ? void 0 : monsterHealthElement.getBoundingClientRect();
+            const playerBounds = playerHealthElement === null || playerHealthElement === void 0 ? void 0 : playerHealthElement.getBoundingClientRect();
+            const monsterTarget = Effects.centerOf(monsterBounds);
+            const playerTarget = Effects.centerOf(playerBounds);
+            resolution.cards.forEach((card, index) => {
+                const cardElement = cardElements[index];
+                const sourceBounds = cardElement === null || cardElement === void 0 ? void 0 : cardElement.getBoundingClientRect();
+                const target = card.damage > 0 ? monsterTarget : playerTarget;
+                if (sourceBounds !== undefined && target !== null && cardElement != null) {
+                    Effects.animateCard(sourceBounds, target, cardElement);
+                }
+            });
+            if (monsterTarget !== null && resolution.monsterDamage > 0) {
+                Effects.floatText("-" + resolution.monsterDamage, "effect-change effect-change--negative effect-change--fight", monsterTarget, { x: 0, y: -55 }, 0, 150);
+            }
+            if (playerTarget !== null && resolution.healing > 0) {
+                Effects.floatText("+" + resolution.healing, "effect-change effect-change--positive effect-change--fight", playerTarget, { x: -35, y: -50 }, -5, 150);
+            }
+            if (playerTarget !== null && resolution.block > 0) {
+                Effects.floatText("+" + resolution.block + " block", "effect-change effect-change--block effect-change--fight", playerTarget, { x: 40, y: -45 }, 5, 150);
+            }
+            if (playerTarget !== null && resolution.playerDamage > 0) {
+                Effects.floatText("-" + resolution.playerDamage, "effect-change effect-change--negative effect-change--fight", playerTarget, { x: 0, y: -60 }, 0, 600);
+            }
+            Effects.playSound("combat");
+            Effects.vibrate("combat");
+        }
+        catch (error) {
+            console.warn("Unable to play fight effect.", error);
+        }
+    }
     static getType(itemName) {
         if (Effects.COMBAT_ITEMS.has(itemName)) {
             return "combat";
@@ -56,16 +90,10 @@ export class Effects {
         };
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         visibleChanges.forEach(([name, quantity], index) => {
-            const text = document.createElement("div");
-            text.className = "effect-change effect-change--" + (quantity > 0 ? "positive" : "negative");
+            let className = "effect-change effect-change--" + (quantity > 0 ? "positive" : "negative");
             if (type === "rare" && quantity > 0) {
-                text.classList.add("effect-change--rare");
+                className += " effect-change--rare";
             }
-            text.textContent = (quantity > 0 ? "+" : "") + quantity + " " + name;
-            text.style.left = origin.x + "px";
-            text.style.top = origin.y + "px";
-            text.setAttribute("aria-hidden", "true");
-            document.body.append(text);
             const angleRange = visibleChanges.length === 1 ? 0 : 240;
             const angleDegrees = visibleChanges.length === 1
                 ? -90
@@ -75,36 +103,79 @@ export class Effects {
             const destinationX = Math.cos(angle) * distance;
             const destinationY = Math.sin(angle) * distance - 20;
             const rotation = reducedMotion ? 0 : -8 + (index % 3) * 8;
-            const animation = text.animate([
-                {
-                    transform: "translate(-50%, -50%) scale(0.45)",
-                    opacity: 0,
-                },
-                {
-                    transform: "translate(-50%, -50%) scale(1.25)",
-                    opacity: 1,
-                    offset: 0.22,
-                },
-                {
-                    transform: "translate(calc(-50% + " + destinationX + "px), calc(-50% + "
-                        + destinationY + "px)) scale(1.05) rotate(" + rotation + "deg)",
-                    opacity: 1,
-                    offset: 0.68,
-                },
-                {
-                    transform: "translate(calc(-50% + " + destinationX * 1.2 + "px), calc(-50% + "
-                        + destinationY * 1.2 + "px)) scale(1.4) rotate(" + rotation + "deg)",
-                    opacity: 0,
-                },
-            ], {
-                duration: reducedMotion ? 650 : 1150,
-                easing: "cubic-bezier(.2,.75,.2,1)",
-                fill: "forwards",
-            });
-            animation.addEventListener("finish", () => text.remove());
-            animation.addEventListener("cancel", () => text.remove());
-            window.setTimeout(() => text.remove(), 1300);
+            Effects.floatText((quantity > 0 ? "+" : "") + quantity + " " + name, className, origin, { x: destinationX, y: destinationY }, rotation);
         });
+    }
+    static floatText(content, className, origin, destination, rotation, delay = 0) {
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const text = document.createElement("div");
+        text.className = className;
+        text.textContent = content;
+        text.style.left = origin.x + "px";
+        text.style.top = origin.y + "px";
+        text.setAttribute("aria-hidden", "true");
+        document.body.append(text);
+        const x = reducedMotion ? 0 : destination.x;
+        const y = reducedMotion ? -25 : destination.y;
+        const duration = reducedMotion ? 650 : 1150;
+        const animation = text.animate([
+            { transform: "translate(-50%, -50%) scale(0.45)", opacity: 0 },
+            { transform: "translate(-50%, -50%) scale(1.25)", opacity: 1, offset: 0.22 },
+            {
+                transform: "translate(calc(-50% + " + x + "px), calc(-50% + "
+                    + y + "px)) scale(1.05) rotate(" + rotation + "deg)",
+                opacity: 1,
+                offset: 0.68,
+            },
+            {
+                transform: "translate(calc(-50% + " + x * 1.2 + "px), calc(-50% + "
+                    + y * 1.2 + "px)) scale(1.4) rotate(" + rotation + "deg)",
+                opacity: 0,
+            },
+        ], {
+            delay: delay,
+            duration: duration,
+            easing: "cubic-bezier(.2,.75,.2,1)",
+            fill: "forwards",
+        });
+        animation.addEventListener("finish", () => text.remove());
+        animation.addEventListener("cancel", () => text.remove());
+        window.setTimeout(() => text.remove(), delay + duration + 150);
+    }
+    static animateCard(source, target, sourceElement) {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            return;
+        }
+        const clone = sourceElement.cloneNode(true);
+        clone.className = "effect-fight-card";
+        clone.style.left = source.left + "px";
+        clone.style.top = source.top + "px";
+        clone.style.width = source.width + "px";
+        clone.style.height = source.height + "px";
+        clone.setAttribute("aria-hidden", "true");
+        document.body.append(clone);
+        const x = target.x - (source.left + source.width / 2);
+        const y = target.y - (source.top + source.height / 2);
+        const animation = clone.animate([
+            { transform: "translate(0, 0) scale(1)", opacity: 0.9 },
+            { transform: "translate(" + x + "px, " + y + "px) scale(0.2)", opacity: 0 },
+        ], {
+            duration: 500,
+            easing: "cubic-bezier(.25,.8,.25,1)",
+            fill: "forwards",
+        });
+        animation.addEventListener("finish", () => clone.remove());
+        animation.addEventListener("cancel", () => clone.remove());
+        window.setTimeout(() => clone.remove(), 650);
+    }
+    static centerOf(bounds) {
+        if (bounds === undefined) {
+            return null;
+        }
+        return {
+            x: bounds.left + bounds.width / 2,
+            y: bounds.top + bounds.height / 2,
+        };
     }
     static playSound(type) {
         var _a;

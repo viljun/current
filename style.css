@@ -107,6 +107,19 @@ html,
     color: #ffe173;
     font-size: 1.3rem;
 }
+.effect-change--block {
+    color: #8fc7ff;
+}
+.effect-change--fight {
+    z-index: 10003;
+    font-size: 1.45rem;
+}
+.effect-fight-card {
+    position: fixed;
+    z-index: 10002;
+    margin: 0;
+    pointer-events: none;
+}
 .fight-overlay {
     position: fixed;
     inset: 0;
