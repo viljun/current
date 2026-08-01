@@ -85,7 +85,9 @@ export class FightView {
         panel.append(this.healthStatLine(
             this.capitalize(this.itemTakingSummary.itemType.name)
                 + " " + state.monsterHealth + " / " + state.monsterMaxHealth,
-            "Next: " + this.describeMonsterIntent(state.monsterIntent),
+            state.status === "playing"
+                ? "Next: " + this.describeMonsterIntent(state.monsterIntent)
+                : "",
             "fight-monster-health",
             "monster",
             state.monsterHealth,
@@ -94,7 +96,9 @@ export class FightView {
         ));
         panel.append(this.healthStatLine(
             "You " + state.playerHealth + " / " + state.playerMaxHealth,
-            "Chosen " + state.selectedCardIds.length + " / 3",
+            state.status === "playing"
+                ? "Chosen " + state.selectedCardIds.length + " / 3"
+                : "",
             "fight-player-health",
             "player",
             state.playerHealth,

@@ -64,8 +64,12 @@ export class FightView {
         panel.append(title);
         panel.append(this.createCombatants());
         panel.append(this.healthStatLine(this.capitalize(this.itemTakingSummary.itemType.name)
-            + " " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next: " + this.describeMonsterIntent(state.monsterIntent), "fight-monster-health", "monster", state.monsterHealth, state.monsterMaxHealth, this.shownMonsterHealth));
-        panel.append(this.healthStatLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3", "fight-player-health", "player", state.playerHealth, state.playerMaxHealth, this.shownPlayerHealth));
+            + " " + state.monsterHealth + " / " + state.monsterMaxHealth, state.status === "playing"
+            ? "Next: " + this.describeMonsterIntent(state.monsterIntent)
+            : "", "fight-monster-health", "monster", state.monsterHealth, state.monsterMaxHealth, this.shownMonsterHealth));
+        panel.append(this.healthStatLine("You " + state.playerHealth + " / " + state.playerMaxHealth, state.status === "playing"
+            ? "Chosen " + state.selectedCardIds.length + " / 3"
+            : "", "fight-player-health", "player", state.playerHealth, state.playerMaxHealth, this.shownPlayerHealth));
         this.shownMonsterHealth = state.monsterHealth;
         this.shownPlayerHealth = state.playerHealth;
         let hand = null;
