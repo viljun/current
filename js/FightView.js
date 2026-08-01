@@ -49,7 +49,7 @@ export class FightView {
         title.textContent = this.capitalize(this.itemTakingSummary.itemType.name);
         panel.append(title);
         panel.append(this.statLine("Monster " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent));
-        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Block " + state.block + " · Chosen " + state.selectedCardIds.length + " / 3"));
+        panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3"));
         if (state.status === "playing") {
             panel.append(this.createHand(state));
         }

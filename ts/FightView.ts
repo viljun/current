@@ -73,7 +73,7 @@ export class FightView {
         ));
         panel.append(this.statLine(
             "You " + state.playerHealth + " / " + state.playerMaxHealth,
-            "Block " + state.block + " · Chosen " + state.selectedCardIds.length + " / 3",
+            "Chosen " + state.selectedCardIds.length + " / 3",
         ));
 
         if (state.status === "playing") {
