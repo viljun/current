@@ -11,6 +11,7 @@ export declare class FightView {
     private game;
     private victoryApplied;
     private sourceElement;
+    private dealtTurn;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
     open(): void;
     private startGame;

@@ -15,6 +15,7 @@ export class FightView {
         this.game = null;
         this.victoryApplied = false;
         this.sourceElement = null;
+        this.dealtTurn = 0;
     }
     open() {
         const monster = MonsterDefinition.get(this.itemTakingSummary.itemType.name);
@@ -30,6 +31,7 @@ export class FightView {
     }
     startGame(monster) {
         this.victoryApplied = false;
+        this.dealtTurn = 0;
         const requiredNames = this.itemTakingSummary.expenses.map(expense => expense.itemType.name);
         const itemOrigins = {};
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
@@ -57,8 +59,11 @@ export class FightView {
         panel.append(this.statLine(this.capitalize(this.itemTakingSummary.itemType.name)
             + " " + state.monsterHealth + " / " + state.monsterMaxHealth, "Next attack " + state.monsterIntent, "fight-monster-health"));
         panel.append(this.statLine("You " + state.playerHealth + " / " + state.playerMaxHealth, "Chosen " + state.selectedCardIds.length + " / 3", "fight-player-health"));
+        let hand = null;
+        const shouldDeal = state.status === "playing" && state.turn !== this.dealtTurn;
         if (state.status === "playing") {
-            panel.append(this.createHand(state));
+            hand = this.createHand(state);
+            panel.append(hand);
         }
         else {
             const outcome = document.createElement("div");
@@ -76,10 +81,21 @@ export class FightView {
             }
         }
         this.overlay.append(panel);
+        if (shouldDeal && hand !== null) {
+            this.dealtTurn = state.turn;
+            const deck = hand.querySelector(".fight-deck");
+            if (deck !== null) {
+                Effects.dealFightCards(deck, Array.from(hand.querySelectorAll(".fight-card")));
+            }
+        }
     }
     createHand(state) {
         const hand = document.createElement("div");
         hand.className = "fight-hand";
+        const deck = document.createElement("div");
+        deck.className = "fight-deck";
+        deck.setAttribute("aria-hidden", "true");
+        hand.append(deck);
         state.hand.forEach(card => {
             const details = [];
             if (card.damage > 0)
@@ -136,14 +152,17 @@ export class FightView {
     }
     playTurnEffects(resolution) {
         var _a, _b, _c, _d;
+        const allCardElements = this.overlay === null
+            ? []
+            : Array.from(this.overlay.querySelectorAll(".fight-card"));
         const cardElements = resolution.cards.map(card => {
             var _a;
-            const elements = this.overlay === null
-                ? []
-                : Array.from(this.overlay.querySelectorAll(".fight-card"));
-            return (_a = [...elements].find(element => element.dataset.cardId === card.id)) !== null && _a !== void 0 ? _a : null;
+            return (_a = allCardElements.find(element => element.dataset.cardId === card.id)) !== null && _a !== void 0 ? _a : null;
         });
         Effects.playFightTurn(resolution, cardElements, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-monster-health")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-player-health")) !== null && _d !== void 0 ? _d : null);
+        if (resolution.monsterDefeated || resolution.playerDefeated) {
+            Effects.sweepFightCards(allCardElements);
+        }
     }
     applyVictory() {
         if (this.victoryApplied) {

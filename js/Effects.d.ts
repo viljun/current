@@ -10,6 +10,8 @@ export declare class Effects {
     static initialize(soundSwitch: HTMLInputElement): void;
     static playItemAction(result: ItemActionResult, sourceElement: HTMLElement | null): void;
     static playFightTurn(resolution: TurnResolution, cardElements: (HTMLElement | null)[], monsterHealthElement: HTMLElement | null, playerHealthElement: HTMLElement | null): void;
+    static dealFightCards(deckElement: HTMLElement, cardElements: HTMLElement[]): void;
+    static sweepFightCards(cardElements: HTMLElement[]): void;
     private static getType;
     private static showChanges;
     private static floatText;

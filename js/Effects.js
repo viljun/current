@@ -63,6 +63,82 @@ export class Effects {
             console.warn("Unable to play fight effect.", error);
         }
     }
+    // Deals the rendered hand from the visible deck without blocking the battle.
+    static dealFightCards(deckElement, cardElements) {
+        try {
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                return;
+            }
+            cardElements.forEach(card => card.style.opacity = "0");
+            window.requestAnimationFrame(() => {
+                const deck = deckElement.getBoundingClientRect();
+                deckElement.animate([
+                    { transform: "rotate(0deg) translateX(0)" },
+                    { transform: "rotate(-8deg) translateX(-7px)" },
+                    { transform: "rotate(7deg) translateX(6px)" },
+                    { transform: "rotate(0deg) translateX(0)" },
+                ], { duration: 420, easing: "ease-in-out" });
+                cardElements.forEach((card, index) => {
+                    const target = card.getBoundingClientRect();
+                    const x = deck.left + deck.width / 2 - (target.left + target.width / 2);
+                    const y = deck.top + deck.height / 2 - (target.top + target.height / 2);
+                    const animation = card.animate([
+                        { transform: "translate(" + x + "px, " + y + "px) rotate(12deg) scale(.35)", opacity: 0 },
+                        { transform: "translate(0, 0) rotate(0deg) scale(1)", opacity: 1 },
+                    ], {
+                        delay: 110 + index * 90,
+                        duration: 430,
+                        easing: "cubic-bezier(.2,.8,.2,1)",
+                        fill: "forwards",
+                    });
+                    const finish = () => {
+                        card.style.opacity = "";
+                        animation.cancel();
+                    };
+                    animation.addEventListener("finish", finish, { once: true });
+                    window.setTimeout(finish, 800 + index * 90);
+                });
+            });
+        }
+        catch (error) {
+            console.warn("Unable to deal fight cards.", error);
+        }
+    }
+    // Captures the current hand, then sweeps its clones away after the final attacks land.
+    static sweepFightCards(cardElements) {
+        try {
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                return;
+            }
+            cardElements.forEach((card, index) => {
+                const bounds = card.getBoundingClientRect();
+                const clone = card.cloneNode(true);
+                clone.className = "effect-fight-card";
+                clone.style.left = bounds.left + "px";
+                clone.style.top = bounds.top + "px";
+                clone.style.width = bounds.width + "px";
+                clone.style.height = bounds.height + "px";
+                clone.setAttribute("aria-hidden", "true");
+                document.body.append(clone);
+                const direction = index % 2 === 0 ? -1 : 1;
+                const animation = clone.animate([
+                    { transform: "translate(0, 0) rotate(0deg)", opacity: 1 },
+                    { transform: "translate(" + direction * (window.innerWidth + bounds.width) + "px, 5rem) rotate(" + direction * 35 + "deg)", opacity: 0 },
+                ], {
+                    delay: 380 + index * 45,
+                    duration: 650,
+                    easing: "cubic-bezier(.55,.05,.8,.25)",
+                    fill: "forwards",
+                });
+                animation.addEventListener("finish", () => clone.remove());
+                animation.addEventListener("cancel", () => clone.remove());
+                window.setTimeout(() => clone.remove(), 1300);
+            });
+        }
+        catch (error) {
+            console.warn("Unable to sweep fight cards.", error);
+        }
+    }
     static getType(itemName) {
         if (Effects.COMBAT_ITEMS.has(itemName)) {
             return "combat";
