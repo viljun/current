@@ -8,7 +8,7 @@ import { ItemType } from "./ItemType.js";
 import { TakeItemButton } from "./TakeItemButton.js";
 import { View } from './View.js';
 export class Map {
-    constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size) {
+    constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size, isExploreMode) {
         this.slidingAnimationInProgress = false;
         this.selected_coordinates = null;
         this.map = map;
@@ -18,6 +18,7 @@ export class Map {
         this.inventory = inventory;
         this.coordinates = coordinates;
         this.tile_size = tile_size;
+        this.isExploreMode = isExploreMode;
     }
     // Redraws map.
     show({ new_coordinates = null, // If null, location does not change.
@@ -213,22 +214,20 @@ export class Map {
         div.setAttribute("style", "grid-column:" + x + "/" + x + ";grid-row:" + y + "/" + y);
         div.setAttribute("aria-label", cell_coordinates.latitude + "," + cell_coordinates.longitude);
         div.setAttribute("id", "cell" + x + "-" + y);
-        // Move.
+        // Select a location, or move to it in Explore mode.
         div.addEventListener("click", () => {
             if (!this.slidingAnimationInProgress) {
                 this.selected_coordinates = cell_coordinates;
-                this.show({
-                    new_coordinates: cell_coordinates,
-                });
+                if (this.isExploreMode()) {
+                    this.show({
+                        new_coordinates: cell_coordinates,
+                    });
+                }
+                else {
+                    this.show({});
+                }
             }
         });
-        // Set active cell.
-        div.addEventListener('contextmenu', (ev) => {
-            ev.preventDefault();
-            this.selected_coordinates = cell_coordinates;
-            this.show({});
-            return false;
-        }, false);
         return div;
     }
 }

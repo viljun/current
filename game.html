@@ -5,6 +5,10 @@
 </head>
 <div id="mapContainer">
     <div id="messageBox"></div>
+    <label id="exploreControl">
+        <input id="exploreSwitch" type="checkbox">
+        <span>Explore</span>
+    </label>
     <div id="map"></div>
 </div>
 
@@ -28,6 +32,7 @@
     const map_element        = document.getElementById("map");
     const messageBox         = document.getElementById("messageBox");
     const mapContainer       = document.getElementById("mapContainer");
+    const exploreSwitch      = document.getElementById("exploreSwitch");
     const inventory          = new Inventory;
     const tile_size          = 40 + 2;
     const tileOuterDimension = tile_size + 1;
@@ -69,17 +74,22 @@
         console.log("getCurrentPosition returned error", error);
     }
 
-    function successCallback() {
+    let exploreMode = false;
+    let latestGpsCoordinates = null;
+
+    function successCallback(location) {
         console.log("Success callback.");
-        navigator.geolocation.getCurrentPosition(function (location) {
-            coordinates = new Coordinates(
-                Math.round(location.coords.latitude  * ACCURACY_MULTIPLIER),
-                Math.round(location.coords.longitude * ACCURACY_MULTIPLIER),
-            )
+        latestGpsCoordinates = new Coordinates(
+            Math.round(location.coords.latitude  * ACCURACY_MULTIPLIER),
+            Math.round(location.coords.longitude * ACCURACY_MULTIPLIER),
+        );
+
+        if (!exploreMode) {
+            coordinates = latestGpsCoordinates;
             map.show({
                 new_coordinates: coordinates,
             });
-        }, showError);
+        }
     }
 
     // Kalliopirtti.
@@ -106,8 +116,22 @@
         inventory,
         coordinates,
         tile_size,
+        () => exploreMode,
     );
     map.show({});
+
+    exploreSwitch.addEventListener("change", () => {
+        exploreMode = exploreSwitch.checked;
+        mapContainer.classList.toggle("explore-mode", exploreMode);
+
+        if (!exploreMode && latestGpsCoordinates !== null) {
+            coordinates = latestGpsCoordinates;
+            map.selected_coordinates = null;
+            map.show({
+                new_coordinates: coordinates,
+            });
+        }
+    });
 
     startTracking();
 

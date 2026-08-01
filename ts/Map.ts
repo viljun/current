@@ -20,6 +20,7 @@ export class Map {
     coordinates: Coordinates;
     selected_coordinates: Coordinates | null = null;
     tile_size: number;
+    isExploreMode: () => boolean;
     constructor(
         map: HTMLDivElement,
         messageBox: HTMLDivElement,
@@ -28,6 +29,7 @@ export class Map {
         inventory: Inventory,
         coordinates: Coordinates,
         tile_size: number,
+        isExploreMode: () => boolean,
     ) {
         this.map = map;
         this.messageBox = messageBox;
@@ -36,6 +38,7 @@ export class Map {
         this.inventory = inventory;
         this.coordinates = coordinates;
         this.tile_size = tile_size;
+        this.isExploreMode = isExploreMode;
     }
 
     // Redraws map.
@@ -304,25 +307,20 @@ export class Map {
         div.setAttribute("aria-label", cell_coordinates.latitude + "," + cell_coordinates.longitude);
         div.setAttribute("id", "cell" + x + "-" + y);
 
-        // Move.
+        // Select a location, or move to it in Explore mode.
         div.addEventListener("click", () => {
             if (!this.slidingAnimationInProgress) {
                 this.selected_coordinates = cell_coordinates;
-                this.show({
-                    new_coordinates: cell_coordinates,
-                });
+
+                if (this.isExploreMode()) {
+                    this.show({
+                        new_coordinates: cell_coordinates,
+                    });
+                } else {
+                    this.show({});
+                }
             }
         });
-
-        // Set active cell.
-        div.addEventListener('contextmenu', (ev) => {
-            ev.preventDefault();
-
-            this.selected_coordinates = cell_coordinates;
-            this.show({});
-
-            return false;
-        }, false);
 
         return div;
     }
