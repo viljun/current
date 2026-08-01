@@ -204,6 +204,10 @@ html,
     width: 54px;
     height: 54px;
 }
+.origin-artwork-cell .item {
+    top: 0;
+    left: 0;
+}
 .fight-portrait-art {
     height: 7rem;
     margin-bottom: 0.3rem;
