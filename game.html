@@ -44,6 +44,7 @@
     const gpsStatus          = document.getElementById("gpsStatus");
     const inventory          = new Inventory;
     Effects.initialize(soundSwitch);
+    const EXPLORE_STORAGE_KEY = "gpsgame.exploreMode";
     const tile_size          = 40 + 2;
     const tileOuterDimension = tile_size + 1;
     const cols               = Math.floor(mapContainer.clientWidth  / tileOuterDimension / 2) * 2 + 1 + SAFETY_MARGIN;  // must be odd number
@@ -95,6 +96,14 @@
     }
 
     let exploreMode = false;
+    try {
+        exploreMode = localStorage.getItem(EXPLORE_STORAGE_KEY) === "true";
+    } catch {
+        // Explore mode still works when browser storage is unavailable.
+    }
+    exploreSwitch.checked = exploreMode;
+    mapContainer.classList.toggle("explore-mode", exploreMode);
+
     let latestGpsCoordinates = null;
     let latestGpsAccuracy = null;
     let smoothedGpsLocation = null;
@@ -188,6 +197,11 @@
     exploreSwitch.addEventListener("change", () => {
         exploreMode = exploreSwitch.checked;
         mapContainer.classList.toggle("explore-mode", exploreMode);
+        try {
+            localStorage.setItem(EXPLORE_STORAGE_KEY, String(exploreMode));
+        } catch {
+            // Keep mode switching functional when browser storage is unavailable.
+        }
 
         if (!exploreMode && latestGpsCoordinates !== null) {
             coordinates = latestGpsCoordinates;
