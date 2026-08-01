@@ -27,7 +27,8 @@ export class FightView {
 
     open(): void {
         const monster = MonsterDefinition.get(this.itemTakingSummary.itemType.name);
-        if (monster === null) {
+        const playerHealth = this.inventory.totalQuantities["heart"] ?? 0;
+        if (monster === null || playerHealth <= 0) {
             return;
         }
         this.sourceElement = document.querySelector<HTMLElement>(
@@ -58,6 +59,7 @@ export class FightView {
             this.coordinates.getSeed(),
             requiredNames,
             itemOrigins,
+            this.inventory.totalQuantities["heart"] ?? 0,
         );
         this.render();
     }

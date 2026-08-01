@@ -20,8 +20,10 @@ export class FightView {
         this.shownPlayerHealth = null;
     }
     open() {
+        var _a;
         const monster = MonsterDefinition.get(this.itemTakingSummary.itemType.name);
-        if (monster === null) {
+        const playerHealth = (_a = this.inventory.totalQuantities["heart"]) !== null && _a !== void 0 ? _a : 0;
+        if (monster === null || playerHealth <= 0) {
             return;
         }
         this.sourceElement = document.querySelector(".cell.selected .item.collectible");
@@ -32,6 +34,7 @@ export class FightView {
         this.startGame(monster);
     }
     startGame(monster) {
+        var _a;
         this.victoryApplied = false;
         this.dealtTurn = 0;
         this.shownMonsterHealth = null;
@@ -41,7 +44,7 @@ export class FightView {
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
             itemOrigins[itemName] = this.inventory.getItemOrigins(itemName);
         }
-        this.game = new CardGame(monster, this.inventory.totalQuantities, this.coordinates.getSeed(), requiredNames, itemOrigins);
+        this.game = new CardGame(monster, this.inventory.totalQuantities, this.coordinates.getSeed(), requiredNames, itemOrigins, (_a = this.inventory.totalQuantities["heart"]) !== null && _a !== void 0 ? _a : 0);
         this.render();
     }
     render() {

@@ -46,7 +46,7 @@ export declare class CardGame {
     private drawPile;
     private discardPile;
     private state;
-    constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[], itemOrigins: Record<string, ItemOrigin[]>);
+    constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[], itemOrigins: Record<string, ItemOrigin[]>, playerHealth: number);
     getState(): CardGameState;
     toggleCard(cardId: string): CardSelectionResult;
     private resolveTurn;

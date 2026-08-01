@@ -71,6 +71,7 @@ export class CardGame {
         seed: number,
         requiredItemNames: string[],
         itemOrigins: Record<string, ItemOrigin[]>,
+        playerHealth: number,
     ) {
         this.monster = monster;
         this.seedState = { value: seed || 1 };
@@ -90,8 +91,8 @@ export class CardGame {
         this.state = {
             monsterHealth: monster.health,
             monsterMaxHealth: monster.health,
-            playerHealth: 10,
-            playerMaxHealth: 10,
+            playerHealth: playerHealth,
+            playerMaxHealth: playerHealth,
             block: 0,
             monsterBlock: 0,
             monsterIntent: this.getMonsterAction(0),

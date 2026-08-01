@@ -9,12 +9,14 @@ export class FightMonsterButton {
         this.map = map;
     }
     element() {
+        var _a;
         const container = document.createElement("div");
         container.className = "message";
         const button = document.createElement("button");
         button.className = "button";
         button.textContent = "Fight " + this.itemTakingSummary.itemType.name;
-        button.disabled = this.itemTakingSummary.missing.length > 0;
+        button.disabled = this.itemTakingSummary.missing.length > 0
+            || ((_a = this.inventory.totalQuantities["heart"]) !== null && _a !== void 0 ? _a : 0) <= 0;
         button.onclick = () => {
             if (!this.map.isWithinTakingRange(this.selectedCoordinates)) {
                 this.map.show({});
