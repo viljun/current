@@ -4,6 +4,8 @@ import { Coordinates } from "./Coordinates.js";
 import { Inventory } from "./Inventory.js";
 export declare class Map {
     slidingAnimationInProgress: boolean;
+    interactionLocked: boolean;
+    pendingCoordinates: Coordinates | null;
     map: HTMLDivElement;
     messageBox: HTMLDivElement;
     cols: number;
@@ -18,6 +20,7 @@ export declare class Map {
         new_coordinates?: Coordinates | null;
     }): void;
     isWithinTakingRange(coordinates: Coordinates): boolean;
+    setInteractionLocked(locked: boolean): void;
     slide({ previous_coordinates, tile_size, }: {
         previous_coordinates: Coordinates;
         tile_size: number;

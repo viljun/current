@@ -2,6 +2,7 @@ export const ACCURACY_MULTIPLIER = 10000;
 export const ITEM_TAKING_RANGE = 1;
 import { Coordinates } from "./Coordinates.js";
 import { DungeonMap } from "./DungeonMap.js";
+import { FightMonsterButton } from "./FightMonsterButton.js";
 import { Image } from "./Image.js";
 import { Inventory } from "./Inventory.js";
 import { ItemTaking } from "./ItemTaking.js";
@@ -11,6 +12,8 @@ import { View } from './View.js';
 export class Map {
     constructor(map, messageBox, cols, rows, inventory, coordinates, tile_size, isExploreMode) {
         this.slidingAnimationInProgress = false;
+        this.interactionLocked = false;
+        this.pendingCoordinates = null;
         this.selected_coordinates = null;
         this.map = map;
         this.messageBox = messageBox;
@@ -25,6 +28,10 @@ export class Map {
     show({ new_coordinates = null, // If null, location does not change.
      }) {
         var _a;
+        if (new_coordinates && this.interactionLocked) {
+            this.pendingCoordinates = new_coordinates;
+            return;
+        }
         const previous_coordinates = this.coordinates; // Save previous coordinates for sliding effect.
         if (new_coordinates) { // If moving to new coordinates.
             this.coordinates = new_coordinates;
@@ -133,8 +140,10 @@ export class Map {
                         && itemType !== null // to satisfy ts compiler
                     ) {
                         if (this.isWithinTakingRange(selected_coordinates)) {
-                            const takeItemButton = (new TakeItemButton(item_taking_summary, this.inventory, selected_coordinates, this, this.messageBox)).element();
-                            View.setMessage(this.messageBox, takeItemButton);
+                            const actionButton = itemType.isMonster()
+                                ? new FightMonsterButton(item_taking_summary, this.inventory, selected_coordinates, this, this.messageBox).element()
+                                : new TakeItemButton(item_taking_summary, this.inventory, selected_coordinates, this, this.messageBox).element();
+                            View.setMessage(this.messageBox, actionButton);
                         }
                         else {
                             View.setMessage(this.messageBox, "Walk closer to take this " + itemType.name + ".");
@@ -156,6 +165,17 @@ export class Map {
     }
     isWithinTakingRange(coordinates) {
         return this.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
+    }
+    setInteractionLocked(locked) {
+        this.interactionLocked = locked;
+        if (!locked && this.pendingCoordinates !== null) {
+            const coordinates = this.pendingCoordinates;
+            this.pendingCoordinates = null;
+            this.show({ new_coordinates: coordinates });
+        }
+        else if (!locked) {
+            this.show({});
+        }
     }
     // Effetct that smoothly slides the map after location has changed. Game works well without calling this function.
     slide({ previous_coordinates, tile_size, }) {
@@ -230,7 +250,7 @@ export class Map {
         div.setAttribute("id", "cell" + x + "-" + y);
         // Select a location, or move to it in Explore mode.
         div.addEventListener("click", () => {
-            if (!this.slidingAnimationInProgress) {
+            if (!this.slidingAnimationInProgress && !this.interactionLocked) {
                 this.selected_coordinates = cell_coordinates;
                 if (this.isExploreMode()) {
                     this.show({
