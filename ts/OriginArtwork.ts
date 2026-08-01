@@ -19,8 +19,8 @@ export class OriginArtwork {
                 const seed = coordinates.getSeed();
                 const cell = document.createElement("div");
                 cell.className = "origin-artwork-cell";
-                cell.style.setProperty("--origin-x", String(x));
-                cell.style.setProperty("--origin-y", String(y));
+                cell.style.setProperty("--origin-left", (x * 54 - 27) + "px");
+                cell.style.setProperty("--origin-top", (y * 54 - 27) + "px");
 
                 if (origin.depth === 0) {
                     cell.append(

@@ -199,8 +199,8 @@ html,
 }
 .origin-artwork-cell {
     position: absolute;
-    top: calc(50% - 27px + var(--origin-y) * 54px);
-    left: calc(50% - 27px + var(--origin-x) * 54px);
+    top: calc(50% + var(--origin-top));
+    left: calc(50% + var(--origin-left));
     width: 54px;
     height: 54px;
 }
