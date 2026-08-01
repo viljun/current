@@ -1,4 +1,5 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
+import type { MonsterAction } from "./MonsterDefinition.js";
 import type { ItemOrigin } from "./Inventory.js";
 export interface CardDefinition {
     id: string;
@@ -16,7 +17,8 @@ export interface CardGameState {
     playerHealth: number;
     playerMaxHealth: number;
     block: number;
-    monsterIntent: number;
+    monsterBlock: number;
+    monsterIntent: MonsterAction;
     hand: CardDefinition[];
     selectedCardIds: string[];
     status: FightStatus;
@@ -28,6 +30,8 @@ export interface TurnResolution {
     playerDamage: number;
     healing: number;
     block: number;
+    monsterHealing: number;
+    monsterBlock: number;
     monsterDefeated: boolean;
     playerDefeated: boolean;
 }
@@ -50,6 +54,7 @@ export declare class CardGame {
     private drawCards;
     private ensureRequiredCards;
     private shuffle;
-    private random;
+    private nextSequenceFraction;
+    private getMonsterAction;
 }
 //# sourceMappingURL=CardGame.d.ts.map

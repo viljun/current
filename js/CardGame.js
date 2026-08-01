@@ -1,7 +1,6 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
 export class CardGame {
     constructor(monster, inventory, seed, requiredItemNames, itemOrigins) {
-        var _a;
         this.discardPile = [];
         this.monster = monster;
         this.seedState = { value: seed || 1 };
@@ -24,7 +23,8 @@ export class CardGame {
             playerHealth: 10,
             playerMaxHealth: 10,
             block: 0,
-            monsterIntent: (_a = monster.attackPattern[0]) !== null && _a !== void 0 ? _a : 0,
+            monsterBlock: 0,
+            monsterIntent: this.getMonsterAction(0),
             hand: [],
             selectedCardIds: [],
             status: "playing",
@@ -34,7 +34,7 @@ export class CardGame {
         this.ensureRequiredCards(requiredItemNames);
     }
     getState() {
-        return Object.assign(Object.assign({}, this.state), { hand: [...this.state.hand], selectedCardIds: [...this.state.selectedCardIds] });
+        return Object.assign(Object.assign({}, this.state), { monsterIntent: Object.assign({}, this.state.monsterIntent), hand: [...this.state.hand], selectedCardIds: [...this.state.selectedCardIds] });
     }
     toggleCard(cardId) {
         if (this.state.status !== "playing") {
@@ -55,7 +55,6 @@ export class CardGame {
         return { selected: true, turnResolution: null };
     }
     resolveTurn() {
-        var _a;
         const selectedCards = this.state.selectedCardIds
             .map(cardId => this.state.hand.find(card => card.id === cardId))
             .filter((card) => card !== undefined);
@@ -63,7 +62,9 @@ export class CardGame {
         const playerHealthBefore = this.state.playerHealth;
         const block = selectedCards.reduce((total, card) => total + card.block, 0);
         for (const card of selectedCards) {
-            this.state.monsterHealth = Math.max(0, this.state.monsterHealth - card.damage);
+            const blockedDamage = Math.min(this.state.monsterBlock, card.damage);
+            this.state.monsterBlock -= blockedDamage;
+            this.state.monsterHealth = Math.max(0, this.state.monsterHealth - (card.damage - blockedDamage));
             this.state.block += card.block;
             this.state.playerHealth = Math.min(this.state.playerMaxHealth, this.state.playerHealth + card.healing);
         }
@@ -79,12 +80,19 @@ export class CardGame {
                 playerDamage: 0,
                 healing: healing,
                 block: block,
+                monsterHealing: 0,
+                monsterBlock: 0,
                 monsterDefeated: true,
                 playerDefeated: false,
             };
         }
-        const damage = Math.max(0, this.state.monsterIntent - this.state.block);
+        const action = this.state.monsterIntent;
+        const damage = Math.max(0, action.damage - this.state.block);
         this.state.playerHealth = Math.max(0, this.state.playerHealth - damage);
+        const monsterHealthBeforeHealing = this.state.monsterHealth;
+        this.state.monsterHealth = Math.min(this.state.monsterMaxHealth, this.state.monsterHealth + action.healing);
+        const monsterHealing = this.state.monsterHealth - monsterHealthBeforeHealing;
+        this.state.monsterBlock = action.block;
         if (this.state.playerHealth === 0) {
             this.state.status = "lost";
             return {
@@ -93,6 +101,8 @@ export class CardGame {
                 playerDamage: playerHealthAfterCards,
                 healing: healing,
                 block: block,
+                monsterHealing: monsterHealing,
+                monsterBlock: action.block,
                 monsterDefeated: false,
                 playerDefeated: true,
             };
@@ -101,7 +111,7 @@ export class CardGame {
         this.state.hand = [];
         this.state.block = 0;
         this.state.turn++;
-        this.state.monsterIntent = (_a = this.monster.attackPattern[(this.state.turn - 1) % this.monster.attackPattern.length]) !== null && _a !== void 0 ? _a : 0;
+        this.state.monsterIntent = this.getMonsterAction(this.state.turn - 1);
         this.drawCards(this.monster.handSize);
         return {
             cards: [...selectedCards],
@@ -109,6 +119,8 @@ export class CardGame {
             playerDamage: damage,
             healing: healing,
             block: block,
+            monsterHealing: monsterHealing,
+            monsterBlock: action.block,
             monsterDefeated: false,
             playerDefeated: false,
         };
@@ -164,17 +176,24 @@ export class CardGame {
     }
     shuffle(cards) {
         for (let index = cards.length - 1; index > 0; index--) {
-            const swapIndex = Math.floor(this.random() * (index + 1));
+            const swapIndex = Math.floor(this.nextSequenceFraction() * (index + 1));
             [cards[index], cards[swapIndex]] = [cards[swapIndex], cards[index]];
         }
     }
-    random() {
+    nextSequenceFraction() {
         let value = this.seedState.value | 0;
         value ^= value << 13;
         value ^= value >>> 17;
         value ^= value << 5;
         this.seedState.value = value;
         return (value >>> 0) / 4294967296;
+    }
+    getMonsterAction(index) {
+        const pattern = this.monster.actionPattern;
+        const action = pattern[index % pattern.length];
+        return action === undefined
+            ? { damage: 0, block: 0, healing: 0 }
+            : Object.assign({}, action);
     }
 }
 CardGame.CARD_TYPES = {
