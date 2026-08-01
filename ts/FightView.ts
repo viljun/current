@@ -1,5 +1,8 @@
 import { CardGame }                from "./CardGame.js";
-import type { CardGameState, TurnResolution } from "./CardGame.js";
+import type {
+    CardGameState,
+    CardPlayResolution,
+} from "./CardGame.js";
 import { Coordinates }            from "./Coordinates.js";
 import { Effects }                from "./Effects.js";
 import { Inventory }              from "./Inventory.js";
@@ -14,7 +17,9 @@ export class FightView {
     private game: CardGame|null = null;
     private victoryApplied = false;
     private sourceElement: HTMLElement|null = null;
-    private dealtTurn = 0;
+    private dealtRound = 0;
+    private shownExchange = "";
+    private animating = false;
     private shownMonsterHealth: number|null = null;
     private shownPlayerHealth: number|null = null;
 
@@ -65,7 +70,9 @@ export class FightView {
 
     private startGame(monster: MonsterDefinition): void {
         this.victoryApplied = false;
-        this.dealtTurn = 0;
+        this.dealtRound = 0;
+        this.shownExchange = "";
+        this.animating = false;
         this.shownMonsterHealth = null;
         this.shownPlayerHealth = null;
         const requiredNames = this.itemTakingSummary.expenses.map(
@@ -100,28 +107,53 @@ export class FightView {
         closeButton.setAttribute("aria-label", state.status === "playing" ? "Retreat" : "Close fight");
         panel.append(closeButton);
 
-        const title = document.createElement("h1");
-        title.textContent = "Battle";
-        panel.append(title);
-        panel.append(this.createCombatants());
-        panel.append(this.healthStatLine(
-            this.capitalize(this.itemTakingSummary.itemType.name)
-                + " " + state.monsterHealth + " / " + state.monsterMaxHealth,
-            state.status === "playing"
-                ? "Next: " + this.describeMonsterIntent(state.monsterIntent)
-                : "",
-            "fight-monster-health",
+        const board = document.createElement("div");
+        board.className = "fight-board";
+        const monsterSide = document.createElement("section");
+        monsterSide.className = "fight-side fight-side--monster";
+        monsterSide.append(this.createFighterDisplay(
+            this.itemTakingSummary.itemType.name,
+            this.capitalize(this.itemTakingSummary.itemType.name),
+            "above",
             "monster",
             state.monsterHealth,
             state.monsterMaxHealth,
             this.shownMonsterHealth,
         ));
-        panel.append(this.healthStatLine(
-            "You " + state.playerHealth + " / " + state.playerMaxHealth,
-            state.status === "playing"
-                ? "Chosen " + state.selectedCardIds.length + " / 3"
-                : "",
-            "fight-player-health",
+        if (state.status === "playing") {
+            monsterSide.append(this.createMonsterHand(state));
+        }
+
+        const center = document.createElement("div");
+        center.className = "fight-board-center";
+        const playerSide = document.createElement("section");
+        playerSide.className = "fight-side fight-side--player";
+        let hand: HTMLDivElement|null = null;
+        const shouldDeal = state.status === "playing"
+            && state.phase === "player"
+            && state.round !== this.dealtRound;
+        if (state.status === "playing") {
+            const status = document.createElement("div");
+            status.className = "fight-turn-status";
+            status.setAttribute("role", "status");
+            status.setAttribute("aria-live", "polite");
+            status.textContent = this.turnStatus(state);
+            center.append(status);
+            hand = this.createHand(state);
+            playerSide.append(hand);
+        } else {
+            const outcome = document.createElement("div");
+            outcome.className = "fight-outcome fight-outcome--" + state.status;
+            outcome.textContent = state.status === "won" ? "Victory" : "Defeated";
+            center.append(outcome);
+            if (state.status === "won") {
+                this.applyVictory();
+            }
+        }
+        playerSide.append(this.createFighterDisplay(
+            "cat",
+            "You",
+            "below",
             "player",
             state.playerHealth,
             state.playerMaxHealth,
@@ -129,25 +161,12 @@ export class FightView {
         ));
         this.shownMonsterHealth = state.monsterHealth;
         this.shownPlayerHealth = state.playerHealth;
-
-        let hand: HTMLDivElement|null = null;
-        const shouldDeal = state.status === "playing" && state.turn !== this.dealtTurn;
-        if (state.status === "playing") {
-            hand = this.createHand(state);
-            panel.append(hand);
-        } else {
-            const outcome = document.createElement("div");
-            outcome.className = "fight-outcome fight-outcome--" + state.status;
-            outcome.textContent = state.status === "won" ? "Victory" : "Defeated";
-            panel.append(outcome);
-            if (state.status === "won") {
-                this.applyVictory();
-            }
-        }
-
+        board.append(monsterSide, center, playerSide);
+        panel.append(board);
         this.overlay.append(panel);
+        this.showRoundEffect(state, board);
         if (shouldDeal && hand !== null) {
-            this.dealtTurn = state.turn;
+            this.dealtRound = state.round;
             const deck = hand.querySelector<HTMLElement>(".fight-deck");
             if (deck !== null) {
                 Effects.dealFightCards(
@@ -166,36 +185,128 @@ export class FightView {
         deck.setAttribute("aria-hidden", "true");
         hand.append(deck);
         state.hand.forEach(card => {
-            const details = [];
-            if (card.damage > 0) details.push(card.damage + " damage");
-            if (card.block > 0) details.push(card.block + " block");
-            if (card.healing > 0) details.push(card.healing + " heal");
             const cardButton = this.button("", () => {
-                    const selection = this.game?.toggleCard(card.id);
-                    if (selection?.turnResolution !== null
-                        && selection?.turnResolution !== undefined
-                    ) {
-                        this.playTurnEffects(selection.turnResolution);
-                    }
-                    this.render();
+                void this.playPlayerCard(card.id, cardButton);
             });
             cardButton.classList.add("fight-card");
             cardButton.dataset.cardId = card.id;
-            if (state.selectedCardIds.includes(card.id)) {
-                cardButton.classList.add("fight-card--selected");
-            }
+            cardButton.disabled = this.animating || state.phase !== "player";
             if (card.origin !== null) {
                 cardButton.append(OriginArtwork.create(card.itemName, card.origin, "fight-card-art"));
             }
             const name = document.createElement("strong");
             name.textContent = card.title;
-            const effect = document.createElement("span");
-            effect.textContent = details.join(" · ");
-            cardButton.append(name, effect);
+            cardButton.append(name, Effects.createCardEffectIcons(card));
             hand.append(cardButton);
         });
 
         return hand;
+    }
+
+    private createMonsterHand(state: CardGameState): HTMLDivElement {
+        const area = document.createElement("div");
+        area.className = "fight-monster-hand";
+        const cards = document.createElement("div");
+        cards.className = "fight-monster-cards";
+        for (let index = 0; index < state.monsterHandSize; index++) {
+            const back = document.createElement("div");
+            back.className = "fight-monster-card-back";
+            back.setAttribute("aria-label", "Hidden monster card");
+            cards.append(back);
+        }
+        area.append(cards);
+
+        return area;
+    }
+
+    private createIdentity(
+        itemName: string,
+        label: string,
+        labelPosition: "above"|"below",
+    ): HTMLDivElement {
+        const origin = {
+            latitude: this.coordinates.latitude,
+            longitude: this.coordinates.longitude,
+            depth: this.inventory.getDepth(),
+        };
+        const identity = document.createElement("div");
+        identity.className = "fight-identity fight-identity--" + labelPosition;
+        const name = document.createElement("strong");
+        name.textContent = label;
+        const portrait = OriginArtwork.create(
+            itemName,
+            origin,
+            "fight-portrait-art",
+        );
+        if (labelPosition === "above") {
+            identity.append(name, portrait);
+        } else {
+            identity.append(portrait, name);
+        }
+
+        return identity;
+    }
+
+    private createFighterDisplay(
+        itemName: string,
+        label: string,
+        labelPosition: "above"|"below",
+        owner: "player"|"monster",
+        health: number,
+        maximum: number,
+        previousHealth: number|null,
+    ): HTMLDivElement {
+        const display = document.createElement("div");
+        display.className = "fight-fighter fight-fighter--" + owner;
+        display.append(
+            this.createIdentity(itemName, label, labelPosition),
+            this.createHealthDisplay(
+                owner,
+                health,
+                maximum,
+                previousHealth,
+            ),
+        );
+
+        return display;
+    }
+
+    private createHealthDisplay(
+        owner: "player"|"monster",
+        health: number,
+        maximum: number,
+        previousHealth: number|null,
+    ): HTMLDivElement {
+        const display = document.createElement("div");
+        display.className = "fight-health-display fight-" + owner + "-health";
+        const bar = document.createElement("div");
+        bar.className = "fight-health-bar";
+        bar.setAttribute("aria-hidden", "true");
+        const fill = document.createElement("div");
+        fill.className = "fight-health-fill";
+        const percentage = maximum > 0 ? 100 * health / maximum : 0;
+        const previousPercentage = previousHealth === null || maximum <= 0
+            ? percentage
+            : 100 * previousHealth / maximum;
+        bar.style.setProperty("--health-fill", previousPercentage + "%");
+        window.requestAnimationFrame(() => {
+            bar.style.setProperty("--health-fill", percentage + "%");
+        });
+        bar.append(fill);
+
+        const details = document.createElement("div");
+        details.className = "fight-health-details";
+        const heart = document.createElement("img");
+        heart.className = "fight-health-icon";
+        heart.src = "images/pngtree-smooth-glossy-heart-vector-file-ai-and-png-png-image_4557871.png";
+        heart.alt = "Health";
+        const value = document.createElement("span");
+        value.className = "fight-health-value";
+        value.textContent = health + " / " + maximum;
+        details.append(heart, value);
+        display.append(bar, details);
+
+        return display;
     }
 
     private createCombatants(): HTMLDivElement {
@@ -233,22 +344,203 @@ export class FightView {
         return wrapper;
     }
 
-    private playTurnEffects(resolution: TurnResolution): void {
-        const allCardElements = this.overlay === null
-            ? []
-            : Array.from(this.overlay.querySelectorAll<HTMLElement>(".fight-card"));
-        const cardElements = resolution.cards.map(card => {
-            return allCardElements.find(element => element.dataset.cardId === card.id) ?? null;
-        });
-        Effects.playFightTurn(
-            resolution,
-            cardElements,
-            this.overlay?.querySelector<HTMLElement>(".fight-monster-health") ?? null,
-            this.overlay?.querySelector<HTMLElement>(".fight-player-health") ?? null,
-        );
-        if (resolution.monsterDefeated || resolution.playerDefeated) {
-            Effects.sweepFightCards(allCardElements);
+    private async playPlayerCard(
+        cardId: string,
+        cardElement: HTMLElement,
+    ): Promise<void> {
+        if (this.animating || this.game === null || this.overlay === null) {
+            return;
         }
+        const allCardElements = Array.from(
+            this.overlay.querySelectorAll<HTMLElement>(".fight-card"),
+        );
+        this.animating = true;
+        allCardElements.forEach(card => {
+            if (card instanceof HTMLButtonElement) {
+                card.disabled = true;
+            }
+        });
+        const playerResolution = this.game.playPlayerCard(cardId);
+        if (playerResolution === null) {
+            this.animating = false;
+
+            return;
+        }
+        await this.playCardEffects(playerResolution, cardElement);
+        if (playerResolution.monsterDefeated) {
+            this.finishFight();
+
+            return;
+        }
+
+        if (playerResolution.card.block === 0) {
+            Effects.showSpentFightCard(cardElement);
+        }
+        this.syncFightState();
+        if (this.overlay === null) {
+            this.animating = false;
+
+            return;
+        }
+        const monsterCard = this.overlay.querySelector<HTMLElement>(
+            ".fight-monster-card-back:not(.fight-card--empty)",
+        );
+        const monsterResolution = this.game.playMonsterCard();
+        if (monsterResolution === null) {
+            this.animating = false;
+            this.render();
+
+            return;
+        }
+        await this.playCardEffects(monsterResolution, monsterCard);
+        if (monsterResolution.playerDefeated) {
+            this.finishFight();
+
+            return;
+        }
+
+        if (monsterResolution.card.block === 0) {
+            if (monsterCard !== null) {
+                Effects.showSpentFightCard(monsterCard);
+            }
+        }
+        this.syncFightState();
+        if (monsterResolution.roundComplete) {
+            await this.sweepBoardCards();
+            this.game.dealNextRound();
+            this.animating = false;
+            this.render();
+
+            return;
+        }
+        this.animating = false;
+        this.syncFightState();
+    }
+
+    private async playCardEffects(
+        resolution: CardPlayResolution,
+        cardElement: HTMLElement|null,
+    ): Promise<void> {
+        await Effects.playFightCard(
+            resolution,
+            cardElement,
+            this.overlay?.querySelector<HTMLElement>(
+                ".fight-fighter--monster .fight-portrait-art",
+            ) ?? null,
+            this.overlay?.querySelector<HTMLElement>(
+                ".fight-fighter--player .fight-portrait-art",
+            ) ?? null,
+            this.overlay?.querySelector<HTMLElement>(".fight-turn-status") ?? null,
+            this.overlay,
+            this.overlay,
+            this.itemTakingSummary.itemType.name,
+        );
+    }
+
+    private syncFightState(): void {
+        if (this.overlay === null || this.game === null) {
+            return;
+        }
+        const state = this.game.getState();
+        const monsterHealth = this.overlay.querySelector<HTMLElement>(
+            ".fight-monster-health",
+        );
+        const playerHealth = this.overlay.querySelector<HTMLElement>(
+            ".fight-player-health",
+        );
+        if (monsterHealth !== null) {
+            const value = monsterHealth.querySelector<HTMLElement>(
+                ".fight-health-value",
+            );
+            if (value !== null) {
+                value.textContent = state.monsterHealth
+                    + " / " + state.monsterMaxHealth;
+            }
+        }
+        if (playerHealth !== null) {
+            const value = playerHealth.querySelector<HTMLElement>(
+                ".fight-health-value",
+            );
+            if (value !== null) {
+                value.textContent = state.playerHealth
+                    + " / " + state.playerMaxHealth;
+            }
+        }
+        this.updateHealthMeter(
+            "monster",
+            state.monsterHealth,
+            state.monsterMaxHealth,
+        );
+        this.updateHealthMeter(
+            "player",
+            state.playerHealth,
+            state.playerMaxHealth,
+        );
+        const status = this.overlay.querySelector<HTMLElement>(".fight-turn-status");
+        if (status !== null) {
+            status.textContent = this.turnStatus(state);
+        }
+        this.overlay.querySelectorAll<HTMLButtonElement>(
+            ".fight-card:not(.fight-card--blocking):not(.fight-card--spent)",
+        ).forEach(card => {
+            card.disabled = this.animating || state.phase !== "player";
+        });
+        const board = this.overlay.querySelector<HTMLElement>(".fight-board");
+        if (board !== null) {
+            this.showRoundEffect(state, board);
+        }
+    }
+
+    private finishFight(): void {
+        if (this.overlay === null || this.game === null) {
+            this.animating = false;
+
+            return;
+        }
+        void this.sweepBoardCards();
+        this.animating = false;
+        this.syncFightState();
+        const state = this.game.getState();
+        const status = this.overlay.querySelector<HTMLElement>(".fight-turn-status");
+        if (status !== null) {
+            status.className = "fight-outcome fight-outcome--" + state.status;
+            status.textContent = state.status === "won" ? "Victory" : "Defeated";
+        }
+        const closeButton = this.overlay.querySelector<HTMLElement>(".fight-close");
+        closeButton?.setAttribute("aria-label", "Close fight");
+        if (state.status === "won") {
+            this.applyVictory();
+        }
+    }
+
+    private async sweepBoardCards(): Promise<void> {
+        if (this.overlay === null) {
+            return;
+        }
+        const cards = Array.from(this.overlay.querySelectorAll<HTMLElement>(
+            ".fight-card:not(.fight-card--empty), "
+                + ".fight-monster-card-back:not(.fight-card--empty)",
+        ));
+        const sweep = Effects.sweepFightCards(cards);
+        cards.forEach(card => card.classList.add("fight-card--empty"));
+        await sweep;
+    }
+
+    private updateHealthMeter(
+        owner: "player"|"monster",
+        health: number,
+        maximum: number,
+    ): void {
+        const meter = this.overlay?.querySelector<HTMLElement>(
+            ".fight-" + owner + "-health .fight-health-bar",
+        );
+        if (meter === null || meter === undefined) {
+            return;
+        }
+        meter.style.setProperty(
+            "--health-fill",
+            (maximum > 0 ? 100 * health / maximum : 0) + "%",
+        );
     }
 
     private applyVictory(): void {
@@ -286,42 +578,6 @@ export class FightView {
         this.close();
     }
 
-    private statLine(leftText: string, rightText: string, leftClass: string): HTMLDivElement {
-        const line = document.createElement("div");
-        line.className = "fight-stats";
-        const left = document.createElement("span");
-        left.textContent = leftText;
-        left.className = leftClass;
-        const right = document.createElement("span");
-        right.textContent = rightText;
-        line.append(left, right);
-
-        return line;
-    }
-
-    private healthStatLine(
-        leftText: string,
-        rightText: string,
-        leftClass: string,
-        owner: "monster"|"player",
-        health: number,
-        maximum: number,
-        previousHealth: number|null,
-    ): HTMLDivElement {
-        const line = this.statLine(leftText, rightText, leftClass);
-        line.classList.add("fight-health-meter", "fight-health-meter--" + owner);
-        const percentage = maximum > 0 ? 100 * health / maximum : 0;
-        const previousPercentage = previousHealth === null || maximum <= 0
-            ? percentage
-            : 100 * previousHealth / maximum;
-        line.style.setProperty("--health-fill", previousPercentage + "%");
-        window.requestAnimationFrame(() => {
-            line.style.setProperty("--health-fill", percentage + "%");
-        });
-
-        return line;
-    }
-
     private button(text: string, action: () => void): HTMLButtonElement {
         const button = document.createElement("button");
         button.type = "button";
@@ -335,12 +591,33 @@ export class FightView {
         return text.charAt(0).toUpperCase() + text.slice(1);
     }
 
-    private describeMonsterIntent(intent: CardGameState["monsterIntent"]): string {
-        const actions: string[] = [];
-        if (intent.damage > 0) actions.push(intent.damage + " damage");
-        if (intent.block > 0) actions.push(intent.block + " block");
-        if (intent.healing > 0) actions.push(intent.healing + " heal");
+    private turnStatus(state: CardGameState): string {
+        if (state.status === "won") {
+            return "Victory";
+        }
+        if (state.status === "lost") {
+            return "Defeated";
+        }
+        if (state.phase === "monster") {
+            return "Monster's turn";
+        }
+        if (state.phase === "dealing") {
+            return "Round complete — dealing new cards";
+        }
 
-        return actions.length === 0 ? "Wait" : actions.join(" · ");
+        return "Your turn — play a card";
+    }
+
+    private showRoundEffect(state: CardGameState, board: HTMLElement): void {
+        if (state.status !== "playing" || state.phase !== "player") {
+            return;
+        }
+        const exchange = state.playerPlayedCount + 1;
+        const key = state.round + ":" + exchange;
+        if (this.shownExchange === key) {
+            return;
+        }
+        this.shownExchange = key;
+        Effects.showFightRound(board, exchange);
     }
 }

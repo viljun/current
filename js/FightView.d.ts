@@ -11,7 +11,9 @@ export declare class FightView {
     private game;
     private victoryApplied;
     private sourceElement;
-    private dealtTurn;
+    private dealtRound;
+    private shownExchange;
+    private animating;
     private shownMonsterHealth;
     private shownPlayerHealth;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
@@ -20,16 +22,24 @@ export declare class FightView {
     private startGame;
     private render;
     private createHand;
+    private createMonsterHand;
+    private createIdentity;
+    private createFighterDisplay;
+    private createHealthDisplay;
     private createCombatants;
     private createPortrait;
-    private playTurnEffects;
+    private playPlayerCard;
+    private playCardEffects;
+    private syncFightState;
+    private finishFight;
+    private sweepBoardCards;
+    private updateHealthMeter;
     private applyVictory;
     private close;
     private requestClose;
-    private statLine;
-    private healthStatLine;
     private button;
     private capitalize;
-    private describeMonsterIntent;
+    private turnStatus;
+    private showRoundEffect;
 }
 //# sourceMappingURL=FightView.d.ts.map

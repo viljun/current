@@ -157,6 +157,7 @@ html,
 }
 .fight-close {
     position: absolute;
+    z-index: 10;
     top: 0.6rem;
     right: 0.6rem;
     display: grid;
@@ -170,6 +171,8 @@ html,
     color: white;
     font-size: 0;
     appearance: none;
+    box-sizing: border-box;
+    cursor: pointer;
 }
 .fight-close::before,
 .fight-close::after {
@@ -193,6 +196,126 @@ html,
 }
 .fight-panel h1 {
     margin: 0 0 1rem;
+}
+.fight-board {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(2.5rem, auto) auto;
+    gap: 0.55rem;
+    overflow: hidden;
+}
+.fight-side {
+    display: grid;
+    gap: 0.45rem;
+}
+.fight-side--monster {
+    align-content: start;
+}
+.fight-side--player {
+    align-content: end;
+}
+.fight-board-center {
+    display: grid;
+    place-items: center;
+    min-height: 2.5rem;
+}
+.fight-identity {
+    display: grid;
+    width: min(9rem, 42%);
+    gap: 0.3rem;
+    justify-self: center;
+    text-align: center;
+}
+.fight-identity .fight-portrait-art {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+}
+.fight-fighter {
+    display: grid;
+    grid-template-columns: minmax(0, 9rem) auto;
+    justify-content: center;
+    column-gap: 0.65rem;
+    row-gap: 0.3rem;
+}
+.fight-fighter .fight-identity {
+    display: contents;
+}
+.fight-fighter--monster .fight-identity > strong {
+    grid-column: 1;
+    grid-row: 1;
+}
+.fight-fighter--monster .fight-portrait-art {
+    grid-column: 1;
+    grid-row: 2;
+}
+.fight-fighter--monster .fight-health-display {
+    grid-column: 2;
+    grid-row: 2;
+}
+.fight-fighter--player .fight-portrait-art {
+    grid-column: 1;
+    grid-row: 1;
+}
+.fight-fighter--player .fight-identity > strong {
+    grid-column: 1;
+    grid-row: 2;
+}
+.fight-fighter--player .fight-health-display {
+    grid-column: 2;
+    grid-row: 1;
+}
+.fight-health-display {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.fight-health-bar {
+    box-sizing: border-box;
+    position: relative;
+    width: 0.55rem;
+    height: 7rem;
+    overflow: hidden;
+    border: 1px solid #9a6565;
+    border-radius: 999px;
+    background: #260b0d;
+    box-shadow: inset 0 0 3px #000;
+}
+.fight-health-fill {
+    position: absolute;
+    inset: auto 0 0;
+    height: var(--health-fill);
+    background: #d52f3f;
+    transition: height 650ms cubic-bezier(.2,.8,.2,1);
+}
+.fight-health-details {
+    display: grid;
+    justify-items: center;
+    gap: 0.2rem;
+    color: white;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.fight-health-icon {
+    width: 1.45rem;
+    height: 1.45rem;
+    object-fit: contain;
+}
+.fight-health-value {
+    font-size: 0.8rem;
+}
+.fight-round-effect {
+    position: absolute;
+    z-index: 10006;
+    top: 50%;
+    left: 50%;
+    color: #ffe173;
+    font-size: clamp(1.4rem, 5vw, 2.4rem);
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 2px 5px #000, 0 0 12px #d46a2d;
+    white-space: nowrap;
+    pointer-events: none;
 }
 .fight-combatants {
     display: flex;
@@ -227,50 +350,51 @@ html,
     border: 2px solid #7b8492;
     border-radius: 0.75rem;
 }
-.fight-stats {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    margin: 0.5rem 0;
-    padding: 0.65rem;
-    border-radius: 0.5rem;
-    background: #282d36;
-    overflow: hidden;
-    isolation: isolate;
-    text-shadow: 0 1px 3px #000, 0 0 4px #000;
-}
-.fight-stats > span {
-    position: relative;
-    z-index: 2;
-}
-.fight-health-meter::before,
-.fight-health-meter::after {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    pointer-events: none;
-}
-.fight-health-meter::before {
-    z-index: 0;
-    width: var(--health-fill);
-    background: #315d8f;
-    transition: width 650ms cubic-bezier(.2,.8,.2,1);
-}
-.fight-health-meter--player::before {
-    background: #315d8f;
-}
-.fight-health-meter::after {
-    z-index: 1;
-    width: 100%;
-    background: rgba(7, 10, 14, 0.28);
-}
 .fight-hand {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    grid-template-columns: repeat(auto-fit, 7rem);
+    justify-content: center;
     gap: 0.6rem;
-    margin: 1rem 0;
+    margin: 0.45rem 0;
+}
+.fight-monster-hand {
+    display: grid;
+    gap: 0.45rem;
+    justify-items: center;
+    margin: 0.35rem 0;
+}
+.fight-monster-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 9rem;
+    perspective: 50rem;
+}
+.fight-monster-card-back {
+    box-sizing: border-box;
+    width: 7rem;
+    height: 9rem;
+    border: 2px solid #d9bd6a;
+    border-radius: 0.5rem;
+    background: repeating-linear-gradient(45deg, #4b2531 0 6px, #26141c 6px 12px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+}
+.fight-turn-status {
+    min-height: 1.5rem;
+    margin: 0.65rem 0;
+    color: #ffe173;
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+.fight-monster-card {
+    background: #4b2531;
+    border-color: #d9bd6a;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
 }
 .fight-deck {
     position: fixed;
@@ -289,6 +413,9 @@ html,
     pointer-events: none;
 }
 .fight-card {
+    box-sizing: border-box;
+    width: 7rem;
+    height: 9rem;
     min-height: 7rem;
     padding: 0.7rem;
     border: 2px solid #7fa7d8;
@@ -302,17 +429,99 @@ html,
     flex-direction: column;
     gap: 0.35rem;
 }
+.fight-card:not(:disabled):not(.fight-card--blocking) {
+    cursor: pointer;
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        background-color 140ms ease,
+        box-shadow 140ms ease;
+}
+.fight-card:not(:disabled):not(.fight-card--blocking):hover,
+.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
+    border-color: #ffe173;
+    background: #2b3d56;
+    box-shadow: 0 0 0 3px rgba(255, 225, 115, 0.24);
+    transform: translateY(-0.3rem);
+}
 .fight-card-art {
     height: 5.5rem;
     margin: -0.7rem -0.7rem 0.2rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
-.fight-card > span {
-    font-size: 0.82rem;
-    font-weight: normal;
+.fight-card-effects {
+    min-height: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+.fight-effect-icon {
+    box-sizing: border-box;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.fight-effect--damage {
+    background: #d94a3f;
+    clip-path: polygon(50% 0%, 61% 20%, 82% 8%, 79% 32%, 100% 39%, 79% 53%, 92% 76%, 66% 73%, 57% 100%, 43% 76%, 18% 92%, 22% 64%, 0% 53%, 23% 41%, 8% 18%, 36% 24%);
+}
+.fight-effect--block {
+    height: 1.9rem;
+    background: #4388c7;
+    clip-path: polygon(50% 0%, 91% 15%, 85% 65%, 50% 100%, 15% 65%, 9% 15%);
+    padding-bottom: 0.15rem;
+}
+.fight-effect--healing {
+    background: #38a864;
+    clip-path: polygon(50% 95%, 8% 55%, 4% 30%, 14% 10%, 34% 4%, 50% 20%, 66% 4%, 86% 10%, 96% 30%, 92% 55%);
+    padding-top: 0.12rem;
+}
+.effect-fight-badge {
+    position: fixed;
+    z-index: 10008;
+    margin: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0.15rem 0.18rem rgba(0, 0, 0, 0.7));
 }
 .fight-card:disabled {
-    opacity: 0.4;
+    opacity: 1;
+}
+.fight-card--blocking,
+.fight-card--blocking:disabled {
+    opacity: 1;
+    border-color: #8fc7ff;
+    box-shadow: 0 0 0 2px rgba(143, 199, 255, 0.24);
+    pointer-events: none;
+}
+.fight-card--blocking .fight-shield-value {
+    color: white;
+    background-color: #63a9e8;
+}
+.fight-card--spent {
+    opacity: 0.28;
+    filter: grayscale(0.9) brightness(0.65);
+    pointer-events: none;
+}
+.fight-card--empty {
+    visibility: hidden;
+    pointer-events: none;
+}
+.fight-monster-card.fight-card--blocking {
+    box-sizing: border-box;
+    width: 7rem;
+    min-height: 7rem;
+    height: 9rem;
+    padding: 0.7rem;
+    font-size: inherit;
 }
 .fight-card--selected {
     border-color: #ffe173;
@@ -321,7 +530,7 @@ html,
     transform: translateY(-0.25rem);
 }
 .fight-outcome + button,
-.fight-panel > button {
+.fight-panel > button:not(.fight-close) {
     min-height: 2.75rem;
     padding: 0.6rem 1rem;
 }

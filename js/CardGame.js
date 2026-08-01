@@ -2,10 +2,14 @@ import { MonsterDefinition } from "./MonsterDefinition.js";
 export class CardGame {
     constructor(monster, inventory, seed, requiredItemNames, itemOrigins, playerHealth) {
         this.discardPile = [];
+        this.monsterActionIndex = 0;
+        this.monsterHand = [];
         this.monster = monster;
-        this.seedState = { value: seed || 1 };
+        this.fightSeed = seed || 1;
+        this.seedState = { value: this.fightSeed };
+        this.handSize = monster.handSize;
         this.drawPile = this.buildDeck(inventory, itemOrigins);
-        while (this.drawPile.length < 3) {
+        while (this.drawPile.length < CardGame.CARDS_PER_ROUND) {
             this.drawPile.push({
                 id: "scratch-" + this.drawPile.length,
                 itemName: "scratch",
@@ -20,110 +24,350 @@ export class CardGame {
         this.state = {
             monsterHealth: monster.health,
             monsterMaxHealth: monster.health,
-            playerHealth: playerHealth,
+            playerHealth,
             playerMaxHealth: playerHealth,
-            block: 0,
-            monsterBlock: 0,
-            monsterIntent: this.getMonsterAction(0),
+            playerShields: [],
+            monsterShields: [],
             hand: [],
-            selectedCardIds: [],
+            monsterHandSize: 0,
             status: "playing",
-            turn: 1,
+            phase: "player",
+            round: 1,
+            playerPlayedCount: 0,
+            monsterPlayedCount: 0,
         };
-        this.drawCards(monster.handSize);
+        this.drawCards(this.handSize);
         this.ensureRequiredCards(requiredItemNames);
+        this.dealMonsterCards();
     }
     getState() {
-        return Object.assign(Object.assign({}, this.state), { monsterIntent: Object.assign({}, this.state.monsterIntent), hand: [...this.state.hand], selectedCardIds: [...this.state.selectedCardIds] });
+        return Object.assign(Object.assign({}, this.state), { playerShields: this.state.playerShields.map(shield => (Object.assign({}, shield))), monsterShields: this.state.monsterShields.map(shield => (Object.assign({}, shield))), hand: this.state.hand.map(card => (Object.assign({}, card))) });
     }
-    toggleCard(cardId) {
-        if (this.state.status !== "playing") {
-            return { selected: false, turnResolution: null };
+    playPlayerCard(cardId) {
+        if (this.state.status !== "playing" || this.state.phase !== "player") {
+            return null;
         }
-        if (!this.state.hand.some(card => card.id === cardId)) {
-            return { selected: false, turnResolution: null };
+        const cardIndex = this.state.hand.findIndex(card => card.id === cardId);
+        const card = this.state.hand[cardIndex];
+        if (card === undefined) {
+            return null;
         }
-        const selectedIndex = this.state.selectedCardIds.indexOf(cardId);
-        if (selectedIndex >= 0) {
-            this.state.selectedCardIds.splice(selectedIndex, 1);
-            return { selected: false, turnResolution: null };
+        this.state.hand.splice(cardIndex, 1);
+        this.discardPile.push(card);
+        this.state.playerPlayedCount++;
+        const resolution = this.resolveCard("player", card);
+        if (this.state.status === "playing") {
+            this.state.phase = "monster";
         }
-        this.state.selectedCardIds.push(cardId);
-        if (this.state.selectedCardIds.length === 3) {
-            return { selected: true, turnResolution: this.resolveTurn() };
-        }
-        return { selected: true, turnResolution: null };
+        return resolution;
     }
-    resolveTurn() {
-        const selectedCards = this.state.selectedCardIds
-            .map(cardId => this.state.hand.find(card => card.id === cardId))
-            .filter((card) => card !== undefined);
-        const monsterHealthBefore = this.state.monsterHealth;
-        const playerHealthBefore = this.state.playerHealth;
-        const block = selectedCards.reduce((total, card) => total + card.block, 0);
-        for (const card of selectedCards) {
-            const blockedDamage = Math.min(this.state.monsterBlock, card.damage);
-            this.state.monsterBlock -= blockedDamage;
-            this.state.monsterHealth = Math.max(0, this.state.monsterHealth - (card.damage - blockedDamage));
-            this.state.block += card.block;
-            this.state.playerHealth = Math.min(this.state.playerMaxHealth, this.state.playerHealth + card.healing);
+    playMonsterCard() {
+        if (this.state.status !== "playing" || this.state.phase !== "monster") {
+            return null;
         }
-        const monsterDamage = monsterHealthBefore - this.state.monsterHealth;
-        const healing = Math.max(0, this.state.playerHealth - playerHealthBefore);
-        const playerHealthAfterCards = this.state.playerHealth;
-        this.state.selectedCardIds = [];
-        if (this.state.monsterHealth === 0) {
-            this.state.status = "won";
-            return {
-                cards: [...selectedCards],
-                monsterDamage: monsterDamage,
-                playerDamage: 0,
-                healing: healing,
-                block: block,
-                monsterHealing: 0,
-                monsterBlock: 0,
-                monsterDefeated: true,
-                playerDefeated: false,
-            };
+        const card = this.chooseMonsterCard();
+        if (card === null) {
+            return null;
         }
-        const action = this.state.monsterIntent;
-        const damage = Math.max(0, action.damage - this.state.block);
-        this.state.playerHealth = Math.max(0, this.state.playerHealth - damage);
-        const monsterHealthBeforeHealing = this.state.monsterHealth;
-        this.state.monsterHealth = Math.min(this.state.monsterMaxHealth, this.state.monsterHealth + action.healing);
-        const monsterHealing = this.state.monsterHealth - monsterHealthBeforeHealing;
-        this.state.monsterBlock = action.block;
-        if (this.state.playerHealth === 0) {
-            this.state.status = "lost";
-            return {
-                cards: [...selectedCards],
-                monsterDamage: monsterDamage,
-                playerDamage: playerHealthAfterCards,
-                healing: healing,
-                block: block,
-                monsterHealing: monsterHealing,
-                monsterBlock: action.block,
-                monsterDefeated: false,
-                playerDefeated: true,
-            };
+        this.monsterHand.splice(this.monsterHand.indexOf(card), 1);
+        this.state.monsterHandSize = this.monsterHand.length;
+        this.state.monsterPlayedCount++;
+        const resolution = this.resolveCard("monster", card);
+        if (this.state.status === "playing") {
+            if (this.state.playerPlayedCount === CardGame.CARDS_PER_ROUND
+                && this.state.monsterPlayedCount === CardGame.CARDS_PER_ROUND) {
+                this.state.phase = "dealing";
+                resolution.roundComplete = true;
+            }
+            else {
+                this.state.phase = "player";
+            }
+        }
+        return resolution;
+    }
+    dealNextRound() {
+        if (this.state.status !== "playing" || this.state.phase !== "dealing") {
+            return;
         }
         this.discardPile.push(...this.state.hand);
         this.state.hand = [];
-        this.state.block = 0;
-        this.state.turn++;
-        this.state.monsterIntent = this.getMonsterAction(this.state.turn - 1);
-        this.drawCards(this.monster.handSize);
+        this.state.playerShields = [];
+        this.state.monsterShields = [];
+        this.state.playerPlayedCount = 0;
+        this.state.monsterPlayedCount = 0;
+        this.state.round++;
+        this.drawCards(this.handSize);
+        this.dealMonsterCards();
+        this.state.phase = "player";
+    }
+    resolveCard(actor, card) {
+        const effects = [];
+        const target = actor === "player" ? "monster" : "player";
+        if (card.damage > 0) {
+            const damage = this.applyDamage(target, card.damage);
+            effects.push({
+                type: "damage",
+                actor,
+                target,
+                amount: damage.healthDamage,
+                blocked: damage.blocked,
+                shieldHits: damage.shieldHits,
+            });
+            if (this.healthOf(target) === 0) {
+                this.finishFight(target);
+                effects.push({
+                    type: "defeated",
+                    actor,
+                    target,
+                    amount: 0,
+                    blocked: 0,
+                    shieldHits: [],
+                });
+                return this.resolution(actor, card, effects);
+            }
+        }
+        if (card.healing > 0) {
+            const healed = this.applyHealing(actor, card.healing);
+            if (healed > 0) {
+                effects.push({
+                    type: "healing",
+                    actor,
+                    target: actor,
+                    amount: healed,
+                    blocked: 0,
+                    shieldHits: [],
+                });
+            }
+        }
+        if (card.block > 0) {
+            this.shieldsOf(actor).push({
+                id: card.id,
+                title: card.title,
+                remainingBlock: card.block,
+            });
+            effects.push({
+                type: "block",
+                actor,
+                target: actor,
+                amount: card.block,
+                blocked: 0,
+                shieldHits: [],
+            });
+        }
+        if (effects.length === 0) {
+            effects.push({
+                type: "wait",
+                actor,
+                target: actor,
+                amount: 0,
+                blocked: 0,
+                shieldHits: [],
+            });
+        }
+        return this.resolution(actor, card, effects);
+    }
+    resolution(actor, card, effects) {
         return {
-            cards: [...selectedCards],
-            monsterDamage: monsterDamage,
-            playerDamage: damage,
-            healing: healing,
-            block: block,
-            monsterHealing: monsterHealing,
-            monsterBlock: action.block,
-            monsterDefeated: false,
-            playerDefeated: false,
+            actor,
+            card: Object.assign({}, card),
+            effects,
+            monsterDefeated: this.state.status === "won",
+            playerDefeated: this.state.status === "lost",
+            roundComplete: false,
         };
+    }
+    applyDamage(target, damage) {
+        const shields = this.shieldsOf(target);
+        let remainingDamage = damage;
+        let blocked = 0;
+        const shieldHits = [];
+        while (remainingDamage > 0 && shields.length > 0) {
+            const shield = shields[0];
+            if (shield === undefined) {
+                break;
+            }
+            const absorbed = Math.min(shield.remainingBlock, remainingDamage);
+            shield.remainingBlock -= absorbed;
+            remainingDamage -= absorbed;
+            blocked += absorbed;
+            shieldHits.push({
+                id: shield.id,
+                absorbed,
+                remainingBlock: shield.remainingBlock,
+            });
+            if (shield.remainingBlock === 0) {
+                shields.shift();
+            }
+        }
+        const healthBefore = this.healthOf(target);
+        this.setHealth(target, Math.max(0, healthBefore - remainingDamage));
+        return {
+            healthDamage: healthBefore - this.healthOf(target),
+            blocked,
+            shieldHits,
+        };
+    }
+    applyHealing(actor, healing) {
+        const healthBefore = this.healthOf(actor);
+        const maximum = actor === "player"
+            ? this.state.playerMaxHealth
+            : this.state.monsterMaxHealth;
+        this.setHealth(actor, Math.min(maximum, healthBefore + healing));
+        return this.healthOf(actor) - healthBefore;
+    }
+    finishFight(defeated) {
+        this.state.status = defeated === "monster" ? "won" : "lost";
+        this.state.phase = "finished";
+    }
+    healthOf(combatant) {
+        return combatant === "player"
+            ? this.state.playerHealth
+            : this.state.monsterHealth;
+    }
+    setHealth(combatant, health) {
+        if (combatant === "player") {
+            this.state.playerHealth = health;
+        }
+        else {
+            this.state.monsterHealth = health;
+        }
+    }
+    shieldsOf(combatant) {
+        return combatant === "player"
+            ? this.state.playerShields
+            : this.state.monsterShields;
+    }
+    dealMonsterCards() {
+        this.monsterHand = [];
+        for (let index = 0; index < this.monster.actionPattern.length; index++) {
+            const action = this.getMonsterAction(this.monsterActionIndex++);
+            this.monsterHand.push(this.monsterCard(action, this.monsterActionIndex));
+        }
+        this.state.monsterHandSize = this.monsterHand.length;
+    }
+    monsterCard(action, index) {
+        const itemName = this.monsterCardItem(action, index);
+        return {
+            id: "monster-" + this.state.round + "-" + index,
+            itemName,
+            title: itemName.charAt(0).toUpperCase() + itemName.slice(1),
+            damage: action.damage,
+            block: action.block,
+            healing: action.healing,
+            origin: this.monsterCardOrigin(itemName, index),
+        };
+    }
+    monsterCardItem(action, index) {
+        var _a;
+        let choices;
+        if (action.damage > 0 && action.block > 0) {
+            choices = ["iron ore", "stone axe", "iron"];
+        }
+        else if (action.damage > 0 && action.healing > 0) {
+            choices = ["heart", "root", "club"];
+        }
+        else if (action.damage > 0) {
+            choices = ["stick", "club", "stone axe", "sword", "iron ore"];
+        }
+        else if (action.block > 0 && action.healing > 0) {
+            choices = ["iron", "heart", "stone"];
+        }
+        else if (action.block > 0) {
+            choices = ["stone", "hay", "iron", "iron ore"];
+        }
+        else if (action.healing > 0) {
+            choices = ["root", "heart"];
+        }
+        else {
+            choices = ["hay", "root", "stone"];
+        }
+        const choiceIndex = this.monsterCardHash(choices.join(",") + ":" + index) % choices.length;
+        return (_a = choices[choiceIndex]) !== null && _a !== void 0 ? _a : "stick";
+    }
+    monsterCardOrigin(itemName, index) {
+        const latitudeHash = this.monsterCardHash(itemName + ":latitude:" + index);
+        const longitudeHash = this.monsterCardHash(itemName + ":longitude:" + index);
+        return {
+            latitude: 10000 + latitudeHash % 900000,
+            longitude: 10000 + longitudeHash % 900000,
+            depth: 1,
+        };
+    }
+    monsterCardHash(text) {
+        let hash = this.fightSeed ^ Math.imul(this.state.round, 65537);
+        for (let index = 0; index < text.length; index++) {
+            hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
+        }
+        hash ^= hash >>> 16;
+        return hash >>> 0;
+    }
+    chooseMonsterCard() {
+        var _a;
+        if (this.monsterHand.length === 0) {
+            return null;
+        }
+        const lethalCards = this.monsterHand.filter(card => {
+            return Math.max(0, card.damage - this.totalShield("player"))
+                >= this.state.playerHealth;
+        });
+        const candidates = lethalCards.length > 0 ? lethalCards : this.monsterHand;
+        const ranked = [...candidates].sort((first, second) => this.monsterCardScore(second) - this.monsterCardScore(first));
+        const best = (_a = ranked[0]) !== null && _a !== void 0 ? _a : null;
+        const alternative = ranked[1];
+        if (lethalCards.length === 0
+            && best !== null
+            && alternative !== undefined
+            && this.monsterCardScore(alternative)
+                >= Math.max(0, this.monsterCardScore(best) * 0.35)
+            && this.useAlternativeChoice()) {
+            return alternative;
+        }
+        return best;
+    }
+    monsterCardScore(card) {
+        const playerShield = this.totalShield("player");
+        const effectiveDamage = Math.min(this.state.playerHealth, Math.max(0, card.damage - playerShield));
+        const missingHealth = this.state.monsterMaxHealth - this.state.monsterHealth;
+        const effectiveHealing = Math.min(missingHealth, card.healing);
+        const likelyPlayerDamage = this.state.hand
+            .map(playerCard => playerCard.damage)
+            .sort((first, second) => second - first)
+            .slice(0, CardGame.CARDS_PER_ROUND - this.state.playerPlayedCount)
+            .reduce((total, damage) => total + damage, 0);
+        const effectiveBlock = Math.min(card.block, likelyPlayerDamage);
+        const dangerMultiplier = this.state.monsterHealth <= this.state.monsterMaxHealth / 3
+            ? 1.7
+            : 1;
+        let score = effectiveDamage * 5
+            + effectiveHealing * 3 * dangerMultiplier
+            + effectiveBlock * 2.5 * dangerMultiplier;
+        if (card.damage > 0 && effectiveDamage === 0)
+            score -= 3;
+        if (card.healing > 0 && effectiveHealing === 0)
+            score -= 4;
+        if (card.block > 0 && effectiveBlock === 0)
+            score -= 2;
+        return score + this.deterministicBias(card.id);
+    }
+    deterministicBias(cardId) {
+        let hash = this.fightSeed ^ (this.state.round * 1009)
+            ^ (this.state.monsterPlayedCount * 9173);
+        for (let index = 0; index < cardId.length; index++) {
+            hash = Math.imul(hash ^ cardId.charCodeAt(index), 16777619);
+        }
+        hash ^= hash >>> 16;
+        return ((hash >>> 0) % 401) / 100 - 2;
+    }
+    useAlternativeChoice() {
+        let value = this.fightSeed ^ Math.imul(this.state.round, 7919)
+            ^ Math.imul(this.state.monsterPlayedCount, 104729);
+        value ^= value >>> 15;
+        value = Math.imul(value, 2246822519);
+        value ^= value >>> 13;
+        return (value >>> 0) % 4 === 0;
+    }
+    totalShield(combatant) {
+        return this.shieldsOf(combatant).reduce((total, shield) => total + shield.remainingBlock, 0);
     }
     buildDeck(inventory, itemOrigins) {
         var _a, _b;
@@ -196,6 +440,7 @@ export class CardGame {
             : Object.assign({}, action);
     }
 }
+CardGame.CARDS_PER_ROUND = 3;
 CardGame.CARD_TYPES = {
     stick: { itemName: "stick", title: "Stick", damage: 1, block: 0, healing: 0 },
     stone: { itemName: "stone", title: "Stone", damage: 0, block: 2, healing: 0 },

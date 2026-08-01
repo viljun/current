@@ -1,5 +1,4 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
-import type { MonsterAction } from "./MonsterDefinition.js";
 import type { ItemOrigin } from "./Inventory.js";
 export interface CardDefinition {
     id: string;
@@ -10,46 +9,85 @@ export interface CardDefinition {
     healing: number;
     origin: ItemOrigin | null;
 }
+export interface ShieldCard {
+    id: string;
+    title: string;
+    remainingBlock: number;
+}
 export type FightStatus = "playing" | "won" | "lost";
+export type FightPhase = "player" | "monster" | "dealing" | "finished";
+export type Combatant = "player" | "monster";
 export interface CardGameState {
     monsterHealth: number;
     monsterMaxHealth: number;
     playerHealth: number;
     playerMaxHealth: number;
-    block: number;
-    monsterBlock: number;
-    monsterIntent: MonsterAction;
+    playerShields: ShieldCard[];
+    monsterShields: ShieldCard[];
     hand: CardDefinition[];
-    selectedCardIds: string[];
+    monsterHandSize: number;
     status: FightStatus;
-    turn: number;
+    phase: FightPhase;
+    round: number;
+    playerPlayedCount: number;
+    monsterPlayedCount: number;
 }
-export interface TurnResolution {
-    cards: CardDefinition[];
-    monsterDamage: number;
-    playerDamage: number;
-    healing: number;
-    block: number;
-    monsterHealing: number;
-    monsterBlock: number;
+export interface CombatEffect {
+    type: "damage" | "healing" | "block" | "wait" | "defeated";
+    actor: Combatant;
+    target: Combatant;
+    amount: number;
+    blocked: number;
+    shieldHits: ShieldHit[];
+}
+export interface ShieldHit {
+    id: string;
+    absorbed: number;
+    remainingBlock: number;
+}
+export interface CardPlayResolution {
+    actor: Combatant;
+    card: CardDefinition;
+    effects: CombatEffect[];
     monsterDefeated: boolean;
     playerDefeated: boolean;
-}
-export interface CardSelectionResult {
-    selected: boolean;
-    turnResolution: TurnResolution | null;
+    roundComplete: boolean;
 }
 export declare class CardGame {
+    private static readonly CARDS_PER_ROUND;
     private static readonly CARD_TYPES;
     private readonly monster;
+    private readonly fightSeed;
     private readonly seedState;
+    private readonly handSize;
     private drawPile;
     private discardPile;
+    private monsterActionIndex;
+    private monsterHand;
     private state;
     constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[], itemOrigins: Record<string, ItemOrigin[]>, playerHealth: number);
     getState(): CardGameState;
-    toggleCard(cardId: string): CardSelectionResult;
-    private resolveTurn;
+    playPlayerCard(cardId: string): CardPlayResolution | null;
+    playMonsterCard(): CardPlayResolution | null;
+    dealNextRound(): void;
+    private resolveCard;
+    private resolution;
+    private applyDamage;
+    private applyHealing;
+    private finishFight;
+    private healthOf;
+    private setHealth;
+    private shieldsOf;
+    private dealMonsterCards;
+    private monsterCard;
+    private monsterCardItem;
+    private monsterCardOrigin;
+    private monsterCardHash;
+    private chooseMonsterCard;
+    private monsterCardScore;
+    private deterministicBias;
+    private useAlternativeChoice;
+    private totalShield;
     private buildDeck;
     private drawCards;
     private ensureRequiredCards;
