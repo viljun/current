@@ -106,12 +106,6 @@ export class FightView {
             if (state.status === "won") {
                 this.applyVictory();
             }
-            else {
-                const monster = MonsterDefinition.get(this.itemTakingSummary.itemType.name);
-                if (monster !== null) {
-                    panel.append(this.button("Try again", () => this.startGame(monster)));
-                }
-            }
         }
         this.overlay.append(panel);
         if (shouldDeal && hand !== null) {
