@@ -20,7 +20,7 @@ export declare class Inventory {
     constructor();
     countItems(itemType: ItemType): number;
     getItemOrigins(itemName: string): ItemOrigin[];
-    getText(messageBox: HTMLDivElement): HTMLDivElement | "Welcome! Explore nearby items, then find a stick and a root to craft your first club.";
+    getText(messageBox: HTMLDivElement): HTMLDivElement | "Find a stick and a root to craft your first club.";
     isItemTypeTaken(itemType: ItemType): boolean;
     coordinatesToString(coordinates: Coordinates): string;
     isItemTaken(coordinates: Coordinates): boolean;

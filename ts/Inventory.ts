@@ -46,7 +46,7 @@ export class Inventory {
     // Returns text that describes inventory contents.
     getText(messageBox: HTMLDivElement) {
         if (Object.keys(this.totalQuantities).length === 0 && this.totalQuantities.constructor === Object) {
-            return "Welcome! Explore nearby items, then find a stick and a root to craft your first club.";
+            return "Find a stick and a root to craft your first club.";
         }
 
         const items = [];
