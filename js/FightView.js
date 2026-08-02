@@ -87,6 +87,8 @@ export class FightView {
         board.className = "fight-board";
         const monsterSide = document.createElement("section");
         monsterSide.className = "fight-side fight-side--monster";
+        const monsterDeck = this.createFightDeck("monster");
+        monsterSide.append(monsterDeck);
         monsterSide.append(this.createFighterDisplay(this.itemTakingSummary.itemType.name, this.capitalize(this.itemTakingSummary.itemType.name), "above", "monster", state.monsterHealth, state.monsterMaxHealth, this.shownMonsterHealth));
         if (state.status === "playing") {
             monsterSide.append(this.createMonsterHand(state));
@@ -95,6 +97,8 @@ export class FightView {
         center.className = "fight-board-center";
         const playerSide = document.createElement("section");
         playerSide.className = "fight-side fight-side--player";
+        const playerDeck = this.createFightDeck("player");
+        playerSide.append(playerDeck);
         let hand = null;
         const shouldDeal = state.status === "playing"
             && state.phase === "player"
@@ -127,19 +131,19 @@ export class FightView {
         this.showRoundEffect(state, board);
         if (shouldDeal && hand !== null) {
             this.dealtRound = state.round;
-            const deck = hand.querySelector(".fight-deck");
-            if (deck !== null) {
-                Effects.dealFightCards(deck, Array.from(hand.querySelectorAll(".fight-card")));
-            }
+            Effects.dealFightCards(playerDeck, Array.from(hand.querySelectorAll(".fight-card")));
+            Effects.dealFightCards(monsterDeck, Array.from(monsterSide.querySelectorAll(".fight-monster-card-back")));
         }
+    }
+    createFightDeck(owner) {
+        const deck = document.createElement("div");
+        deck.className = "fight-deck fight-deck--" + owner;
+        deck.setAttribute("aria-hidden", "true");
+        return deck;
     }
     createHand(state) {
         const hand = document.createElement("div");
         hand.className = "fight-hand";
-        const deck = document.createElement("div");
-        deck.className = "fight-deck";
-        deck.setAttribute("aria-hidden", "true");
-        hand.append(deck);
         state.hand.forEach(card => {
             const cardButton = this.button("", () => {
                 void this.playPlayerCard(card.id, cardButton);
@@ -444,6 +448,6 @@ export class FightView {
             return;
         }
         this.shownExchange = key;
-        Effects.showFightRound(board, exchange);
+        Effects.showFightRound(board, 4 - exchange);
     }
 }

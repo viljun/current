@@ -21,6 +21,7 @@ export declare class FightView {
     private renderMissingHeart;
     private startGame;
     private render;
+    private createFightDeck;
     private createHand;
     private createMonsterHand;
     private createIdentity;

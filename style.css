@@ -205,6 +205,7 @@ html,
     overflow: hidden;
 }
 .fight-side {
+    position: relative;
     display: grid;
     gap: 0.45rem;
 }
@@ -398,10 +399,8 @@ html,
     backface-visibility: hidden;
 }
 .fight-deck {
-    position: fixed;
+    position: absolute;
     z-index: 10004;
-    top: 50%;
-    left: 50%;
     width: 7rem;
     min-height: 7rem;
     height: 9rem;
@@ -412,6 +411,15 @@ html,
     transform-origin: center;
     opacity: 0;
     pointer-events: none;
+}
+.fight-deck--monster {
+    top: 0;
+    left: 0;
+    background: repeating-linear-gradient(45deg, #4b2531 0 6px, #26141c 6px 12px);
+}
+.fight-deck--player {
+    bottom: 0;
+    left: 0;
 }
 .fight-card {
     box-sizing: border-box;
