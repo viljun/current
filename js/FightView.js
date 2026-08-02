@@ -379,7 +379,7 @@ export class FightView {
             this.autoCloseTimer = window.setTimeout(() => {
                 this.autoCloseTimer = null;
                 this.close();
-            }, 5000);
+            }, 3000);
         }
     }
     async sweepBoardCards() {

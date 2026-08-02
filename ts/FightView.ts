@@ -540,7 +540,7 @@ export class FightView {
             this.autoCloseTimer = window.setTimeout(() => {
                 this.autoCloseTimer = null;
                 this.close();
-            }, 5_000);
+            }, 3_000);
         }
     }
 
