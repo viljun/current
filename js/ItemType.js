@@ -13,6 +13,12 @@ export class ItemType {
             if (!(seed % 103)) {
                 name = "stairs up";
             }
+            else if (!(seed % 1201)) {
+                name = "armorer's bench";
+            }
+            else if (!(seed % 2039) || !(seed % 3001)) {
+                name = "furnace";
+            }
             else {
                 return null;
             }
@@ -63,7 +69,7 @@ export class ItemType {
         else if (!(seed % 877)) {
             name = "padded hide";
         }
-        else if (!(seed % 883)) {
+        else if (!(seed % 881) || !(seed % 883)) {
             name = "wooden shield";
         }
         else if (!(seed % 929)) {
@@ -75,14 +81,11 @@ export class ItemType {
         else if (!(seed % 1301)) {
             name = "sword";
         }
-        else if (!(seed % 1427)) {
+        else if (!(seed % 1423) || !(seed % 1427)) {
             name = "reinforced shield";
         }
         else if (!(seed % 2013)) {
             name = "treasure";
-        }
-        else if (!(seed % 3001)) {
-            name = "iron";
         }
         else if (!(seed % 1030)) {
             name = "dungeon entrance";
@@ -127,11 +130,19 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("coin"), 100),
             ];
         }
-        if (this.name === "iron") {
+        if (this.name === "furnace") {
             return [
-                new ItemTypeAndQuantity(new ItemType("iron ore"), -1),
-                new ItemTypeAndQuantity(new ItemType("hay"), -1),
-                new ItemTypeAndQuantity(new ItemType("iron"), 2),
+                new ItemTypeAndQuantity(new ItemType("iron ore"), -3),
+                new ItemTypeAndQuantity(new ItemType("hay"), -3),
+                new ItemTypeAndQuantity(new ItemType("iron"), 9),
+            ];
+        }
+        if (this.name === "armorer's bench") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("padded hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("stick"), -3),
+                new ItemTypeAndQuantity(new ItemType("iron"), -2),
+                new ItemTypeAndQuantity(new ItemType("reinforced shield"), 1),
             ];
         }
         if (this.name === "padded hide") {
@@ -197,7 +208,7 @@ export class ItemType {
     }
     // Reusable items needed for an action but not consumed by it.
     requirements() {
-        if (this.name === "iron") {
+        if (this.name === "furnace") {
             return [
                 new ItemTypeAndQuantity(new ItemType("crucible"), 1),
             ];

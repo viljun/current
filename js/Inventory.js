@@ -121,7 +121,7 @@ export class Inventory {
         };
     }
     load() {
-        var _a, _b;
+        var _a, _b, _c, _d;
         try {
             const serialized = localStorage.getItem(Inventory.STORAGE_KEY);
             if (serialized === null) {
@@ -141,6 +141,15 @@ export class Inventory {
                         ((_b = this.quantities["yarrow"]) !== null && _b !== void 0 ? _b : 0) + legacyHearts;
                 }
                 delete this.quantities["heart"];
+                saveNeedsCleanup = true;
+            }
+            if (Object.prototype.hasOwnProperty.call(this.quantities, "iron")) {
+                const legacySmelts = (_c = this.quantities["iron"]) !== null && _c !== void 0 ? _c : 0;
+                if (legacySmelts > 0) {
+                    this.quantities["furnace"] =
+                        ((_d = this.quantities["furnace"]) !== null && _d !== void 0 ? _d : 0) + legacySmelts;
+                }
+                delete this.quantities["iron"];
                 saveNeedsCleanup = true;
             }
             for (const name of Inventory.REMOVED_ITEM_NAMES) {

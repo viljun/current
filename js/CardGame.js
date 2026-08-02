@@ -428,15 +428,12 @@ export class CardGame {
 CardGame.CARDS_PER_ROUND = 3;
 CardGame.ITEM_QUALITY = {
     pass: 0,
-    hide: 2,
-    "padded hide": 3,
     "wooden shield": 4,
     "reinforced shield": 6,
     stick: 1,
     root: 1,
     stone: 1.5,
     rat: 1.5,
-    crucible: 2,
     torch: 2,
     "iron ore": 2,
     club: 3,
@@ -448,14 +445,11 @@ CardGame.ITEM_QUALITY = {
 };
 CardGame.CARD_TYPES = {
     pass: { itemName: "pass", title: "Pass", damage: 0, block: 0, healing: 0 },
-    hide: { itemName: "hide", title: "Hide", damage: 0, block: 2, healing: 0 },
-    "padded hide": { itemName: "padded hide", title: "Padded hide", damage: 0, block: 3, healing: 0 },
     "wooden shield": { itemName: "wooden shield", title: "Wooden shield", damage: 0, block: 4, healing: 0 },
     "reinforced shield": { itemName: "reinforced shield", title: "Reinforced shield", damage: 0, block: 6, healing: 0 },
     stick: { itemName: "stick", title: "Stick", damage: 1, block: 0, healing: 0 },
     stone: { itemName: "stone", title: "Stone", damage: 1, block: 0, healing: 0 },
     root: { itemName: "root", title: "Root", damage: 0, block: 0, healing: 1 },
-    crucible: { itemName: "crucible", title: "Crucible", damage: 0, block: 2, healing: 0 },
     torch: { itemName: "torch", title: "Torch", damage: 2, block: 1, healing: 0 },
     "iron ore": { itemName: "iron ore", title: "Iron ore", damage: 1, block: 1, healing: 0 },
     club: { itemName: "club", title: "Club", damage: 3, block: 0, healing: 0 },

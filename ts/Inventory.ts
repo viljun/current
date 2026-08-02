@@ -195,6 +195,15 @@ export class Inventory {
                 delete this.quantities["heart"];
                 saveNeedsCleanup = true;
             }
+            if (Object.prototype.hasOwnProperty.call(this.quantities, "iron")) {
+                const legacySmelts = this.quantities["iron"] ?? 0;
+                if (legacySmelts > 0) {
+                    this.quantities["furnace"] =
+                        (this.quantities["furnace"] ?? 0) + legacySmelts;
+                }
+                delete this.quantities["iron"];
+                saveNeedsCleanup = true;
+            }
             for (const name of Inventory.REMOVED_ITEM_NAMES) {
                 if (Object.prototype.hasOwnProperty.call(this.quantities, name)) {
                     delete this.quantities[name];

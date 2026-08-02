@@ -4,7 +4,8 @@ export class View {
             const article = /^[aeiou]/i.test(text) ? "an" : "a";
             return article + " " + text;
         }
-        return quantity + " " + text + "s";
+        const plural = ["hay", "iron"].includes(text) ? text : text + "s";
+        return quantity + " " + plural;
     }
     // Returns array of texts as a sentence.
     static arrayToText(texts) {

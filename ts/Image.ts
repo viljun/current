@@ -43,7 +43,15 @@ export class Image {
         let style: string = "";
         let zIndex: number = 20;
 
-        if (name === "cat") {
+        if (name === "armorer's bench") {
+            srcs = [
+                "armorers-bench-medieval-photoreal-grounded-v2.png",
+            ];
+            rotate = 0;
+            dimension *= 2.2;
+            style = "opacity:" + ((opacitySeed % 6) / 100 + 0.94).toFixed(2) + ";";
+            zIndex = 22;
+        } else if (name === "cat") {
             dimension *= 2;
             zIndex    = 30;
             domId     = "cat";
@@ -67,8 +75,7 @@ export class Image {
             zIndex = 40;
         } else if (name === "club") {
             srcs = [
-                "20240124010710",
-                "wooden_club.png",
+                "club-medieval-photoreal-v1.png",
             ];
             rotate = rotationSeed % 360;
             dimension *= 2;
@@ -132,6 +139,14 @@ export class Image {
             dimension = 0.3 + (dimensionSeed % 500) / 170;
             style = "opacity:" + ((opacitySeed % 100) / 10).toFixed(2) + ";";
             zIndex = 16;
+        } else if (name === "furnace") {
+            srcs = [
+                "furnace-medieval-photoreal-grounded-v2.png",
+            ];
+            rotate = 0;
+            dimension *= 2.2;
+            style = "opacity:" + ((opacitySeed % 6) / 100 + 0.94).toFixed(2) + ";";
+            zIndex = 22;
         } else if (name === "grass") {
             srcs = [
                 "grass1.png",
@@ -288,16 +303,13 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 12) / 100 + 0.78).toFixed(2) + ";";
         } else if (name === "stone axe") {
             srcs = [
-                "image-asset-1.png",
+                "stone-axe-medieval-photoreal-v1.png",
             ];
             rotate = rotationSeed % 360;
             dimension *= 2;
         } else if (name === "sword") {
             srcs = [
-                "Sword.png",
-                "T_Pictos_CurvedSword_01.png",
-                "FEWATH_Sword_of_the_Creator.png",
-                "White_Sword_of_the_Sky_-_TotK_icon.png",
+                "sword-medieval-photoreal-v1.png",
             ];
             rotate = rotationSeed % 360;
             dimension *= 2;

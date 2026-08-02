@@ -18,11 +18,13 @@ export class ItemTakingSummary {
             "wooden shield",
             "reinforced shield",
         ].includes(this.itemType.name);
-        let buttonText = this.itemType.name === "iron"
+        let buttonText = this.itemType.name === "furnace"
             ? "Smelt iron"
-            : craftable
-                ? "Craft " + this.itemType.name
-                : "Take " + this.itemType.name;
+            : this.itemType.name === "armorer's bench"
+                ? "Use armorer's bench"
+                : craftable
+                    ? "Craft " + this.itemType.name
+                    : "Take " + this.itemType.name;
         let additionalText = "";
         // Expenses.
         if (this.expenses.length > 0) {
@@ -41,7 +43,7 @@ export class ItemTakingSummary {
             additionalText += " using " + View.arrayToText(itemTexts);
         }
         // Prizes.
-        if (this.missing.length === 0 && this.prizes.length > 0) {
+        if (this.prizes.length > 0) {
             const itemTexts = [];
             for (const value of this.prizes) {
                 itemTexts.push(View.getQuantityText(value.itemType.name, value.quantity));
