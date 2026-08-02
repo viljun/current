@@ -17,6 +17,7 @@ export class Map {
         this.interactionLocked = false;
         this.catFacingX = 1;
         this.catVisualState = null;
+        this.visibleDungeonWalls = {};
         this.map = map;
         this.messageBox = messageBox;
         this.cols = cols;
@@ -29,6 +30,7 @@ export class Map {
     }
     // Redraws map.
     show({ previousCoordinates = null, }) {
+        var _a;
         // updateRealWorldMap(latitude, longitude);
         if (previousCoordinates !== null) {
             const horizontalMovement = this.state.coordinates.latitude
@@ -38,6 +40,11 @@ export class Map {
             }
         }
         const areaId = this.inventory.getAreaId();
+        const dungeonMapExtraSize = 10;
+        const dungeonMap = areaId === DUNGEON_AREA
+            ? new DungeonMap(this.cols + dungeonMapExtraSize * 2, this.rows + dungeonMapExtraSize * 2, this.state.coordinates)
+            : null;
+        this.visibleDungeonWalls = {};
         // Set map background.
         let style = "";
         if (areaId === SURFACE_AREA) {
@@ -58,7 +65,12 @@ export class Map {
                 const cell_coordinates = new Coordinates(this.state.coordinates.latitude + (x - (this.cols + 1) / 2), this.state.coordinates.longitude + (y - (this.rows + 1) / 2));
                 const seed = cell_coordinates.getSeed();
                 let div = this.getCellElement(x, y, cell_coordinates);
-                const hasWall = this.isWallAt(cell_coordinates, areaId);
+                const hasWall = dungeonMap === null
+                    ? this.isWallAt(cell_coordinates, areaId)
+                    : Boolean((_a = dungeonMap.map[y + dungeonMapExtraSize]) === null || _a === void 0 ? void 0 : _a[x + dungeonMapExtraSize]);
+                if (areaId === DUNGEON_AREA) {
+                    this.visibleDungeonWalls[Map.coordinatesKey(cell_coordinates)] = hasWall;
+                }
                 if (areaId === DUNGEON_AREA) {
                     if (hasWall) {
                         div.append(Image.getWithItemTypeName("road", this.tile_size, seed).element());
@@ -220,12 +232,19 @@ export class Map {
     }
     isWallAt(coordinates, areaId = this.inventory.getAreaId()) {
         if (areaId === DUNGEON_AREA) {
+            const visibleWall = this.visibleDungeonWalls[Map.coordinatesKey(coordinates)];
+            if (visibleWall !== undefined) {
+                return visibleWall;
+            }
             return DungeonMap.hasWallAt(coordinates);
         }
         if (areaId === SHOP_AREA) {
             return ShopMap.hasWallAt(coordinates);
         }
         return false;
+    }
+    static coordinatesKey(coordinates) {
+        return coordinates.latitude + "," + coordinates.longitude;
     }
     static shopOutsideDecoration(seed) {
         // Trees used to occur once per 11 seeds. Once per 330 is exactly 30x

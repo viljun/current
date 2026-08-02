@@ -43,10 +43,10 @@ export class Image {
         }
         else if (name === "cactus") {
             srcs = [
-                "cactus-cluster-living-photoreal-grounded-v2.png",
+                "cactus-cluster-green-photoreal-grounded-v3.png",
             ];
             rotate = 0;
-            dimension = 1.4 + (dimensionSeed % 16) / 100;
+            dimension = 1.4 * (1 + (dimensionSeed % 101) / 100);
             style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
             zIndex = 31;
         }
@@ -244,7 +244,7 @@ export class Image {
                 "date-palm-green-brown-photoreal-grounded-v2.png",
             ];
             rotate = 0;
-            dimension = 2.2 + (dimensionSeed % 26) / 100;
+            dimension = 2.2 * (1 + (dimensionSeed % 101) / 100);
             style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
             zIndex = 32;
         }

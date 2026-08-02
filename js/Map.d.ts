@@ -12,6 +12,7 @@ export declare class Map {
     interactionLocked: boolean;
     private catFacingX;
     private catVisualState;
+    private visibleDungeonWalls;
     map: HTMLDivElement;
     messageBox: HTMLDivElement;
     cols: number;
@@ -28,6 +29,7 @@ export declare class Map {
     private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
     isWallAt(coordinates: Coordinates, areaId?: number): boolean;
+    private static coordinatesKey;
     private static shopOutsideDecoration;
     private static decorationSeed;
     setInteractionLocked(locked: boolean): void;

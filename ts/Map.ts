@@ -28,6 +28,7 @@ export class Map {
         dimension: number;
         mirror: number;
     }|null = null;
+    private visibleDungeonWalls: Record<string, boolean> = {};
 
     map: HTMLDivElement;
     messageBox: HTMLDivElement;
@@ -76,6 +77,15 @@ export class Map {
         }
 
         const areaId = this.inventory.getAreaId();
+        const dungeonMapExtraSize = 10;
+        const dungeonMap = areaId === DUNGEON_AREA
+            ? new DungeonMap(
+                this.cols + dungeonMapExtraSize * 2,
+                this.rows + dungeonMapExtraSize * 2,
+                this.state.coordinates,
+            )
+            : null;
+        this.visibleDungeonWalls = {};
 
         // Set map background.
         let style = "";
@@ -102,7 +112,18 @@ export class Map {
 
                 let div = this.getCellElement(x, y, cell_coordinates);
 
-                const hasWall = this.isWallAt(cell_coordinates, areaId);
+                const hasWall = dungeonMap === null
+                    ? this.isWallAt(cell_coordinates, areaId)
+                    : Boolean(
+                        dungeonMap.map[y + dungeonMapExtraSize]?.[
+                            x + dungeonMapExtraSize
+                        ],
+                    );
+                if (areaId === DUNGEON_AREA) {
+                    this.visibleDungeonWalls[
+                        Map.coordinatesKey(cell_coordinates)
+                    ] = hasWall;
+                }
                 if (areaId === DUNGEON_AREA) {
                     if (hasWall) {
                         div.append(Image.getWithItemTypeName("road", this.tile_size, seed).element());
@@ -315,6 +336,13 @@ export class Map {
 
     isWallAt(coordinates: Coordinates, areaId = this.inventory.getAreaId()): boolean {
         if (areaId === DUNGEON_AREA) {
+            const visibleWall = this.visibleDungeonWalls[
+                Map.coordinatesKey(coordinates)
+            ];
+            if (visibleWall !== undefined) {
+                return visibleWall;
+            }
+
             return DungeonMap.hasWallAt(coordinates);
         }
         if (areaId === SHOP_AREA) {
@@ -322,6 +350,10 @@ export class Map {
         }
 
         return false;
+    }
+
+    private static coordinatesKey(coordinates: Coordinates): string {
+        return coordinates.latitude + "," + coordinates.longitude;
     }
 
     private static shopOutsideDecoration(seed: number): string|null {
