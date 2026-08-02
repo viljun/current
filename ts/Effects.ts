@@ -17,6 +17,7 @@ export class Effects {
         "smelter",
         "stone axe",
         "sword",
+        "torch",
         "weapon shop",
     ]);
     private static readonly RARE_ITEMS = new Set([

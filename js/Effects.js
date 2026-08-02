@@ -714,6 +714,7 @@ Effects.CRAFT_ITEMS = new Set([
     "smelter",
     "stone axe",
     "sword",
+    "torch",
     "weapon shop",
 ]);
 Effects.RARE_ITEMS = new Set([

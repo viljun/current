@@ -59,6 +59,9 @@ export class ItemType {
         else if (!(seed % 709)) {
             name = "orc";
         }
+        else if (!(seed % 811)) {
+            name = "torch";
+        }
         else if (!(seed % 859)) {
             name = "club";
         }
@@ -133,7 +136,7 @@ export class ItemType {
         }
         if (this.name === "orc") {
             return [
-                new ItemTypeAndQuantity(new ItemType("stone axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("torch"), -2),
                 new ItemTypeAndQuantity(new ItemType("coin"), 100),
             ];
         }
@@ -146,7 +149,7 @@ export class ItemType {
         }
         if (this.name === "rat") {
             return [
-                new ItemTypeAndQuantity(new ItemType("club"), -1),
+                new ItemTypeAndQuantity(new ItemType("torch"), -1),
                 new ItemTypeAndQuantity(new ItemType("coin"), 100),
             ];
         }
@@ -164,6 +167,13 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("iron"), -5),
             ];
         }
+        if (this.name === "torch") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("stick"), -1),
+                new ItemTypeAndQuantity(new ItemType("hay"), -1),
+                new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
         if (this.name === "treasure") {
             return [
                 new ItemTypeAndQuantity(new ItemType("coin"), 50),
@@ -171,7 +181,7 @@ export class ItemType {
         }
         if (this.name === "troll") {
             return [
-                new ItemTypeAndQuantity(new ItemType("sword"), -1),
+                new ItemTypeAndQuantity(new ItemType("torch"), -3),
                 new ItemTypeAndQuantity(new ItemType("coin"), 1000),
                 new ItemTypeAndQuantity(new ItemType("club"), 1),
                 new ItemTypeAndQuantity(new ItemType("stone"), 3),

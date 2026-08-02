@@ -297,6 +297,12 @@ export class Image {
             ];
             rotate = (seed % 10) - 5;
             dimension = 3;
+        } else if (name === "torch") {
+            srcs = [
+                "torch.png",
+            ];
+            rotate = (seed % 24) - 12;
+            dimension = 1.6;
         } else if (name === "tree") {
             srcs = [
                 "isolated-tree-high-res-free-png.png",
