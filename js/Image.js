@@ -29,10 +29,9 @@ export class Image {
             ];
         }
         else if (name === "chest") {
-            rotate = (seed % 10) - 5;
             dimension = 2;
             srcs = [
-                "chest-medieval-photoreal-v1.png",
+                "chest-medieval-grounded-v6.png",
             ];
         }
         else if (name === "cloud") {
@@ -115,13 +114,12 @@ export class Image {
         }
         else if (name === "forest") { // quite similar to "tree"
             srcs = [
-                "isolated-tree-high-res-free-png.png",
-                "8330e0dade8daf56eaedf68805c7414e-beautiful-tall-tree.png",
-                "Tree01.png",
-                "tree_PNG92780.png",
-                "bush.webp",
+                "tree-grounded-olive-v1.png",
+                "tree-grounded-dark-v1.png",
+                "tree-grounded-broadleaf-v1.png",
+                "tree-grounded-tall-v1.png",
+                "tree-grounded-weathered-v1.png",
             ];
-            rotate = (seed % 14) - 7;
             dimension = 0.3 + (seed % 500) / 170;
             style = "opacity:" + ((seed % 100) / 10).toFixed(2) + ";";
             zIndex = 16;
@@ -306,13 +304,12 @@ export class Image {
         }
         else if (name === "tree") {
             srcs = [
-                "isolated-tree-high-res-free-png.png",
-                "8330e0dade8daf56eaedf68805c7414e-beautiful-tall-tree.png",
-                "Tree01.png",
-                "tree_PNG92780.png",
-                "bush.webp",
+                "tree-grounded-olive-v1.png",
+                "tree-grounded-dark-v1.png",
+                "tree-grounded-broadleaf-v1.png",
+                "tree-grounded-tall-v1.png",
+                "tree-grounded-weathered-v1.png",
             ];
-            rotate = (seed % 14) - 7;
             dimension = 0.3 + (seed % 500) / 120;
             zIndex = 30;
         }
@@ -355,7 +352,8 @@ export class Image {
             style += "filter:grayscale(1);opacity:0.2;";
         }
         if (this.takeable === false) {
-            style += "filter:blur(3px) brightness(10%);";
+            style += "filter:grayscale(55%) sepia(35%) saturate(55%) "
+                + "brightness(72%) contrast(85%) blur(0.6px);opacity:0.55;";
         }
         if (this.rotate !== 0) {
             style += "transform:rotate(" + this.rotate + "deg);";
