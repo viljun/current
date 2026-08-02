@@ -289,20 +289,21 @@ html,
     transition: height 650ms cubic-bezier(.2,.8,.2,1);
 }
 .fight-health-details {
-    display: grid;
-    justify-items: center;
-    gap: 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
     color: white;
     font-weight: bold;
     white-space: nowrap;
 }
 .fight-health-icon {
-    width: 1.45rem;
-    height: 1.45rem;
-    object-fit: contain;
+    color: #d93645;
+    font-size: 1.45rem;
+    line-height: 1;
+    text-shadow: 0 1px 3px #07170c;
 }
 .fight-health-value {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
 }
 .fight-round-effect {
     position: absolute;
@@ -490,7 +491,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 .fight-effect--damage {
-    background: #d94a3f;
+    background: #111;
     clip-path: polygon(50% 0%, 61% 20%, 82% 8%, 79% 32%, 100% 39%, 79% 53%, 92% 76%, 66% 73%, 57% 100%, 43% 76%, 18% 92%, 22% 64%, 0% 53%, 23% 41%, 8% 18%, 36% 24%);
 }
 .fight-effect--block {
@@ -500,7 +501,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     padding-bottom: 0.15rem;
 }
 .fight-effect--healing {
-    background: #38a864;
+    background: #d93645;
     clip-path: polygon(50% 95%, 8% 55%, 4% 30%, 14% 10%, 34% 4%, 50% 20%, 66% 4%, 86% 10%, 96% 30%, 92% 55%);
     padding-top: 0.12rem;
 }

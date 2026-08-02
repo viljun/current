@@ -296,13 +296,14 @@ export class FightView {
 
         const details = document.createElement("div");
         details.className = "fight-health-details";
-        const heart = document.createElement("img");
+        const heart = document.createElement("span");
         heart.className = "fight-health-icon";
-        heart.src = "images/pngtree-smooth-glossy-heart-vector-file-ai-and-png-png-image_4557871.png";
-        heart.alt = "Health";
+        heart.textContent = "♥";
+        heart.setAttribute("aria-hidden", "true");
         const value = document.createElement("span");
         value.className = "fight-health-value";
-        value.textContent = health + " / " + maximum;
+        value.textContent = String(health);
+        value.setAttribute("aria-label", health + " health remaining");
         details.append(heart, value);
         display.append(bar, details);
 
@@ -453,8 +454,11 @@ export class FightView {
                 ".fight-health-value",
             );
             if (value !== null) {
-                value.textContent = state.monsterHealth
-                    + " / " + state.monsterMaxHealth;
+                value.textContent = String(state.monsterHealth);
+                value.setAttribute(
+                    "aria-label",
+                    state.monsterHealth + " health remaining",
+                );
             }
         }
         if (playerHealth !== null) {
@@ -462,8 +466,11 @@ export class FightView {
                 ".fight-health-value",
             );
             if (value !== null) {
-                value.textContent = state.playerHealth
-                    + " / " + state.playerMaxHealth;
+                value.textContent = String(state.playerHealth);
+                value.setAttribute(
+                    "aria-label",
+                    state.playerHealth + " health remaining",
+                );
             }
         }
         this.updateHealthMeter(
