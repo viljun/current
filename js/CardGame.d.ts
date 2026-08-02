@@ -55,17 +55,18 @@ export interface CardPlayResolution {
 }
 export declare class CardGame {
     private static readonly CARDS_PER_ROUND;
+    private static readonly ITEM_QUALITY;
     private static readonly CARD_TYPES;
     private readonly monster;
     private readonly fightSeed;
     private readonly seedState;
     private readonly handSize;
     private drawPile;
-    private discardPile;
-    private monsterActionIndex;
+    private passCardIndex;
     private monsterHand;
     private state;
     constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[], itemOrigins: Record<string, ItemOrigin[]>, playerHealth: number);
+    private generateMonsterHealth;
     getState(): CardGameState;
     playPlayerCard(cardId: string): CardPlayResolution | null;
     playMonsterCard(): CardPlayResolution | null;
@@ -79,10 +80,11 @@ export declare class CardGame {
     private setHealth;
     private shieldsOf;
     private dealMonsterCards;
-    private monsterCard;
     private monsterCardItem;
+    private monsterCard;
     private monsterCardOrigin;
     private monsterCardHash;
+    private fightHash;
     private chooseMonsterCard;
     private monsterCardScore;
     private deterministicBias;
@@ -90,9 +92,9 @@ export declare class CardGame {
     private totalShield;
     private buildDeck;
     private drawCards;
+    private createPassCard;
     private ensureRequiredCards;
     private shuffle;
     private nextSequenceFraction;
-    private getMonsterAction;
 }
 //# sourceMappingURL=CardGame.d.ts.map

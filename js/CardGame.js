@@ -1,29 +1,18 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
 export class CardGame {
     constructor(monster, inventory, seed, requiredItemNames, itemOrigins, playerHealth) {
-        this.discardPile = [];
-        this.monsterActionIndex = 0;
+        this.passCardIndex = 0;
         this.monsterHand = [];
         this.monster = monster;
         this.fightSeed = seed || 1;
         this.seedState = { value: this.fightSeed };
         this.handSize = monster.handSize;
         this.drawPile = this.buildDeck(inventory, itemOrigins);
-        while (this.drawPile.length < CardGame.CARDS_PER_ROUND) {
-            this.drawPile.push({
-                id: "pass-" + this.drawPile.length,
-                itemName: "pass",
-                title: "Pass",
-                damage: 0,
-                block: 0,
-                healing: 0,
-                origin: null,
-            });
-        }
         this.shuffle(this.drawPile);
+        const monsterHealth = this.generateMonsterHealth();
         this.state = {
-            monsterHealth: monster.health,
-            monsterMaxHealth: monster.health,
+            monsterHealth,
+            monsterMaxHealth: monsterHealth,
             playerHealth,
             playerMaxHealth: playerHealth,
             playerShields: [],
@@ -40,6 +29,24 @@ export class CardGame {
         this.ensureRequiredCards(requiredItemNames);
         this.dealMonsterCards();
     }
+    generateMonsterHealth() {
+        const choices = Array.from({ length: 50 }, (_, index) => {
+            const health = index + 1;
+            return {
+                health,
+                weight: Math.max(1, Math.round(100000 * Math.pow(.72, Math.abs(health - this.monster.health)))),
+            };
+        });
+        const totalWeight = choices.reduce((total, choice) => total + choice.weight, 0);
+        let roll = this.fightHash("monster-health") % totalWeight;
+        for (const choice of choices) {
+            if (roll < choice.weight) {
+                return choice.health;
+            }
+            roll -= choice.weight;
+        }
+        return this.monster.health;
+    }
     getState() {
         return Object.assign(Object.assign({}, this.state), { playerShields: this.state.playerShields.map(shield => (Object.assign({}, shield))), monsterShields: this.state.monsterShields.map(shield => (Object.assign({}, shield))), hand: this.state.hand.map(card => (Object.assign({}, card))) });
     }
@@ -53,7 +60,6 @@ export class CardGame {
             return null;
         }
         this.state.hand.splice(cardIndex, 1);
-        this.discardPile.push(card);
         this.state.playerPlayedCount++;
         const resolution = this.resolveCard("player", card);
         if (this.state.status === "playing") {
@@ -89,7 +95,8 @@ export class CardGame {
         if (this.state.status !== "playing" || this.state.phase !== "dealing") {
             return;
         }
-        this.discardPile.push(...this.state.hand);
+        this.drawPile.push(...this.state.hand.filter(card => card.itemName !== "pass"));
+        this.shuffle(this.drawPile);
         this.state.hand = [];
         this.state.playerShields = [];
         this.state.monsterShields = [];
@@ -239,50 +246,36 @@ export class CardGame {
     }
     dealMonsterCards() {
         this.monsterHand = [];
-        for (let index = 0; index < this.monster.actionPattern.length; index++) {
-            const action = this.getMonsterAction(this.monsterActionIndex++);
-            this.monsterHand.push(this.monsterCard(action, this.monsterActionIndex));
+        const cardRange = this.monster.maximumCards - this.monster.minimumCards + 1;
+        const cardCount = this.monster.minimumCards
+            + this.monsterCardHash("card-count") % cardRange;
+        for (let index = 0; index < cardCount; index++) {
+            const itemName = this.monsterCardItem(index);
+            this.monsterHand.push(this.monsterCard(itemName, index));
         }
         this.state.monsterHandSize = this.monsterHand.length;
     }
-    monsterCard(action, index) {
-        const itemName = this.monsterCardItem(action, index);
-        return {
-            id: "monster-" + this.state.round + "-" + index,
+    monsterCardItem(index) {
+        const choices = Object.entries(CardGame.ITEM_QUALITY).map(([itemName, quality]) => ({
             itemName,
-            title: itemName.charAt(0).toUpperCase() + itemName.slice(1),
-            damage: action.damage,
-            block: action.block,
-            healing: action.healing,
-            origin: this.monsterCardOrigin(itemName, index),
-        };
+            weight: Math.max(1, Math.round(10000 * Math.pow(.42, Math.abs(quality - this.monster.cardStrength)))),
+        }));
+        const totalWeight = choices.reduce((total, choice) => total + choice.weight, 0);
+        let roll = this.monsterCardHash("card-item:" + index) % totalWeight;
+        for (const choice of choices) {
+            if (roll < choice.weight) {
+                return choice.itemName;
+            }
+            roll -= choice.weight;
+        }
+        return "pass";
     }
-    monsterCardItem(action, index) {
+    monsterCard(itemName, index) {
         var _a;
-        let choices;
-        if (action.damage > 0 && action.block > 0) {
-            choices = ["iron ore", "stone axe", "iron"];
-        }
-        else if (action.damage > 0 && action.healing > 0) {
-            choices = ["heart", "root", "club"];
-        }
-        else if (action.damage > 0) {
-            choices = ["stick", "club", "stone axe", "sword", "iron ore"];
-        }
-        else if (action.block > 0 && action.healing > 0) {
-            choices = ["iron", "heart", "stone"];
-        }
-        else if (action.block > 0) {
-            choices = ["stone", "hay", "iron", "iron ore"];
-        }
-        else if (action.healing > 0) {
-            choices = ["root", "heart"];
-        }
-        else {
-            choices = ["hay", "root", "stone"];
-        }
-        const choiceIndex = this.monsterCardHash(choices.join(",") + ":" + index) % choices.length;
-        return (_a = choices[choiceIndex]) !== null && _a !== void 0 ? _a : "stick";
+        const cardType = (_a = CardGame.CARD_TYPES[itemName]) !== null && _a !== void 0 ? _a : CardGame.CARD_TYPES.pass;
+        return Object.assign(Object.assign({ id: "monster-" + this.state.round + "-" + index }, cardType), { origin: itemName === "pass"
+                ? null
+                : this.monsterCardOrigin(itemName, index) });
     }
     monsterCardOrigin(itemName, index) {
         const latitudeHash = this.monsterCardHash(itemName + ":latitude:" + index);
@@ -294,7 +287,10 @@ export class CardGame {
         };
     }
     monsterCardHash(text) {
-        let hash = this.fightSeed ^ Math.imul(this.state.round, 65537);
+        return this.fightHash(text, this.state.round);
+    }
+    fightHash(text, round = 0) {
+        let hash = this.fightSeed ^ Math.imul(round, 65537);
         for (let index = 0; index < text.length; index++) {
             hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
         }
@@ -385,19 +381,13 @@ export class CardGame {
         return cards;
     }
     drawCards(quantity) {
+        var _a;
         while (this.state.hand.length < quantity) {
-            if (this.drawPile.length === 0) {
-                if (this.discardPile.length === 0) {
-                    break;
-                }
-                this.drawPile = this.discardPile.splice(0);
-                this.shuffle(this.drawPile);
-            }
-            const card = this.drawPile.pop();
-            if (card !== undefined) {
-                this.state.hand.push(card);
-            }
+            this.state.hand.push((_a = this.drawPile.pop()) !== null && _a !== void 0 ? _a : this.createPassCard());
         }
+    }
+    createPassCard() {
+        return Object.assign(Object.assign({ id: "pass-" + this.passCardIndex++ }, CardGame.CARD_TYPES.pass), { origin: null });
     }
     ensureRequiredCards(requiredItemNames) {
         for (const itemName of requiredItemNames) {
@@ -414,7 +404,9 @@ export class CardGame {
                 this.state.hand.push(requiredCard);
             }
             if (replacedCard !== undefined) {
-                this.drawPile.push(replacedCard);
+                if (replacedCard.itemName !== "pass") {
+                    this.drawPile.push(replacedCard);
+                }
             }
         }
     }
@@ -432,16 +424,26 @@ export class CardGame {
         this.seedState.value = value;
         return (value >>> 0) / 4294967296;
     }
-    getMonsterAction(index) {
-        const pattern = this.monster.actionPattern;
-        const action = pattern[index % pattern.length];
-        return action === undefined
-            ? { damage: 0, block: 0, healing: 0 }
-            : Object.assign({}, action);
-    }
 }
 CardGame.CARDS_PER_ROUND = 3;
+CardGame.ITEM_QUALITY = {
+    pass: 0,
+    hay: 0.5,
+    stick: 1,
+    root: 1,
+    stone: 1.5,
+    rat: 1.5,
+    "iron ore": 2,
+    iron: 2.5,
+    club: 3,
+    heart: 3,
+    orc: 3.5,
+    "stone axe": 4,
+    sword: 5,
+    troll: 5.5,
+};
 CardGame.CARD_TYPES = {
+    pass: { itemName: "pass", title: "Pass", damage: 0, block: 0, healing: 0 },
     stick: { itemName: "stick", title: "Stick", damage: 1, block: 0, healing: 0 },
     stone: { itemName: "stone", title: "Stone", damage: 0, block: 2, healing: 0 },
     root: { itemName: "root", title: "Root", damage: 0, block: 0, healing: 1 },

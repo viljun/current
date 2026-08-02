@@ -1,5 +1,4 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
-import type { MonsterAction } from "./MonsterDefinition.js";
 import type { ItemOrigin } from "./Inventory.js";
 
 export interface CardDefinition {
@@ -64,7 +63,24 @@ export interface CardPlayResolution {
 
 export class CardGame {
     private static readonly CARDS_PER_ROUND = 3;
+    private static readonly ITEM_QUALITY: Record<string, number> = {
+        pass: 0,
+        hay: 0.5,
+        stick: 1,
+        root: 1,
+        stone: 1.5,
+        rat: 1.5,
+        "iron ore": 2,
+        iron: 2.5,
+        club: 3,
+        heart: 3,
+        orc: 3.5,
+        "stone axe": 4,
+        sword: 5,
+        troll: 5.5,
+    };
     private static readonly CARD_TYPES: Record<string, Omit<CardDefinition, "id"|"origin">> = {
+        pass:       { itemName: "pass",       title: "Pass",      damage: 0, block: 0, healing: 0 },
         stick:      { itemName: "stick",      title: "Stick",     damage: 1, block: 0, healing: 0 },
         stone:      { itemName: "stone",      title: "Stone",     damage: 0, block: 2, healing: 0 },
         root:       { itemName: "root",       title: "Root",      damage: 0, block: 0, healing: 1 },
@@ -85,8 +101,7 @@ export class CardGame {
     private readonly seedState: { value: number };
     private readonly handSize: number;
     private drawPile: CardDefinition[];
-    private discardPile: CardDefinition[] = [];
-    private monsterActionIndex = 0;
+    private passCardIndex = 0;
     private monsterHand: CardDefinition[] = [];
     private state: CardGameState;
 
@@ -103,21 +118,11 @@ export class CardGame {
         this.seedState = { value: this.fightSeed };
         this.handSize = monster.handSize;
         this.drawPile = this.buildDeck(inventory, itemOrigins);
-        while (this.drawPile.length < CardGame.CARDS_PER_ROUND) {
-            this.drawPile.push({
-                id: "pass-" + this.drawPile.length,
-                itemName: "pass",
-                title: "Pass",
-                damage: 0,
-                block: 0,
-                healing: 0,
-                origin: null,
-            });
-        }
         this.shuffle(this.drawPile);
+        const monsterHealth = this.generateMonsterHealth();
         this.state = {
-            monsterHealth: monster.health,
-            monsterMaxHealth: monster.health,
+            monsterHealth,
+            monsterMaxHealth: monsterHealth,
             playerHealth,
             playerMaxHealth: playerHealth,
             playerShields: [],
@@ -133,6 +138,37 @@ export class CardGame {
         this.drawCards(this.handSize);
         this.ensureRequiredCards(requiredItemNames);
         this.dealMonsterCards();
+    }
+
+    private generateMonsterHealth(): number {
+        const choices = Array.from({ length: 50 }, (_, index) => {
+            const health = index + 1;
+            return {
+                health,
+                weight: Math.max(
+                    1,
+                    Math.round(
+                        100_000 * Math.pow(
+                            .72,
+                            Math.abs(health - this.monster.health),
+                        ),
+                    ),
+                ),
+            };
+        });
+        const totalWeight = choices.reduce(
+            (total, choice) => total + choice.weight,
+            0,
+        );
+        let roll = this.fightHash("monster-health") % totalWeight;
+        for (const choice of choices) {
+            if (roll < choice.weight) {
+                return choice.health;
+            }
+            roll -= choice.weight;
+        }
+
+        return this.monster.health;
     }
 
     getState(): CardGameState {
@@ -154,7 +190,6 @@ export class CardGame {
             return null;
         }
         this.state.hand.splice(cardIndex, 1);
-        this.discardPile.push(card);
         this.state.playerPlayedCount++;
         const resolution = this.resolveCard("player", card);
         if (this.state.status === "playing") {
@@ -195,7 +230,10 @@ export class CardGame {
         if (this.state.status !== "playing" || this.state.phase !== "dealing") {
             return;
         }
-        this.discardPile.push(...this.state.hand);
+        this.drawPile.push(
+            ...this.state.hand.filter(card => card.itemName !== "pass"),
+        );
+        this.shuffle(this.drawPile);
         this.state.hand = [];
         this.state.playerShields = [];
         this.state.monsterShields = [];
@@ -369,48 +407,55 @@ export class CardGame {
 
     private dealMonsterCards(): void {
         this.monsterHand = [];
-        for (let index = 0; index < this.monster.actionPattern.length; index++) {
-            const action = this.getMonsterAction(this.monsterActionIndex++);
-            this.monsterHand.push(this.monsterCard(action, this.monsterActionIndex));
+        const cardRange = this.monster.maximumCards - this.monster.minimumCards + 1;
+        const cardCount = this.monster.minimumCards
+            + this.monsterCardHash("card-count") % cardRange;
+        for (let index = 0; index < cardCount; index++) {
+            const itemName = this.monsterCardItem(index);
+            this.monsterHand.push(this.monsterCard(itemName, index));
         }
         this.state.monsterHandSize = this.monsterHand.length;
     }
 
-    private monsterCard(action: MonsterAction, index: number): CardDefinition {
-        const itemName = this.monsterCardItem(action, index);
-        return {
-            id: "monster-" + this.state.round + "-" + index,
-            itemName,
-            title: itemName.charAt(0).toUpperCase() + itemName.slice(1),
-            damage: action.damage,
-            block: action.block,
-            healing: action.healing,
-            origin: this.monsterCardOrigin(itemName, index),
-        };
+    private monsterCardItem(index: number): string {
+        const choices = Object.entries(CardGame.ITEM_QUALITY).map(
+            ([itemName, quality]) => ({
+                itemName,
+                weight: Math.max(
+                    1,
+                    Math.round(
+                        10_000 * Math.pow(
+                            .42,
+                            Math.abs(quality - this.monster.cardStrength),
+                        ),
+                    ),
+                ),
+            }),
+        );
+        const totalWeight = choices.reduce(
+            (total, choice) => total + choice.weight,
+            0,
+        );
+        let roll = this.monsterCardHash("card-item:" + index) % totalWeight;
+        for (const choice of choices) {
+            if (roll < choice.weight) {
+                return choice.itemName;
+            }
+            roll -= choice.weight;
+        }
+
+        return "pass";
     }
 
-    private monsterCardItem(action: MonsterAction, index: number): string {
-        let choices: string[];
-        if (action.damage > 0 && action.block > 0) {
-            choices = ["iron ore", "stone axe", "iron"];
-        } else if (action.damage > 0 && action.healing > 0) {
-            choices = ["heart", "root", "club"];
-        } else if (action.damage > 0) {
-            choices = ["stick", "club", "stone axe", "sword", "iron ore"];
-        } else if (action.block > 0 && action.healing > 0) {
-            choices = ["iron", "heart", "stone"];
-        } else if (action.block > 0) {
-            choices = ["stone", "hay", "iron", "iron ore"];
-        } else if (action.healing > 0) {
-            choices = ["root", "heart"];
-        } else {
-            choices = ["hay", "root", "stone"];
-        }
-        const choiceIndex = this.monsterCardHash(
-            choices.join(",") + ":" + index,
-        ) % choices.length;
-
-        return choices[choiceIndex] ?? "stick";
+    private monsterCard(itemName: string, index: number): CardDefinition {
+        const cardType = CardGame.CARD_TYPES[itemName] ?? CardGame.CARD_TYPES.pass!;
+        return {
+            id: "monster-" + this.state.round + "-" + index,
+            ...cardType,
+            origin: itemName === "pass"
+                ? null
+                : this.monsterCardOrigin(itemName, index),
+        };
     }
 
     private monsterCardOrigin(itemName: string, index: number): ItemOrigin {
@@ -425,7 +470,11 @@ export class CardGame {
     }
 
     private monsterCardHash(text: string): number {
-        let hash = this.fightSeed ^ Math.imul(this.state.round, 65_537);
+        return this.fightHash(text, this.state.round);
+    }
+
+    private fightHash(text: string, round: number = 0): number {
+        let hash = this.fightSeed ^ Math.imul(round, 65_537);
         for (let index = 0; index < text.length; index++) {
             hash = Math.imul(hash ^ text.charCodeAt(index), 16_777_619);
         }
@@ -543,18 +592,18 @@ export class CardGame {
 
     private drawCards(quantity: number): void {
         while (this.state.hand.length < quantity) {
-            if (this.drawPile.length === 0) {
-                if (this.discardPile.length === 0) {
-                    break;
-                }
-                this.drawPile = this.discardPile.splice(0);
-                this.shuffle(this.drawPile);
-            }
-            const card = this.drawPile.pop();
-            if (card !== undefined) {
-                this.state.hand.push(card);
-            }
+            this.state.hand.push(
+                this.drawPile.pop() ?? this.createPassCard(),
+            );
         }
+    }
+
+    private createPassCard(): CardDefinition {
+        return {
+            id: "pass-" + this.passCardIndex++,
+            ...CardGame.CARD_TYPES.pass!,
+            origin: null,
+        };
     }
 
     private ensureRequiredCards(requiredItemNames: string[]): void {
@@ -572,7 +621,9 @@ export class CardGame {
                 this.state.hand.push(requiredCard);
             }
             if (replacedCard !== undefined) {
-                this.drawPile.push(replacedCard);
+                if (replacedCard.itemName !== "pass") {
+                    this.drawPile.push(replacedCard);
+                }
             }
         }
     }
@@ -594,12 +645,4 @@ export class CardGame {
         return (value >>> 0) / 4_294_967_296;
     }
 
-    private getMonsterAction(index: number): MonsterAction {
-        const pattern = this.monster.actionPattern;
-        const action = pattern[index % pattern.length];
-
-        return action === undefined
-            ? { damage: 0, block: 0, healing: 0 }
-            : { ...action };
-    }
 }

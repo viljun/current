@@ -1,52 +1,36 @@
-export interface MonsterAction {
-    damage: number;
-    block: number;
-    healing: number;
-}
-
 export class MonsterDefinition {
     name: string;
     health: number;
-    actionPattern: MonsterAction[];
+    cardStrength: number;
+    minimumCards: number;
+    maximumCards: number;
     handSize: number;
 
-    constructor(name: string, health: number, actionPattern: MonsterAction[], handSize: number) {
+    constructor(
+        name: string,
+        health: number,
+        cardStrength: number,
+        minimumCards: number,
+        maximumCards: number,
+        handSize: number,
+    ) {
         this.name = name;
         this.health = health;
-        this.actionPattern = actionPattern;
+        this.cardStrength = cardStrength;
+        this.minimumCards = minimumCards;
+        this.maximumCards = maximumCards;
         this.handSize = handSize;
     }
 
     static get(name: string): MonsterDefinition|null {
         if (name === "rat") {
-            return new MonsterDefinition("rat", 7, [
-                { damage: 1, block: 0, healing: 0 },
-                { damage: 0, block: 1, healing: 0 },
-                { damage: 0, block: 0, healing: 0 },
-                { damage: 1, block: 0, healing: 1 },
-                { damage: 3, block: 0, healing: 0 },
-            ], 5);
+            return new MonsterDefinition("rat", 6, 0.75, 4, 6, 5);
         }
         if (name === "orc") {
-            return new MonsterDefinition("orc", 18, [
-                { damage: 3, block: 1, healing: 0 },
-                { damage: 0, block: 3, healing: 0 },
-                { damage: 0, block: 0, healing: 2 },
-                { damage: 0, block: 0, healing: 0 },
-                { damage: 4, block: 2, healing: 0 },
-                { damage: 5, block: 0, healing: 0 },
-            ], 5);
+            return new MonsterDefinition("orc", 14, 2.5, 5, 7, 5);
         }
         if (name === "troll") {
-            return new MonsterDefinition("troll", 34, [
-                { damage: 5, block: 0, healing: 0 },
-                { damage: 0, block: 4, healing: 2 },
-                { damage: 0, block: 0, healing: 0 },
-                { damage: 5, block: 0, healing: 2 },
-                { damage: 7, block: 2, healing: 0 },
-                { damage: 0, block: 0, healing: 4 },
-                { damage: 9, block: 0, healing: 0 },
-            ], 5);
+            return new MonsterDefinition("troll", 28, 4.75, 6, 9, 5);
         }
 
         return null;
