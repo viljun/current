@@ -80,7 +80,7 @@ export class Map {
         this.map.setAttribute("style", style);
 
         // Inventory is the default whenever the selected location has no action.
-        View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));
+        View.setMessage(this.messageBox, this.inventory.getText());
 
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {

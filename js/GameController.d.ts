@@ -12,6 +12,7 @@ export declare class GameController {
     private readonly messageBox;
     private readonly exploreSwitch;
     private readonly soundSwitch;
+    private readonly inventoryControl;
     private readonly restartControl;
     private readonly gpsStatus;
     private readonly inventory;
@@ -25,6 +26,7 @@ export declare class GameController {
     start(): void;
     private configureMapDimensions;
     private bindControls;
+    private updateInventoryControl;
     private setExploreMode;
     private selectCoordinates;
     private moveTo;

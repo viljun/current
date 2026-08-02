@@ -55,7 +55,7 @@ export class TakeItemButton {
 
             Effects.playItemAction(result, sourceElement);
             this.map.show({});
-            View.setMessage(this.messageBox, this.inventory.getText(this.messageBox));
+            View.setMessage(this.messageBox, this.inventory.getText());
         }
         takeItemButton.append(button);
 

@@ -10,6 +10,7 @@ export class GameController {
         this.messageBox = this.element("messageBox");
         this.exploreSwitch = this.element("exploreSwitch");
         this.soundSwitch = this.element("soundSwitch");
+        this.inventoryControl = this.element("inventoryControl");
         this.restartControl = this.element("restartControl");
         this.gpsStatus = this.element("gpsStatus");
         this.inventory = new Inventory();
@@ -64,7 +65,15 @@ export class GameController {
         this.exploreSwitch.addEventListener("change", () => {
             this.setExploreMode(this.exploreSwitch.checked);
         });
+        this.inventoryControl.addEventListener("click", () => this.inventory.openDialog());
+        this.inventory.onChange(() => this.updateInventoryControl());
+        this.updateInventoryControl();
         this.restartControl.addEventListener("click", () => this.restart());
+    }
+    updateInventoryControl() {
+        const count = this.inventory.countItemTypes();
+        this.inventoryControl.textContent = count + (count === 1 ? " item" : " items");
+        this.inventoryControl.disabled = count === 0;
     }
     setExploreMode(exploreMode) {
         this.state.exploreMode = exploreMode;

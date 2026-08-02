@@ -1,18 +1,26 @@
 import { Coordinates } from "./Coordinates.js";
 import { ItemType } from "./ItemType.js";
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
+import { OriginArtwork } from "./OriginArtwork.js";
 import { View } from './View.js';
 export class Inventory {
     constructor() {
         this.quantities = {};
         this.totalQuantities = {};
         this.usedCoordinates = {};
+        this.changeListeners = [];
         this.load();
     }
     // Returns quantity of the given item type in inventory.
     countItems(itemType) {
         var _a;
         return (_a = this.totalQuantities[itemType.name]) !== null && _a !== void 0 ? _a : 0;
+    }
+    countItemTypes() {
+        return this.entries().length;
+    }
+    onChange(listener) {
+        this.changeListeners.push(listener);
     }
     // Returns the locations of the remaining item instances, newest first.
     // The history is reconstructed from the ordered coordinate keys so old saves work unchanged.
@@ -21,38 +29,51 @@ export class Inventory {
         return ((_a = this.reconstructItemOrigins()[itemName]) !== null && _a !== void 0 ? _a : []).map(origin => (Object.assign({}, origin)));
     }
     // Returns text that describes inventory contents.
-    getText(messageBox) {
-        var _a;
-        if (Object.keys(this.totalQuantities).length === 0 && this.totalQuantities.constructor === Object) {
+    getText() {
+        const entries = this.entries();
+        if (entries.length === 0) {
             return "Find a stick and a root to craft your first club.";
         }
-        const items = [];
-        for (const key in this.totalQuantities) {
-            const total_quantity = (_a = this.totalQuantities[key]) !== null && _a !== void 0 ? _a : 0;
-            if (total_quantity === 0) {
-                continue;
-            }
-            const itemType = new ItemType(key);
-            items.push(View.getQuantityText(itemType.name, total_quantity));
-        }
+        const items = entries.map(([name, quantity]) => View.getQuantityText(name, quantity));
         const div = document.createElement("div");
-        div.setAttribute("class", "message");
-        div.innerHTML = "You have ";
-        const text = View.arrayToText(items);
-        if (text.length > 40) {
-            const button = document.createElement("input");
-            button.setAttribute("type", "button");
-            button.setAttribute("class", "button");
-            button.setAttribute("value", View.getQuantityText("item", items.length));
-            button.onclick = function () {
-                View.setMessage(messageBox, "You have " + text + ".");
-            };
-            div.append(button);
-        }
-        else {
-            div.append(text + ".");
-        }
+        div.className = "message inventory-status";
+        div.textContent = "You have " + View.arrayToText(items) + ".";
         return div;
+    }
+    openDialog() {
+        var _a;
+        const entries = this.entries();
+        const dialog = document.createElement("dialog");
+        dialog.className = "inventory-dialog";
+        dialog.setAttribute("aria-labelledby", "inventory-title");
+        const title = document.createElement("h1");
+        title.id = "inventory-title";
+        title.textContent = "Inventory";
+        const closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "fight-close";
+        closeButton.setAttribute("aria-label", "Close inventory");
+        closeButton.onclick = () => dialog.close();
+        const list = document.createElement("div");
+        list.className = "inventory-list";
+        for (const [name, quantity] of entries) {
+            const item = document.createElement("article");
+            item.className = "inventory-entry";
+            const origin = (_a = this.getItemOrigins(name)[0]) !== null && _a !== void 0 ? _a : {
+                latitude: 0,
+                longitude: 0,
+                depth: this.getDepth(),
+            };
+            item.append(OriginArtwork.create(name, origin, "inventory-entry-art"));
+            const label = document.createElement("strong");
+            label.textContent = View.getQuantityText(name, quantity);
+            item.append(label);
+            list.append(item);
+        }
+        dialog.append(closeButton, title, list);
+        dialog.addEventListener("close", () => dialog.remove(), { once: true });
+        document.body.append(dialog);
+        dialog.showModal();
     }
     isItemTypeTaken(itemType) {
         var _a;
@@ -89,6 +110,9 @@ export class Inventory {
         this.quantities[key] += 1;
         this.updateTotalQuantities();
         this.save();
+        for (const listener of this.changeListeners) {
+            listener();
+        }
         const changes = itemType.prizes();
         return {
             itemType: itemType,
@@ -200,6 +224,9 @@ export class Inventory {
             return null;
         }
         return { latitude, longitude, depth };
+    }
+    entries() {
+        return Object.entries(this.totalQuantities).filter((entry) => entry[1] !== 0);
     }
     // Update inventory total quantities by adding prizes and inventory.
     updateTotalQuantities() {

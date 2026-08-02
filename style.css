@@ -42,6 +42,7 @@ html,
 }
 #exploreControl,
 #soundControl,
+#inventoryControl,
 #restartControl {
     position: absolute;
     right: 0.75rem;
@@ -64,9 +65,24 @@ html,
 }
 #restartControl {
     bottom: 7.45rem;
+}
+#inventoryControl {
+    bottom: 10.8rem;
+}
+#inventoryControl,
+#restartControl {
     appearance: none;
     text-align: left;
     cursor: pointer;
+}
+#inventoryControl:hover,
+#inventoryControl:focus-visible {
+    border-color: #ffe173;
+    background: rgba(80, 55, 0, 0.9);
+}
+#inventoryControl:disabled {
+    cursor: default;
+    opacity: 0.55;
 }
 #restartControl:hover,
 #restartControl:focus-visible {
@@ -607,6 +623,55 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 }
 .message {
     display: inline-block;
+}
+.inventory-status {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: top;
+}
+.inventory-dialog {
+    position: relative;
+    width: min(42rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    overflow: auto;
+    padding: 1rem;
+    border: 2px solid #d9bd6a;
+    border-radius: 1rem;
+    background: #171a20;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+}
+.inventory-dialog::backdrop {
+    background: rgba(4, 7, 10, 0.92);
+}
+.inventory-dialog h1 {
+    margin: 0 0 1rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 3rem;
+}
+.inventory-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.8rem;
+}
+.inventory-entry {
+    min-width: 0;
+    overflow: hidden;
+    border: 2px solid #7b8492;
+    border-radius: 0.75rem;
+    background: #282d36;
+}
+.inventory-entry-art {
+    height: 7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.inventory-entry strong {
+    display: block;
+    padding: 0.65rem 0.4rem;
 }
 .button:disabled {
     color: #333333;

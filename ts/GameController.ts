@@ -27,6 +27,7 @@ export class GameController {
     private readonly messageBox = this.element<HTMLDivElement>("messageBox");
     private readonly exploreSwitch = this.element<HTMLInputElement>("exploreSwitch");
     private readonly soundSwitch = this.element<HTMLInputElement>("soundSwitch");
+    private readonly inventoryControl = this.element<HTMLButtonElement>("inventoryControl");
     private readonly restartControl = this.element<HTMLButtonElement>("restartControl");
     private readonly gpsStatus = this.element<HTMLDivElement>("gpsStatus");
     private readonly inventory = new Inventory();
@@ -116,7 +117,19 @@ export class GameController {
         this.exploreSwitch.addEventListener("change", () => {
             this.setExploreMode(this.exploreSwitch.checked);
         });
+        this.inventoryControl.addEventListener(
+            "click",
+            () => this.inventory.openDialog(),
+        );
+        this.inventory.onChange(() => this.updateInventoryControl());
+        this.updateInventoryControl();
         this.restartControl.addEventListener("click", () => this.restart());
+    }
+
+    private updateInventoryControl(): void {
+        const count = this.inventory.countItemTypes();
+        this.inventoryControl.textContent = count + (count === 1 ? " item" : " items");
+        this.inventoryControl.disabled = count === 0;
     }
 
     private setExploreMode(exploreMode: boolean): void {

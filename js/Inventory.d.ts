@@ -17,10 +17,14 @@ export declare class Inventory {
     quantities: Record<string, number>;
     totalQuantities: Record<string, number>;
     usedCoordinates: Record<string, boolean>;
+    private readonly changeListeners;
     constructor();
     countItems(itemType: ItemType): number;
+    countItemTypes(): number;
+    onChange(listener: () => void): void;
     getItemOrigins(itemName: string): ItemOrigin[];
-    getText(messageBox: HTMLDivElement): HTMLDivElement | "Find a stick and a root to craft your first club.";
+    getText(): HTMLDivElement | "Find a stick and a root to craft your first club.";
+    openDialog(): void;
     isItemTypeTaken(itemType: ItemType): boolean;
     coordinatesToString(coordinates: Coordinates): string;
     isItemTaken(coordinates: Coordinates): boolean;
@@ -33,6 +37,7 @@ export declare class Inventory {
     private reconstructItemOrigins;
     private addOrigins;
     private parseOrigin;
+    private entries;
     updateTotalQuantities(): void;
     getDepth(): number;
 }
