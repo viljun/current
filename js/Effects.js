@@ -604,6 +604,15 @@ export class Effects {
         Effects.appendCardEffectIcon(effects, "healing", card.healing);
         return effects;
     }
+    static createCardArtwork(card) {
+        if (card.origin !== null) {
+            return OriginArtwork.create(card.itemName, card.origin, "fight-card-art");
+        }
+        const artwork = document.createElement("div");
+        artwork.className = "fight-card-art fight-card-art--empty";
+        artwork.setAttribute("aria-hidden", "true");
+        return artwork;
+    }
     static appendCardEffectIcon(container, type, amount) {
         if (amount <= 0) {
             return;
@@ -617,12 +626,11 @@ export class Effects {
         container.append(icon);
     }
     static cardContents(card) {
-        const contents = [];
-        if (card.origin !== null) {
-            contents.push(OriginArtwork.create(card.itemName, card.origin, "fight-card-art"));
-        }
-        contents.push(Effects.textElement("strong", card.title), Effects.createCardEffectIcons(card));
-        return contents;
+        return [
+            Effects.createCardArtwork(card),
+            Effects.textElement("strong", card.title),
+            Effects.createCardEffectIcons(card),
+        ];
     }
     static textElement(tag, content) {
         const element = document.createElement(tag);

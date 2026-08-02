@@ -389,13 +389,13 @@ html,
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.45rem;
-    min-height: 9rem;
+    min-height: 10rem;
     perspective: 50rem;
 }
 .fight-monster-card-back {
     box-sizing: border-box;
     width: 7rem;
-    height: 9rem;
+    height: 10rem;
     border: 2px solid #d9bd6a;
     border-radius: 0.5rem;
     background: repeating-linear-gradient(45deg, #4b2531 0 6px, #26141c 6px 12px);
@@ -421,7 +421,7 @@ html,
     z-index: 10004;
     width: 7rem;
     min-height: 7rem;
-    height: 9rem;
+    height: 10rem;
     border: 2px solid #d9bd6a;
     border-radius: 0.65rem;
     background: repeating-linear-gradient(45deg, #263a58 0 6px, #172338 6px 12px);
@@ -442,7 +442,7 @@ html,
 .fight-card {
     box-sizing: border-box;
     width: 7rem;
-    height: 9rem;
+    height: 10rem;
     min-height: 7rem;
     padding: 0.7rem;
     border: 2px solid #7fa7d8;
@@ -492,8 +492,12 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 }
 .fight-card-art {
     height: 5.5rem;
+    flex: 0 0 5.5rem;
     margin: -0.7rem -0.7rem 0.2rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.fight-card-art--empty {
+    background: transparent;
 }
 .fight-card-effects {
     min-height: 1.8rem;
@@ -565,7 +569,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     box-sizing: border-box;
     width: 7rem;
     min-height: 7rem;
-    height: 9rem;
+    height: 10rem;
     padding: 0.7rem;
     font-size: inherit;
 }

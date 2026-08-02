@@ -11,10 +11,10 @@ export class CardGame {
         this.drawPile = this.buildDeck(inventory, itemOrigins);
         while (this.drawPile.length < CardGame.CARDS_PER_ROUND) {
             this.drawPile.push({
-                id: "scratch-" + this.drawPile.length,
-                itemName: "scratch",
-                title: "Scratch",
-                damage: 1,
+                id: "pass-" + this.drawPile.length,
+                itemName: "pass",
+                title: "Pass",
+                damage: 0,
                 block: 0,
                 healing: 0,
                 origin: null,

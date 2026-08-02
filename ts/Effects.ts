@@ -764,6 +764,21 @@ export class Effects {
         return effects;
     }
 
+    public static createCardArtwork(card: CardDefinition): HTMLElement {
+        if (card.origin !== null) {
+            return OriginArtwork.create(
+                card.itemName,
+                card.origin,
+                "fight-card-art",
+            );
+        }
+        const artwork = document.createElement("div");
+        artwork.className = "fight-card-art fight-card-art--empty";
+        artwork.setAttribute("aria-hidden", "true");
+
+        return artwork;
+    }
+
     private static appendCardEffectIcon(
         container: HTMLElement,
         type: "damage"|"block"|"healing",
@@ -782,22 +797,11 @@ export class Effects {
     }
 
     private static cardContents(card: CardDefinition): Node[] {
-        const contents: Node[] = [];
-        if (card.origin !== null) {
-            contents.push(
-                OriginArtwork.create(
-                    card.itemName,
-                    card.origin,
-                    "fight-card-art",
-                ),
-            );
-        }
-        contents.push(
+        return [
+            Effects.createCardArtwork(card),
             Effects.textElement("strong", card.title),
             Effects.createCardEffectIcons(card),
-        );
-
-        return contents;
+        ];
     }
 
     private static textElement(tag: "strong"|"span", content: string): HTMLElement {

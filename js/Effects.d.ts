@@ -29,6 +29,7 @@ export declare class Effects {
     private static floatFightText;
     private static describeFightEffect;
     static createCardEffectIcons(card: CardDefinition): HTMLElement;
+    static createCardArtwork(card: CardDefinition): HTMLElement;
     private static appendCardEffectIcon;
     private static cardContents;
     private static textElement;

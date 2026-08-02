@@ -156,9 +156,7 @@ export class FightView {
             cardButton.classList.add("fight-card");
             cardButton.dataset.cardId = card.id;
             cardButton.disabled = this.animating || state.phase !== "player";
-            if (card.origin !== null) {
-                cardButton.append(OriginArtwork.create(card.itemName, card.origin, "fight-card-art"));
-            }
+            cardButton.append(Effects.createCardArtwork(card));
             const name = document.createElement("strong");
             name.textContent = card.title;
             cardButton.append(name, Effects.createCardEffectIcons(card));
