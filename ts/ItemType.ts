@@ -41,7 +41,7 @@ export class ItemType {
             name = "stone";
         } else if (!(seed % 71)) {
             name = "hay";
-        } else if (!(seed % 89)) {
+        } else if (!(seed % 31)) {
             name = "root";
         } else if (!(seed % 191)) {
             name = "iron ore";

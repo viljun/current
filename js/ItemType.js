@@ -38,7 +38,7 @@ export class ItemType {
         else if (!(seed % 71)) {
             name = "hay";
         }
-        else if (!(seed % 89)) {
+        else if (!(seed % 31)) {
             name = "root";
         }
         else if (!(seed % 191)) {
