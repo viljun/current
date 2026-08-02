@@ -116,9 +116,21 @@ html,
 .effect-change--negative {
     color: #ff9b9b;
 }
-.effect-change--rare {
-    color: #ffe173;
-    font-size: 1.3rem;
+.effect-item {
+    position: fixed;
+    z-index: 10002;
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+    pointer-events: none;
+    filter: drop-shadow(0 0.15rem 0.2rem rgba(0, 0, 0, 0.8));
+}
+.effect-item--rare {
+    width: 3rem;
+    height: 3rem;
+    filter:
+        drop-shadow(0 0.15rem 0.2rem rgba(0, 0, 0, 0.8))
+        drop-shadow(0 0 0.4rem #ffe173);
 }
 .effect-change--block {
     color: #8fc7ff;

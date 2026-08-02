@@ -1,6 +1,7 @@
 import type { ItemActionResult } from "./Inventory.js";
 import type { CardDefinition, CardPlayResolution } from "./CardGame.js";
 export declare class Effects {
+    private static readonly MAX_ITEM_ANIMATIONS_PER_TYPE;
     private static readonly SOUND_STORAGE_KEY;
     private static readonly COMBAT_ITEMS;
     private static readonly CRAFT_ITEMS;
@@ -17,7 +18,8 @@ export declare class Effects {
     static sweepFightCards(cardElements: HTMLElement[]): Promise<void>;
     private static getType;
     private static showChanges;
-    private static floatText;
+    private static floatItem;
+    private static stringSeed;
     private static animateBlockingCard;
     private static flipMonsterCard;
     private static animateShieldHits;

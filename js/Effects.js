@@ -1,3 +1,4 @@
+import { Image as GameImage } from "./Image.js";
 import { OriginArtwork } from "./OriginArtwork.js";
 export class Effects {
     static initialize(soundSwitch) {
@@ -305,65 +306,76 @@ export class Effects {
         for (const change of [...result.expenses, ...result.prizes]) {
             changes.set(change.itemType.name, ((_a = changes.get(change.itemType.name)) !== null && _a !== void 0 ? _a : 0) + change.quantity);
         }
-        const visibleChanges = [...changes.entries()].filter(([, quantity]) => quantity !== 0);
+        const visibleChanges = [...changes.entries()].filter(([, quantity]) => quantity > 0);
         const sourceBounds = sourceElement === null || sourceElement === void 0 ? void 0 : sourceElement.getBoundingClientRect();
         const origin = {
             x: sourceBounds ? sourceBounds.left + sourceBounds.width / 2 : window.innerWidth / 2,
             y: sourceBounds ? sourceBounds.top + sourceBounds.height / 2 : window.innerHeight / 2,
         };
-        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         visibleChanges.forEach(([name, quantity], index) => {
-            let className = "effect-change effect-change--" + (quantity > 0 ? "positive" : "negative");
-            if (type === "rare" && quantity > 0) {
-                className += " effect-change--rare";
+            const animationCount = Math.min(quantity, Effects.MAX_ITEM_ANIMATIONS_PER_TYPE);
+            for (let itemIndex = 0; itemIndex < animationCount; itemIndex++) {
+                Effects.floatItem(name, origin, itemIndex, index, type === "rare");
             }
-            const angleRange = visibleChanges.length === 1 ? 0 : 240;
-            const angleDegrees = visibleChanges.length === 1
-                ? -90
-                : -210 + angleRange * index / (visibleChanges.length - 1);
-            const angle = angleDegrees * Math.PI / 180;
-            const distance = reducedMotion ? 25 : 75 + (index % 2) * 25;
-            const destinationX = Math.cos(angle) * distance;
-            const destinationY = Math.sin(angle) * distance - 20;
-            const rotation = reducedMotion ? 0 : -8 + (index % 3) * 8;
-            Effects.floatText((quantity > 0 ? "+" : "") + quantity + " " + name, className, origin, { x: destinationX, y: destinationY }, rotation);
         });
     }
-    static floatText(content, className, origin, destination, rotation, delay = 0) {
+    static floatItem(itemName, origin, itemIndex, typeIndex, rare) {
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const text = document.createElement("div");
-        text.className = className;
-        text.textContent = content;
-        text.style.left = origin.x + "px";
-        text.style.top = origin.y + "px";
-        text.setAttribute("aria-hidden", "true");
-        document.body.append(text);
-        const x = reducedMotion ? 0 : destination.x;
-        const y = reducedMotion ? -25 : destination.y;
-        const duration = reducedMotion ? 650 : 1150;
-        const animation = text.animate([
-            { transform: "translate(-50%, -50%) scale(0.45)", opacity: 0 },
-            { transform: "translate(-50%, -50%) scale(1.25)", opacity: 1, offset: 0.22 },
+        const seed = Effects.stringSeed(itemName) + itemIndex * 97 + typeIndex * 53;
+        const item = document.createElement("img");
+        item.className = "effect-item" + (rare ? " effect-item--rare" : "");
+        item.src = "images/" + GameImage.getWithItemTypeName(itemName, 54, seed).src;
+        item.alt = "";
+        item.style.left = origin.x + "px";
+        item.style.top = origin.y + "px";
+        item.setAttribute("aria-hidden", "true");
+        document.body.append(item);
+        const angle = (-160 + seed % 141) * Math.PI / 180;
+        const distance = reducedMotion ? 28 : 75 + seed % 105;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance - 25;
+        const rotation = reducedMotion ? 0 : -140 + seed % 281;
+        const delay = reducedMotion ? itemIndex * 8 : itemIndex * 18;
+        const duration = reducedMotion ? 650 : 1050 + seed % 350;
+        const animation = item.animate([
+            { transform: "translate(-50%, -50%) scale(.3)", opacity: 0 },
             {
-                transform: "translate(calc(-50% + " + x + "px), calc(-50% + "
-                    + y + "px)) scale(1.05) rotate(" + rotation + "deg)",
+                transform: "translate(calc(-50% + " + x * .2
+                    + "px), calc(-50% + " + y * .45
+                    + "px)) scale(1.05) rotate(" + rotation * .2 + "deg)",
                 opacity: 1,
-                offset: 0.68,
+                offset: .24,
             },
             {
-                transform: "translate(calc(-50% + " + x * 1.2 + "px), calc(-50% + "
-                    + y * 1.2 + "px)) scale(1.4) rotate(" + rotation + "deg)",
+                transform: "translate(calc(-50% + " + x
+                    + "px), calc(-50% + " + y
+                    + "px)) scale(.95) rotate(" + rotation + "deg)",
+                opacity: 1,
+                offset: .72,
+            },
+            {
+                transform: "translate(calc(-50% + " + x * 1.15
+                    + "px), calc(-50% + " + (y + 60)
+                    + "px)) scale(.7) rotate(" + rotation * 1.35 + "deg)",
                 opacity: 0,
             },
         ], {
-            delay: delay,
-            duration: duration,
-            easing: "cubic-bezier(.2,.75,.2,1)",
+            delay,
+            duration,
+            easing: "cubic-bezier(.2,.65,.35,1)",
             fill: "forwards",
         });
-        animation.addEventListener("finish", () => text.remove());
-        animation.addEventListener("cancel", () => text.remove());
-        window.setTimeout(() => text.remove(), delay + duration + 150);
+        const remove = () => item.remove();
+        animation.addEventListener("finish", remove, { once: true });
+        animation.addEventListener("cancel", remove, { once: true });
+        window.setTimeout(remove, delay + duration + 150);
+    }
+    static stringSeed(value) {
+        let seed = 0;
+        for (let index = 0; index < value.length; index++) {
+            seed = (seed * 31 + value.charCodeAt(index)) >>> 0;
+        }
+        return seed;
     }
     static async animateBlockingCard(sourceElement, card, monsterCard) {
         sourceElement.classList.add("fight-card--blocking");
@@ -681,6 +693,7 @@ export class Effects {
         (_a = navigator.vibrate) === null || _a === void 0 ? void 0 : _a.call(navigator, patterns[type]);
     }
 }
+Effects.MAX_ITEM_ANIMATIONS_PER_TYPE = 50;
 Effects.SOUND_STORAGE_KEY = "gpsgame.soundEnabled";
 Effects.COMBAT_ITEMS = new Set(["rat", "orc", "troll"]);
 Effects.CRAFT_ITEMS = new Set([
