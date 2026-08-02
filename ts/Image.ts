@@ -56,7 +56,7 @@ export class Image {
             rotate    = (seed % 10) - 5;
             dimension = 2;
             srcs      = [
-                "pngtree-treasure-chest-illustration-png-image_9243267.png",
+                "chest-medieval-photoreal-v1.png",
             ];
         } else if (name === "cloud") {
             srcs = [
@@ -296,7 +296,7 @@ export class Image {
                 "free-gold-dollar-coins-stack-4834362-4025175.png",
             ];
             rotate = (seed % 10) - 5;
-            dimension = 3;
+            dimension = 1.5;
         } else if (name === "torch") {
             srcs = [
                 "torch.png",
