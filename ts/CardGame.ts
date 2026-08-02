@@ -84,7 +84,7 @@ export class CardGame {
     private static readonly CARD_TYPES: Record<string, Omit<CardDefinition, "id"|"origin">> = {
         pass:       { itemName: "pass",       title: "Pass",      damage: 0, block: 0, healing: 0 },
         stick:      { itemName: "stick",      title: "Stick",     damage: 1, block: 0, healing: 0 },
-        stone:      { itemName: "stone",      title: "Stone",     damage: 0, block: 2, healing: 0 },
+        stone:      { itemName: "stone",      title: "Stone",     damage: 1, block: 0, healing: 0 },
         root:       { itemName: "root",       title: "Root",      damage: 0, block: 0, healing: 1 },
         hay:        { itemName: "hay",        title: "Hay",       damage: 0, block: 1, healing: 0 },
         crucible:   { itemName: "crucible",   title: "Crucible",  damage: 0, block: 2, healing: 0 },
