@@ -299,6 +299,18 @@ export class Image {
             dimension *= 1.35;
             style = "filter:sepia(.25) brightness(.82);";
             zIndex = 1;
+        } else if (name === "shop outside grass") {
+            srcs = [
+                "grass1.png",
+                "grass2.png",
+                "grass3.png",
+                "grass4.png",
+                "grass5.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = 0.3 + (dimensionSeed % 300) / 70;
+            style = "opacity:" + ((opacitySeed % 13) / 50 + 0.25).toFixed(2) + ";";
+            zIndex = 1;
         } else if (name === "shop wall") {
             srcs = ["wall1", "wall2", "wall3", "wall4", "wall5"];
             rotate = 0;

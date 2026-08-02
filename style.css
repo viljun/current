@@ -31,10 +31,18 @@ html,
 .cell {
     border: 1px solid rgba(0, 0, 0, 0.0);
 }
-.cell.shop-outside {
-    z-index: 3;
-    background-image:
-        url(images/seamless-sand-light-beach-square-texture-39125213.jpg);
+.cell.shop-outside,
+.origin-artwork-cell.shop-outside {
+    background-color: #4f6333;
+    background-image: url(images/grass1.png);
+    background-position: center;
+    background-size: cover;
+}
+#map .shop-floor {
+    z-index: 0 !important;
+}
+#map .shop-outside-tree {
+    z-index: 35 !important;
 }
 .cell.selected {
     outline: 3px solid #ffd65a;

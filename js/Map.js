@@ -72,20 +72,26 @@ export class Map {
                     const outside = ShopMap.isOutside(cell_coordinates);
                     if (outside) {
                         div.classList.add("shop-outside");
-                        div.append(Image.getWithItemTypeName("sand", this.tile_size, seed).element());
-                        div.append(Image.getWithItemTypeName("grass", this.tile_size, seed).element());
+                        div.append(Image.getWithItemTypeName("shop outside grass", this.tile_size, seed).element());
                         if (!(seed % 31)) {
-                            div.append(Image.getWithItemTypeName("tree", this.tile_size, seed).element());
+                            const tree = Image.getWithItemTypeName("tree", this.tile_size, seed).element();
+                            tree.classList.add("shop-outside-tree");
+                            div.append(tree);
                         }
                     }
-                    else if (hasWall) {
-                        div.append(Image.getWithItemTypeName("shop wall", this.tile_size, seed).element());
-                    }
                     else {
-                        div.append(Image.getWithItemTypeName("shop floor", this.tile_size, seed).element());
-                        const decoration = ShopMap.decorationAt(cell_coordinates);
-                        if (decoration !== null) {
-                            div.append(Image.getWithItemTypeName(decoration, this.tile_size, seed).element());
+                        div.classList.add("shop-indoor");
+                        if (hasWall) {
+                            div.append(Image.getWithItemTypeName("shop wall", this.tile_size, seed).element());
+                        }
+                        else {
+                            const floor = Image.getWithItemTypeName("shop floor", this.tile_size, seed).element();
+                            floor.classList.add("shop-floor");
+                            div.append(floor);
+                            const decoration = ShopMap.decorationAt(cell_coordinates);
+                            if (decoration !== null) {
+                                div.append(Image.getWithItemTypeName(decoration, this.tile_size, seed).element());
+                            }
                         }
                     }
                 }
@@ -114,8 +120,9 @@ export class Map {
                 // Get item type.
                 let itemType = hasWall ? null : ItemType.getWithSeed(seed, areaId);
                 if (areaId === SHOP_AREA
-                    && ShopMap.isOutside(cell_coordinates)
-                    && (itemType === null || itemType === void 0 ? void 0 : itemType.name.startsWith("cat "))) {
+                    && (itemType === null || itemType === void 0 ? void 0 : itemType.name.startsWith("cat "))
+                    && (ShopMap.isOutside(cell_coordinates)
+                        || ShopMap.isBesideWall(cell_coordinates))) {
                     itemType = null;
                 }
                 // Check if item has been taken. Show item.

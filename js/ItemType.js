@@ -10,13 +10,14 @@ export class ItemType {
     static getWithSeed(seed, areaId) {
         let name = null;
         if (areaId === 2) {
-            if (!(seed % 1133) && seed % 1030 !== 0) {
+            if (ItemType.isShopEntranceSeed(seed)) {
                 name = "stairs up";
             }
             else {
                 const tradeCount = ItemType.SHOP_TRADES.length * 2;
-                const tradeIndex = ((seed % (tradeCount * 17))
-                    + tradeCount * 17) % (tradeCount * 17);
+                const tradePeriod = tradeCount
+                    * ItemType.SHOP_TRADE_DENSITY_DIVISOR;
+                const tradeIndex = ((seed % tradePeriod) + tradePeriod) % tradePeriod;
                 if (tradeIndex >= tradeCount) {
                     return null;
                 }
@@ -31,7 +32,7 @@ export class ItemType {
             return new ItemType(name);
         }
         if (areaId === 1) {
-            if (!(seed % 1030)) {
+            if (ItemType.isDungeonEntranceSeed(seed)) {
                 name = "stairs up";
             }
             else if (!(seed % 1201)) {
@@ -45,10 +46,10 @@ export class ItemType {
             }
             return new ItemType(name);
         }
-        if (!(seed % 1030)) {
+        if (ItemType.isDungeonEntranceSeed(seed)) {
             name = "dungeon entrance";
         }
-        else if (!(seed % 1133)) {
+        else if (ItemType.isShopEntranceSeed(seed)) {
             name = "shop entrance";
         }
         else if (!(seed % 101)) {
@@ -128,13 +129,14 @@ export class ItemType {
             const itemName = this.name.slice(buying ? buyingPrefix.length : sellingPrefix.length);
             const trade = ItemType.SHOP_TRADES.find(value => value.item === itemName);
             if (trade !== undefined) {
+                const price = ItemType.shopPrice(trade.item, trade.quantity, buying);
                 return buying
                     ? [
                         new ItemTypeAndQuantity(new ItemType(trade.item), -trade.quantity),
-                        new ItemTypeAndQuantity(new ItemType("coin"), trade.price),
+                        new ItemTypeAndQuantity(new ItemType("coin"), price),
                     ]
                     : [
-                        new ItemTypeAndQuantity(new ItemType("coin"), -trade.price),
+                        new ItemTypeAndQuantity(new ItemType("coin"), -price),
                         new ItemTypeAndQuantity(new ItemType(trade.item), trade.quantity),
                     ];
             }
@@ -257,27 +259,99 @@ export class ItemType {
         }
         return [];
     }
+    static intrinsicValue(itemName) {
+        return ItemType.calculateIntrinsicValue(itemName, new Set());
+    }
+    static shopPrice(itemName, quantity, buying) {
+        const lotValue = ItemType.intrinsicValue(itemName) * quantity;
+        return Math.max(1, buying ? Math.floor(lotValue * .75) : Math.ceil(lotValue * 1.5));
+    }
+    static calculateIntrinsicValue(itemName, visiting) {
+        const foundational = ItemType.FOUNDATIONAL_VALUES[itemName];
+        if (foundational !== undefined) {
+            return foundational;
+        }
+        if (visiting.has(itemName)) {
+            return 1;
+        }
+        const nextVisiting = new Set(visiting);
+        nextVisiting.add(itemName);
+        const itemType = new ItemType(itemName);
+        const changes = itemType.prizes();
+        const expenses = changes.filter(change => change.quantity < 0);
+        const rewards = changes.filter(change => change.quantity > 0);
+        if (itemType.isMonster()) {
+            const rewardValue = ItemType.valueChanges(rewards, nextVisiting);
+            const combatCost = ItemType.valueChanges(expenses, nextVisiting);
+            return Math.max(1, Math.round((rewardValue - combatCost) * .5));
+        }
+        if (expenses.length > 0) {
+            const materialValue = ItemType.valueChanges(expenses, nextVisiting);
+            return Math.max(1, Math.ceil(materialValue * 1.2));
+        }
+        if (rewards.length > 0) {
+            return Math.max(1, ItemType.valueChanges(rewards, nextVisiting));
+        }
+        for (const actionName of ItemType.PRODUCTION_ACTIONS) {
+            const production = new ItemType(actionName).prizes();
+            const output = production.find(change => change.itemType.name === itemName && change.quantity > 0);
+            if (output === undefined) {
+                continue;
+            }
+            const productionCost = ItemType.valueChanges(production.filter(change => change.quantity < 0), nextVisiting);
+            return Math.max(1, productionCost * 1.2 / output.quantity);
+        }
+        return 1;
+    }
+    static valueChanges(changes, visiting) {
+        return changes.reduce((total, change) => total + Math.abs(change.quantity)
+            * ItemType.calculateIntrinsicValue(change.itemType.name, visiting), 0);
+    }
+    static isDungeonEntranceSeed(seed) {
+        const modulus = ItemType.ENTRANCE_MODULUS;
+        const remainder = ((seed % modulus) + modulus) % modulus;
+        return remainder < 2;
+    }
+    static isShopEntranceSeed(seed) {
+        const modulus = ItemType.ENTRANCE_MODULUS;
+        const remainder = ((seed % modulus) + modulus) % modulus;
+        return remainder === ItemType.SHOP_ENTRANCE_REMAINDER;
+    }
 }
+ItemType.ENTRANCE_MODULUS = 4120;
+ItemType.SHOP_ENTRANCE_REMAINDER = 2;
+ItemType.SHOP_TRADE_DENSITY_DIVISOR = 85;
 ItemType.SHOP_TRADES = [
-    { item: "stick", price: 1, quantity: 3 },
-    { item: "stone", price: 2, quantity: 3 },
-    { item: "hay", price: 3, quantity: 3 },
-    { item: "root", price: 2, quantity: 3 },
-    { item: "iron ore", price: 8, quantity: 3 },
-    { item: "iron", price: 12, quantity: 3 },
-    { item: "yarrow", price: 15, quantity: 1 },
-    { item: "hide", price: 8, quantity: 1 },
-    { item: "chest", price: 30, quantity: 1 },
-    { item: "rat", price: 20, quantity: 1 },
-    { item: "orc", price: 50, quantity: 1 },
-    { item: "troll", price: 300, quantity: 1 },
-    { item: "torch", price: 15, quantity: 1 },
-    { item: "club", price: 35, quantity: 1 },
-    { item: "stone axe", price: 80, quantity: 1 },
-    { item: "sword", price: 200, quantity: 1 },
-    { item: "padded hide", price: 35, quantity: 1 },
-    { item: "wooden shield", price: 90, quantity: 1 },
-    { item: "reinforced shield", price: 240, quantity: 1 },
-    { item: "crucible", price: 35, quantity: 1 },
-    { item: "treasure", price: 60, quantity: 1 },
+    { item: "stick", quantity: 3 },
+    { item: "stone", quantity: 3 },
+    { item: "hay", quantity: 3 },
+    { item: "root", quantity: 3 },
+    { item: "iron ore", quantity: 3 },
+    { item: "iron", quantity: 3 },
+    { item: "yarrow", quantity: 1 },
+    { item: "hide", quantity: 1 },
+    { item: "chest", quantity: 1 },
+    { item: "rat", quantity: 1 },
+    { item: "orc", quantity: 1 },
+    { item: "troll", quantity: 1 },
+    { item: "torch", quantity: 1 },
+    { item: "club", quantity: 1 },
+    { item: "stone axe", quantity: 1 },
+    { item: "sword", quantity: 1 },
+    { item: "padded hide", quantity: 1 },
+    { item: "wooden shield", quantity: 1 },
+    { item: "reinforced shield", quantity: 1 },
+    { item: "crucible", quantity: 1 },
+    { item: "treasure", quantity: 1 },
 ];
+ItemType.FOUNDATIONAL_VALUES = {
+    coin: 1,
+    hay: 1,
+    hide: 6,
+    "iron ore": 3,
+    root: 1,
+    stick: 1,
+    stone: 2,
+    yarrow: 10,
+};
+ItemType.PRODUCTION_ACTIONS = ["furnace"];

@@ -47,6 +47,21 @@ export class ShopMap {
         return null;
     }
 
+    static isBesideWall(coordinates: Coordinates): boolean {
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                if (this.hasWallAt(new Coordinates(
+                    coordinates.latitude + x,
+                    coordinates.longitude + y,
+                ))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     static isOutside(coordinates: Coordinates): boolean {
         const x = this.mod(coordinates.latitude, this.WIDTH);
         const y = this.mod(coordinates.longitude, this.HEIGHT);

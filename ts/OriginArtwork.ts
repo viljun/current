@@ -43,10 +43,12 @@ export class OriginArtwork {
                     cell.append(GameImage.getWithItemTypeName("dungeon floor", 54, seed).element());
                 } else {
                     if (ShopMap.isOutside(coordinates)) {
-                        cell.append(
-                            GameImage.getWithItemTypeName("sand", 54, seed).element(),
-                            GameImage.getWithItemTypeName("grass", 54, seed).element(),
-                        );
+                        cell.classList.add("shop-outside");
+                        cell.append(GameImage.getWithItemTypeName(
+                            "shop outside grass",
+                            54,
+                            seed,
+                        ).element());
                     } else {
                         cell.append(GameImage.getWithItemTypeName("shop floor", 54, seed).element());
                     }
