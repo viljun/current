@@ -86,6 +86,36 @@ export class Effects {
         }
     }
 
+    static showFightDefeated(board: HTMLElement): void {
+        try {
+            const text = document.createElement("div");
+            text.className = "fight-defeated-effect";
+            text.textContent = "Defeated";
+            text.setAttribute("role", "status");
+            board.append(text);
+            const reducedMotion = window.matchMedia(
+                "(prefers-reduced-motion: reduce)",
+            ).matches;
+            const duration = reducedMotion ? 2_000 : 4_000;
+            const animation = text.animate([
+                { transform: "translate(-50%, -50%) scale(.35)", opacity: 0 },
+                { transform: "translate(-50%, -50%) scale(1.12)", opacity: 1, offset: .3 },
+                { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: .78 },
+                { transform: "translate(-50%, -50%) scale(.92)", opacity: 0 },
+            ], {
+                duration,
+                easing: "cubic-bezier(.2,.75,.2,1)",
+                fill: "forwards",
+            });
+            const remove = () => text.remove();
+            animation.addEventListener("finish", remove, { once: true });
+            animation.addEventListener("cancel", remove, { once: true });
+            window.setTimeout(remove, duration + 150);
+        } catch (error) {
+            console.warn("Unable to show defeat effect.", error);
+        }
+    }
+
     static showSpentFightCard(card: HTMLElement): void {
         card.getAnimations().forEach(animation => animation.cancel());
         card.classList.add("fight-card--spent");
@@ -115,7 +145,6 @@ export class Effects {
         cardElement: HTMLElement|null,
         monsterPortraitElement: HTMLElement|null,
         playerPortraitElement: HTMLElement|null,
-        statusElement: HTMLElement|null,
         monsterShieldArea: HTMLElement|null,
         playerShieldArea: HTMLElement|null,
         monsterName: string,
@@ -125,14 +154,6 @@ export class Effects {
             const playerBounds = playerPortraitElement?.getBoundingClientRect();
             const monsterTarget = Effects.centerOf(monsterBounds);
             const playerTarget = Effects.centerOf(playerBounds);
-            const actorName = resolution.actor === "player"
-                ? "You"
-                : Effects.capitalize(monsterName);
-            Effects.setFightStatus(
-                statusElement,
-                actorName + (resolution.actor === "player" ? " play " : " plays ")
-                    + resolution.card.title,
-            );
             const defenderShieldArea = resolution.actor === "player"
                 ? monsterShieldArea
                 : playerShieldArea;
@@ -153,7 +174,6 @@ export class Effects {
                     effect,
                     monsterName,
                 );
-                Effects.setFightStatus(statusElement, description);
                 if (
                     effect.type === "block"
                     && cardElement !== null
@@ -168,7 +188,6 @@ export class Effects {
                     await Effects.animateShieldHits(
                         effect,
                         defenderShieldArea,
-                        statusElement,
                         cardElement,
                     );
                     if (effect.amount > 0 && target !== null) {
@@ -502,7 +521,6 @@ export class Effects {
     private static async animateShieldHits(
         effect: CombatEffect,
         shieldArea: HTMLElement|null,
-        statusElement: HTMLElement|null,
         sourceCard: HTMLElement|null,
     ): Promise<void> {
         for (const hit of effect.shieldHits) {
@@ -510,10 +528,6 @@ export class Effects {
             if (shield === null) {
                 continue;
             }
-            Effects.setFightStatus(
-                statusElement,
-                "Block absorbs " + hit.absorbed + " damage",
-            );
             const shieldTarget = Effects.centerOf(shield.getBoundingClientRect());
             if (shieldTarget !== null) {
                 await Effects.animateEffectBadge(
@@ -553,7 +567,6 @@ export class Effects {
             ]);
 
             if (hit.remainingBlock === 0) {
-                Effects.setFightStatus(statusElement, "Block is used up");
                 shield.classList.remove("fight-card--blocking");
                 Effects.showSpentFightCard(shield);
                 await Effects.pause(460);
@@ -723,12 +736,6 @@ export class Effects {
         }
 
         return actor + (effect.actor === "player" ? " wait" : " waits");
-    }
-
-    private static setFightStatus(element: HTMLElement|null, text: string): void {
-        if (element !== null) {
-            element.textContent = text;
-        }
     }
 
     public static createCardEffectIcons(card: CardDefinition): HTMLElement {

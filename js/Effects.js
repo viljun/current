@@ -59,6 +59,34 @@ export class Effects {
             console.warn("Unable to show round effect.", error);
         }
     }
+    static showFightDefeated(board) {
+        try {
+            const text = document.createElement("div");
+            text.className = "fight-defeated-effect";
+            text.textContent = "Defeated";
+            text.setAttribute("role", "status");
+            board.append(text);
+            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const duration = reducedMotion ? 2000 : 4000;
+            const animation = text.animate([
+                { transform: "translate(-50%, -50%) scale(.35)", opacity: 0 },
+                { transform: "translate(-50%, -50%) scale(1.12)", opacity: 1, offset: .3 },
+                { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: .78 },
+                { transform: "translate(-50%, -50%) scale(.92)", opacity: 0 },
+            ], {
+                duration,
+                easing: "cubic-bezier(.2,.75,.2,1)",
+                fill: "forwards",
+            });
+            const remove = () => text.remove();
+            animation.addEventListener("finish", remove, { once: true });
+            animation.addEventListener("cancel", remove, { once: true });
+            window.setTimeout(remove, duration + 150);
+        }
+        catch (error) {
+            console.warn("Unable to show defeat effect.", error);
+        }
+    }
     static showSpentFightCard(card) {
         card.getAnimations().forEach(animation => animation.cancel());
         card.classList.add("fight-card--spent");
@@ -80,17 +108,12 @@ export class Effects {
         });
     }
     // Plays one card and each of its effects in the order resolved by the game.
-    static async playFightCard(resolution, cardElement, monsterPortraitElement, playerPortraitElement, statusElement, monsterShieldArea, playerShieldArea, monsterName) {
+    static async playFightCard(resolution, cardElement, monsterPortraitElement, playerPortraitElement, monsterShieldArea, playerShieldArea, monsterName) {
         try {
             const monsterBounds = monsterPortraitElement === null || monsterPortraitElement === void 0 ? void 0 : monsterPortraitElement.getBoundingClientRect();
             const playerBounds = playerPortraitElement === null || playerPortraitElement === void 0 ? void 0 : playerPortraitElement.getBoundingClientRect();
             const monsterTarget = Effects.centerOf(monsterBounds);
             const playerTarget = Effects.centerOf(playerBounds);
-            const actorName = resolution.actor === "player"
-                ? "You"
-                : Effects.capitalize(monsterName);
-            Effects.setFightStatus(statusElement, actorName + (resolution.actor === "player" ? " play " : " plays ")
-                + resolution.card.title);
             const defenderShieldArea = resolution.actor === "player"
                 ? monsterShieldArea
                 : playerShieldArea;
@@ -107,13 +130,12 @@ export class Effects {
                 }
                 const target = effect.target === "player" ? playerTarget : monsterTarget;
                 const description = Effects.describeFightEffect(effect, monsterName);
-                Effects.setFightStatus(statusElement, description);
                 if (effect.type === "block"
                     && cardElement !== null) {
                     await Effects.animateBlockingCard(cardElement, resolution.card, resolution.actor === "monster");
                 }
                 if (effect.type === "damage") {
-                    await Effects.animateShieldHits(effect, defenderShieldArea, statusElement, cardElement);
+                    await Effects.animateShieldHits(effect, defenderShieldArea, cardElement);
                     if (effect.amount > 0 && target !== null) {
                         await Effects.animateEffectBadge(cardElement, "damage", effect.amount, target);
                     }
@@ -396,13 +418,12 @@ export class Effects {
         hideBack.cancel();
         showFront.cancel();
     }
-    static async animateShieldHits(effect, shieldArea, statusElement, sourceCard) {
+    static async animateShieldHits(effect, shieldArea, sourceCard) {
         for (const hit of effect.shieldHits) {
             const shield = Effects.findShieldElement(shieldArea, hit.id);
             if (shield === null) {
                 continue;
             }
-            Effects.setFightStatus(statusElement, "Block absorbs " + hit.absorbed + " damage");
             const shieldTarget = Effects.centerOf(shield.getBoundingClientRect());
             if (shieldTarget !== null) {
                 await Effects.animateEffectBadge(sourceCard, "damage", hit.absorbed, shieldTarget);
@@ -431,7 +452,6 @@ export class Effects {
                 valueAnimation,
             ]);
             if (hit.remainingBlock === 0) {
-                Effects.setFightStatus(statusElement, "Block is used up");
                 shield.classList.remove("fight-card--blocking");
                 Effects.showSpentFightCard(shield);
                 await Effects.pause(460);
@@ -563,11 +583,6 @@ export class Effects {
             return effect.target === "monster" ? "Monster defeated" : "You are defeated";
         }
         return actor + (effect.actor === "player" ? " wait" : " waits");
-    }
-    static setFightStatus(element, text) {
-        if (element !== null) {
-            element.textContent = text;
-        }
     }
     static createCardEffectIcons(card) {
         const effects = document.createElement("span");

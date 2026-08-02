@@ -16,6 +16,7 @@ export declare class FightView {
     private animating;
     private shownMonsterHealth;
     private shownPlayerHealth;
+    private autoCloseTimer;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
     open(): void;
     private renderMissingHeart;

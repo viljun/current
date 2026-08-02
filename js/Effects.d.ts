@@ -9,9 +9,10 @@ export declare class Effects {
     private static audioContext;
     static initialize(soundSwitch: HTMLInputElement): void;
     static playItemAction(result: ItemActionResult, sourceElement: HTMLElement | null): void;
-    static showFightRound(board: HTMLElement, round: number): void;
+    static showFightRound(board: HTMLElement, remainingRounds: number): void;
+    static showFightDefeated(board: HTMLElement): void;
     static showSpentFightCard(card: HTMLElement): void;
-    static playFightCard(resolution: CardPlayResolution, cardElement: HTMLElement | null, monsterPortraitElement: HTMLElement | null, playerPortraitElement: HTMLElement | null, statusElement: HTMLElement | null, monsterShieldArea: HTMLElement | null, playerShieldArea: HTMLElement | null, monsterName: string): Promise<void>;
+    static playFightCard(resolution: CardPlayResolution, cardElement: HTMLElement | null, monsterPortraitElement: HTMLElement | null, playerPortraitElement: HTMLElement | null, monsterShieldArea: HTMLElement | null, playerShieldArea: HTMLElement | null, monsterName: string): Promise<void>;
     static dealFightCards(deckElement: HTMLElement, cardElements: HTMLElement[]): void;
     static sweepFightCards(cardElements: HTMLElement[]): Promise<void>;
     private static getType;
@@ -25,7 +26,6 @@ export declare class Effects {
     private static findShieldElement;
     private static floatFightText;
     private static describeFightEffect;
-    private static setFightStatus;
     static createCardEffectIcons(card: CardDefinition): HTMLElement;
     private static appendCardEffectIcon;
     private static cardContents;

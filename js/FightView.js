@@ -20,6 +20,7 @@ export class FightView {
         this.animating = false;
         this.shownMonsterHealth = null;
         this.shownPlayerHealth = null;
+        this.autoCloseTimer = null;
     }
     open() {
         var _a;
@@ -63,6 +64,10 @@ export class FightView {
         this.animating = false;
         this.shownMonsterHealth = null;
         this.shownPlayerHealth = null;
+        if (this.autoCloseTimer !== null) {
+            window.clearTimeout(this.autoCloseTimer);
+            this.autoCloseTimer = null;
+        }
         const requiredNames = this.itemTakingSummary.expenses.map(expense => expense.itemType.name);
         const itemOrigins = {};
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
@@ -79,7 +84,7 @@ export class FightView {
         this.overlay.innerHTML = "";
         const panel = document.createElement("section");
         panel.className = "fight-panel";
-        const closeButton = this.button("×", () => this.requestClose(state));
+        const closeButton = this.button("×", () => this.requestClose());
         closeButton.className = "fight-close";
         closeButton.setAttribute("aria-label", state.status === "playing" ? "Retreat" : "Close fight");
         panel.append(closeButton);
@@ -309,8 +314,8 @@ export class FightView {
         this.syncFightState();
     }
     async playCardEffects(resolution, cardElement) {
-        var _a, _b, _c, _d, _e, _f;
-        await Effects.playFightCard(resolution, cardElement, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-fighter--monster .fight-portrait-art")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-fighter--player .fight-portrait-art")) !== null && _d !== void 0 ? _d : null, (_f = (_e = this.overlay) === null || _e === void 0 ? void 0 : _e.querySelector(".fight-turn-status")) !== null && _f !== void 0 ? _f : null, this.overlay, this.overlay, this.itemTakingSummary.itemType.name);
+        var _a, _b, _c, _d;
+        await Effects.playFightCard(resolution, cardElement, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-fighter--monster .fight-portrait-art")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-fighter--player .fight-portrait-art")) !== null && _d !== void 0 ? _d : null, this.overlay, this.overlay, this.itemTakingSummary.itemType.name);
     }
     syncFightState() {
         if (this.overlay === null || this.game === null) {
@@ -359,12 +364,22 @@ export class FightView {
         const status = this.overlay.querySelector(".fight-turn-status");
         if (status !== null) {
             status.className = "fight-outcome fight-outcome--" + state.status;
-            status.textContent = state.status === "won" ? "Victory" : "Defeated";
+            status.textContent = state.status === "won" ? "Victory" : "";
         }
         const closeButton = this.overlay.querySelector(".fight-close");
         closeButton === null || closeButton === void 0 ? void 0 : closeButton.setAttribute("aria-label", "Close fight");
         if (state.status === "won") {
             this.applyVictory();
+        }
+        else {
+            const board = this.overlay.querySelector(".fight-board");
+            if (board !== null) {
+                Effects.showFightDefeated(board);
+            }
+            this.autoCloseTimer = window.setTimeout(() => {
+                this.autoCloseTimer = null;
+                this.close();
+            }, 5000);
         }
     }
     async sweepBoardCards() {
@@ -402,12 +417,17 @@ export class FightView {
     }
     close() {
         var _a;
+        if (this.autoCloseTimer !== null) {
+            window.clearTimeout(this.autoCloseTimer);
+            this.autoCloseTimer = null;
+        }
         (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.remove();
         this.overlay = null;
         this.map.setInteractionLocked(false);
     }
-    requestClose(state) {
-        if (state.status === "playing"
+    requestClose() {
+        var _a;
+        if (((_a = this.game) === null || _a === void 0 ? void 0 : _a.getState().status) === "playing"
             && !window.confirm("Retreat from this fight? Your inventory will not change.")) {
             return;
         }
@@ -429,12 +449,6 @@ export class FightView {
         }
         if (state.status === "lost") {
             return "Defeated";
-        }
-        if (state.phase === "monster") {
-            return "Monster's turn";
-        }
-        if (state.phase === "dealing") {
-            return "Round complete — dealing new cards";
         }
         return "";
     }

@@ -306,7 +306,8 @@ html,
 .fight-health-value {
     font-size: 0.9rem;
 }
-.fight-round-effect {
+.fight-round-effect,
+.fight-defeated-effect {
     position: absolute;
     z-index: 10006;
     top: 50%;
@@ -318,6 +319,11 @@ html,
     text-shadow: 0 2px 5px #000, 0 0 12px #d46a2d;
     white-space: nowrap;
     pointer-events: none;
+}
+.fight-defeated-effect {
+    color: #ff7272;
+    font-size: clamp(2rem, 8vw, 4rem);
+    text-shadow: 0 2px 5px #000, 0 0 16px #9e1f2b;
 }
 .fight-combatants {
     display: flex;
