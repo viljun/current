@@ -128,6 +128,17 @@ export class GameController {
             return;
         }
         const previousCoordinates = this.state.coordinates;
+        if (this.inventory.getAreaId() !== 0 && this.map.isWallAt(coordinates)) {
+            this.state.coordinates = coordinates;
+            if (this.state.exploreMode) {
+                this.saveExploreCoordinates();
+            }
+            Effects.showAreaCollapse(this.mapElement, coordinates.getSeed());
+            this.inventory.exitArea();
+            this.state.selectedCoordinates = this.state.exploreMode ? coordinates : null;
+            this.map.show({});
+            return;
+        }
         this.state.coordinates = coordinates;
         if (this.state.exploreMode) {
             this.saveExploreCoordinates();

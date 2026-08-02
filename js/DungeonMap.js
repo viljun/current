@@ -1,3 +1,6 @@
+import { Coordinates as GameCoordinates } from "./Coordinates.js";
+import { DUNGEON_AREA } from "./Area.js";
+import { ItemType } from "./ItemType.js";
 export class DungeonMap {
     constructor(width, height, coordinates) {
         this.width = width;
@@ -13,8 +16,28 @@ export class DungeonMap {
         new_map = this.removeCheckerboardPatters(new_map);
         this.map = new_map;
     }
-    generate() {
+    static hasWallAt(coordinates) {
         var _a;
+        for (let x = -3; x <= 3; x++) {
+            for (let y = -3; y <= 3; y++) {
+                if (Math.hypot(x, y) <= 3) {
+                    const nearby = new GameCoordinates(coordinates.latitude + x, coordinates.longitude + y);
+                    if (((_a = ItemType.getWithSeed(nearby.getSeed(), DUNGEON_AREA)) === null || _a === void 0 ? void 0 : _a.name) === "stairs up") {
+                        return false;
+                    }
+                }
+            }
+        }
+        let x = (220 + coordinates.latitude) / 8;
+        let y = (220 + coordinates.longitude) / 8;
+        x += Math.cos(x / 9) * Math.sin(y / 7);
+        y += Math.sin(y / 5) * Math.cos(y / 3);
+        x *= Math.cos(Math.cos(y / 19) * Math.sin(y / 17));
+        y *= Math.sin(Math.sin(x / 13) * Math.sin(y / 11));
+        return Math.sin(x * .3 * y) + Math.cos(y * .3 * x) > .1;
+    }
+    generate() {
+        var _a, _b;
         const dungeon_map = [];
         for (let col = 0; col <= this.width; col++) {
             for (let row = 0; row <= this.height; row++) {
@@ -23,9 +46,30 @@ export class DungeonMap {
                     (_a = dungeon_map[r]) !== null && _a !== void 0 ? _a : (dungeon_map[r] = []);
                     dungeon_map[r][col] = true;
                 }
+                const coordinates = new GameCoordinates(this.coordinates.latitude + col, this.coordinates.longitude + row);
+                if (this.isNearStairs(coordinates)) {
+                    const r = row;
+                    (_b = dungeon_map[r]) !== null && _b !== void 0 ? _b : (dungeon_map[r] = []);
+                    dungeon_map[r][col] = false;
+                }
             }
         }
         return dungeon_map;
+    }
+    isNearStairs(coordinates) {
+        var _a;
+        for (let x = -3; x <= 3; x++) {
+            for (let y = -3; y <= 3; y++) {
+                if (Math.hypot(x, y) > 3) {
+                    continue;
+                }
+                const nearby = new GameCoordinates(coordinates.latitude + x, coordinates.longitude + y);
+                if (((_a = ItemType.getWithSeed(nearby.getSeed(), DUNGEON_AREA)) === null || _a === void 0 ? void 0 : _a.name) === "stairs up") {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     // Remove lonely walls and floors.
     removeLonelyTiles(dungeon_map) {

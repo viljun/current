@@ -182,7 +182,7 @@ export class FightView {
         const origin = {
             latitude: this.coordinates.latitude,
             longitude: this.coordinates.longitude,
-            depth: this.inventory.getDepth(),
+            areaId: this.inventory.getAreaId(),
         };
         const identity = document.createElement("div");
         identity.className = "fight-identity fight-identity--" + labelPosition;
@@ -238,7 +238,7 @@ export class FightView {
         const origin = {
             latitude: this.coordinates.latitude,
             longitude: this.coordinates.longitude,
-            depth: this.inventory.getDepth(),
+            areaId: this.inventory.getAreaId(),
         };
         const row = document.createElement("div");
         row.className = "fight-combatants";

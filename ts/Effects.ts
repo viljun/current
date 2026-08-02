@@ -24,6 +24,7 @@ export class Effects {
     private static readonly RARE_ITEMS = new Set([
         "chest",
         "dungeon entrance",
+        "shop entrance",
         "treasure",
     ]);
 
@@ -60,6 +61,29 @@ export class Effects {
             Effects.vibrate(type);
         } catch (error) {
             console.warn("Unable to play item effect.", error);
+        }
+    }
+
+    // Decorative only: collision has already exited the area when this starts.
+    static showAreaCollapse(map: HTMLElement, seed: number): void {
+        try {
+            const overlay = document.createElement("div");
+            overlay.className = "area-collapse-effect";
+            overlay.style.gridTemplateColumns = getComputedStyle(map).gridTemplateColumns;
+            Array.from(map.children).forEach((cell, index) => {
+                const fragment = (cell as HTMLElement).cloneNode(true) as HTMLElement;
+                const signed = ((Math.abs(seed + index * 7919) % 201) - 100) / 100;
+                fragment.style.setProperty("--collapse-x", (signed * 55) + "px");
+                fragment.style.setProperty(
+                    "--collapse-rotate",
+                    (((seed + index * 37) % 31) - 15) + "deg",
+                );
+                overlay.append(fragment);
+            });
+            map.parentElement?.append(overlay);
+            window.setTimeout(() => overlay.remove(), 1_250);
+        } catch (error) {
+            console.warn("Unable to show area collapse.", error);
         }
     }
 

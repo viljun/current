@@ -31,6 +31,27 @@ export class Effects {
             console.warn("Unable to play item effect.", error);
         }
     }
+    // Decorative only: collision has already exited the area when this starts.
+    static showAreaCollapse(map, seed) {
+        var _a;
+        try {
+            const overlay = document.createElement("div");
+            overlay.className = "area-collapse-effect";
+            overlay.style.gridTemplateColumns = getComputedStyle(map).gridTemplateColumns;
+            Array.from(map.children).forEach((cell, index) => {
+                const fragment = cell.cloneNode(true);
+                const signed = ((Math.abs(seed + index * 7919) % 201) - 100) / 100;
+                fragment.style.setProperty("--collapse-x", (signed * 55) + "px");
+                fragment.style.setProperty("--collapse-rotate", (((seed + index * 37) % 31) - 15) + "deg");
+                overlay.append(fragment);
+            });
+            (_a = map.parentElement) === null || _a === void 0 ? void 0 : _a.append(overlay);
+            window.setTimeout(() => overlay.remove(), 1250);
+        }
+        catch (error) {
+            console.warn("Unable to show area collapse.", error);
+        }
+    }
     // Decorative only: the fight continues without waiting for this animation.
     static showFightRound(board, remainingRounds) {
         try {
@@ -855,6 +876,7 @@ Effects.CRAFT_ITEMS = new Set([
 Effects.RARE_ITEMS = new Set([
     "chest",
     "dungeon entrance",
+    "shop entrance",
     "treasure",
 ]);
 Effects.soundEnabled = false;

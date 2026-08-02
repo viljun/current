@@ -27,6 +27,7 @@ export declare class Map {
     }): void;
     private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
+    isWallAt(coordinates: Coordinates, areaId?: number): boolean;
     setInteractionLocked(locked: boolean): void;
     slide({ previous_coordinates, tile_size, }: {
         previous_coordinates: Coordinates;

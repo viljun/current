@@ -7,10 +7,31 @@ export class ItemType {
         return ["rat", "orc", "troll"].includes(this.name);
     }
     // Returns item type by seed or null if there is no item in the location with the given seed.
-    static getWithSeed(seed, depth) {
+    static getWithSeed(seed, areaId) {
         let name = null;
-        if (depth > 0) {
-            if (!(seed % 103)) {
+        if (areaId === 2) {
+            if (!(seed % 1133) && seed % 1030 !== 0) {
+                name = "stairs up";
+            }
+            else {
+                const tradeCount = ItemType.SHOP_TRADES.length * 2;
+                const tradeIndex = ((seed % (tradeCount * 17))
+                    + tradeCount * 17) % (tradeCount * 17);
+                if (tradeIndex >= tradeCount) {
+                    return null;
+                }
+                const trade = ItemType.SHOP_TRADES[tradeIndex % ItemType.SHOP_TRADES.length];
+                if (trade === undefined) {
+                    return null;
+                }
+                name = tradeIndex < ItemType.SHOP_TRADES.length
+                    ? "cat buying " + trade.item
+                    : "cat selling " + trade.item;
+            }
+            return new ItemType(name);
+        }
+        if (areaId === 1) {
+            if (!(seed % 1030)) {
                 name = "stairs up";
             }
             else if (!(seed % 1201)) {
@@ -24,7 +45,13 @@ export class ItemType {
             }
             return new ItemType(name);
         }
-        if (!(seed % 101)) {
+        if (!(seed % 1030)) {
+            name = "dungeon entrance";
+        }
+        else if (!(seed % 1133)) {
+            name = "shop entrance";
+        }
+        else if (!(seed % 101)) {
             name = "coin";
         }
         else if (!(seed % 47)) {
@@ -87,9 +114,6 @@ export class ItemType {
         else if (!(seed % 2013)) {
             name = "treasure";
         }
-        else if (!(seed % 1030)) {
-            name = "dungeon entrance";
-        }
         else {
             return null;
         }
@@ -97,6 +121,24 @@ export class ItemType {
     }
     // Returns
     prizes() {
+        const buyingPrefix = "cat buying ";
+        const sellingPrefix = "cat selling ";
+        if (this.name.startsWith(buyingPrefix) || this.name.startsWith(sellingPrefix)) {
+            const buying = this.name.startsWith(buyingPrefix);
+            const itemName = this.name.slice(buying ? buyingPrefix.length : sellingPrefix.length);
+            const trade = ItemType.SHOP_TRADES.find(value => value.item === itemName);
+            if (trade !== undefined) {
+                return buying
+                    ? [
+                        new ItemTypeAndQuantity(new ItemType(trade.item), -trade.quantity),
+                        new ItemTypeAndQuantity(new ItemType("coin"), trade.price),
+                    ]
+                    : [
+                        new ItemTypeAndQuantity(new ItemType("coin"), -trade.price),
+                        new ItemTypeAndQuantity(new ItemType(trade.item), trade.quantity),
+                    ];
+            }
+        }
         if (this.name === "chest") {
             return [
                 new ItemTypeAndQuantity(new ItemType("coin"), 5),
@@ -216,3 +258,26 @@ export class ItemType {
         return [];
     }
 }
+ItemType.SHOP_TRADES = [
+    { item: "stick", price: 1, quantity: 3 },
+    { item: "stone", price: 2, quantity: 3 },
+    { item: "hay", price: 3, quantity: 3 },
+    { item: "root", price: 2, quantity: 3 },
+    { item: "iron ore", price: 8, quantity: 3 },
+    { item: "iron", price: 12, quantity: 3 },
+    { item: "yarrow", price: 15, quantity: 1 },
+    { item: "hide", price: 8, quantity: 1 },
+    { item: "chest", price: 30, quantity: 1 },
+    { item: "rat", price: 20, quantity: 1 },
+    { item: "orc", price: 50, quantity: 1 },
+    { item: "troll", price: 300, quantity: 1 },
+    { item: "torch", price: 15, quantity: 1 },
+    { item: "club", price: 35, quantity: 1 },
+    { item: "stone axe", price: 80, quantity: 1 },
+    { item: "sword", price: 200, quantity: 1 },
+    { item: "padded hide", price: 35, quantity: 1 },
+    { item: "wooden shield", price: 90, quantity: 1 },
+    { item: "reinforced shield", price: 240, quantity: 1 },
+    { item: "crucible", price: 35, quantity: 1 },
+    { item: "treasure", price: 60, quantity: 1 },
+];

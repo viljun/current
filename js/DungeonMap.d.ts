@@ -5,7 +5,9 @@ export declare class DungeonMap {
     coordinates: Coordinates;
     map: boolean[][];
     constructor(width: number, height: number, coordinates: Coordinates);
+    static hasWallAt(coordinates: Coordinates): boolean;
     private generate;
+    private isNearStairs;
     private removeLonelyTiles;
     removeCheckerboardPatters(dungeon_map: boolean[][]): boolean[][];
     isWall(x: number, y: number): boolean;

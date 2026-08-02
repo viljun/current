@@ -84,6 +84,13 @@ export class Image {
             dimension *= 2.9;
             style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
         }
+        else if (name === "shop entrance") {
+            srcs = [
+                "shop-entrance-medieval-photoreal-v1.png",
+            ];
+            dimension *= 2.9;
+            style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
+        }
         else if (name === "dungeon floor") {
             srcs = [
                 // "dungeon_floor.webp",
@@ -289,6 +296,39 @@ export class Image {
             dimension = 0.3 + (dimensionSeed % 270) / 30;
             style = "opacity:" + ((opacitySeed % 100) / 400).toFixed(2) + ";";
             zIndex = 10;
+        }
+        else if (name.startsWith("cat buying ") || name.startsWith("cat selling ")) {
+            srcs = [
+                "cat-photoreal-grounded-paws-v2.png",
+            ];
+            dimension *= 2;
+            zIndex = 30;
+        }
+        else if (name === "shop floor") {
+            srcs = ["floor1.png", "floor2.png", "floor3.png", "floor4.png"];
+            rotate = rotationSeed % 4 * 90;
+            dimension *= 1.35;
+            style = "filter:sepia(.25) brightness(.82);";
+            zIndex = 1;
+        }
+        else if (name === "shop wall") {
+            srcs = ["wall1", "wall2", "wall3", "wall4", "wall5"];
+            rotate = 0;
+            dimension *= 1.41;
+            style = "filter:sepia(.3) brightness(.9);";
+            zIndex = 2;
+        }
+        else if (name === "shop table") {
+            srcs = ["shop-table-medieval-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.8;
+            zIndex = 21;
+        }
+        else if (name === "shop shelf") {
+            srcs = ["shop-shelf-medieval-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 2;
+            zIndex = 22;
         }
         else if (name === "stairs up") {
             dimension *= 1.11;

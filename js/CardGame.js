@@ -283,7 +283,7 @@ export class CardGame {
         return {
             latitude: 10000 + latitudeHash % 900000,
             longitude: 10000 + longitudeHash % 900000,
-            depth: 1,
+            areaId: 1,
         };
     }
     monsterCardHash(text) {

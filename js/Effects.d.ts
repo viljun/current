@@ -10,6 +10,7 @@ export declare class Effects {
     private static audioContext;
     static initialize(soundSwitch: HTMLInputElement): void;
     static playItemAction(result: ItemActionResult, sourceElement: HTMLElement | null, actionSeed: number): void;
+    static showAreaCollapse(map: HTMLElement, seed: number): void;
     static showFightRound(board: HTMLElement, remainingRounds: number): void;
     static showFightOutcome(board: HTMLElement, outcome: "Victory" | "Defeated"): void;
     static showSpentFightCard(card: HTMLElement): void;

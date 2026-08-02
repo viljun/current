@@ -1,14 +1,17 @@
 import { Coordinates } from "./Coordinates.js";
 import { Image as GameImage } from "./Image.js";
 import type { ItemOrigin } from "./Inventory.js";
+import { ShopMap } from "./ShopMap.js";
 
 export class OriginArtwork {
     static create(itemName: string, origin: ItemOrigin, className: string): HTMLDivElement {
         const artwork = document.createElement("div");
         artwork.className = className + " origin-artwork";
-        artwork.style.backgroundImage = origin.depth === 0
+        artwork.style.backgroundImage = origin.areaId === 0
             ? "url(images/seamless-sand-light-beach-square-texture-39125213.jpg)"
-            : "url(images/dirt2.png)";
+            : origin.areaId === 2
+                ? "url(images/dirt2.png)"
+                : "url(images/dirt2.png)";
 
         for (let y = -1; y <= 1; y++) {
             for (let x = -1; x <= 1; x++) {
@@ -22,7 +25,7 @@ export class OriginArtwork {
                 cell.style.setProperty("--origin-left", (x * 54 - 27) + "px");
                 cell.style.setProperty("--origin-top", (y * 54 - 27) + "px");
 
-                if (origin.depth === 0) {
+                if (origin.areaId === 0) {
                     cell.append(
                         GameImage.getWithItemTypeName("sand", 54, seed).element(),
                         GameImage.getWithItemTypeName("grass", 54, seed).element(),
@@ -36,8 +39,17 @@ export class OriginArtwork {
                     if (!(seed % 99)) {
                         cell.append(GameImage.getWithItemTypeName("cloud", 54, seed).element());
                     }
-                } else {
+                } else if (origin.areaId === 1) {
                     cell.append(GameImage.getWithItemTypeName("dungeon floor", 54, seed).element());
+                } else {
+                    if (ShopMap.isOutside(coordinates)) {
+                        cell.append(
+                            GameImage.getWithItemTypeName("sand", 54, seed).element(),
+                            GameImage.getWithItemTypeName("grass", 54, seed).element(),
+                        );
+                    } else {
+                        cell.append(GameImage.getWithItemTypeName("shop floor", 54, seed).element());
+                    }
                 }
                 if (x === 0 && y === 0) {
                     cell.append(GameImage.getWithItemTypeName(itemName, 54, seed).element());

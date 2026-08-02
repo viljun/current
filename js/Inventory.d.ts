@@ -9,7 +9,7 @@ export interface ItemActionResult {
 export interface ItemOrigin {
     latitude: number;
     longitude: number;
-    depth: number;
+    areaId: number;
 }
 export declare class Inventory {
     private static readonly STORAGE_KEY;
@@ -40,6 +40,7 @@ export declare class Inventory {
     private parseOrigin;
     private entries;
     updateTotalQuantities(): void;
-    getDepth(): number;
+    getAreaId(): number;
+    exitArea(): void;
 }
 //# sourceMappingURL=Inventory.d.ts.map

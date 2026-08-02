@@ -30,7 +30,11 @@ export class ItemTakingSummary {
             "wooden shield",
             "reinforced shield",
         ].includes(this.itemType.name);
-        let buttonText = this.itemType.name === "furnace"
+        const merchant = this.itemType.name.startsWith("cat buying ")
+            || this.itemType.name.startsWith("cat selling ");
+        let buttonText = merchant
+            ? "Trade with cat"
+            : this.itemType.name === "furnace"
             ? "Smelt iron"
             : this.itemType.name === "armorer's bench"
                 ? "Use armorer's bench"

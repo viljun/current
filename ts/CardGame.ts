@@ -467,7 +467,7 @@ export class CardGame {
         return {
             latitude: 10_000 + latitudeHash % 900_000,
             longitude: 10_000 + longitudeHash % 900_000,
-            depth: 1,
+            areaId: 1,
         };
     }
 

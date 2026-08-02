@@ -3,6 +3,8 @@ export const ITEM_TAKING_RANGE = 1;
 
 import { Coordinates }    from "./Coordinates.js";
 import { DungeonMap }     from "./DungeonMap.js";
+import { ShopMap }        from "./ShopMap.js";
+import { DUNGEON_AREA, SHOP_AREA, SURFACE_AREA } from "./Area.js";
 import { FightMonsterButton } from "./FightMonsterButton.js";
 import { Image }          from "./Image.js";
 import { Inventory }      from "./Inventory.js";
@@ -73,20 +75,14 @@ export class Map {
             }
         }
 
-        // Depth is how many dungeon entrances minus stairs up the player has taken.
-        let depth                    = this.inventory.getDepth();
-        const dungeon_map_extra_size = 10;  // Extra size to make dungeon map big enough. Its edges tend to be a bit shaky.
-        let dungeon_map              = null;
-        dungeon_map = new DungeonMap(
-            this.cols + dungeon_map_extra_size * 2,
-            this.rows + dungeon_map_extra_size * 2,
-            this.state.coordinates,
-        );
+        const areaId = this.inventory.getAreaId();
 
         // Set map background.
         let style = "";
-        if (depth === 0) {
+        if (areaId === SURFACE_AREA) {
             style = "background-image: url(images/seamless-sand-light-beach-square-texture-39125213.jpg);";
+        } else if (areaId === SHOP_AREA) {
+            style = "background-image: url(images/dirt2.png);";
         } else {
             style = "background-image: url(images/dirt2.png);";
         }
@@ -106,21 +102,31 @@ export class Map {
 
                 let div = this.getCellElement(x, y, cell_coordinates);
 
-                // Has dungeon wall?
-                let $has_dungeon_wall = null;
-                if (dungeon_map.map[y + dungeon_map_extra_size]?.[x + dungeon_map_extra_size]) {
-                    $has_dungeon_wall = true;
-                } else {
-                    $has_dungeon_wall = false;
-                }
-
-                if (depth > 0 && dungeon_map) {
-                    // Dungeon map.
-                    if ($has_dungeon_wall) {
+                const hasWall = this.isWallAt(cell_coordinates, areaId);
+                if (areaId === DUNGEON_AREA) {
+                    if (hasWall) {
                         div.append(Image.getWithItemTypeName("road", this.tile_size, seed).element());
                         div.append(Image.getWithItemTypeName("dungeon wall", this.tile_size, seed).element());
                     } else {
                         div.append(Image.getWithItemTypeName("dungeon floor", this.tile_size, seed).element());
+                    }
+                } else if (areaId === SHOP_AREA) {
+                    const outside = ShopMap.isOutside(cell_coordinates);
+                    if (outside) {
+                        div.classList.add("shop-outside");
+                        div.append(Image.getWithItemTypeName("sand", this.tile_size, seed).element());
+                        div.append(Image.getWithItemTypeName("grass", this.tile_size, seed).element());
+                        if (!(seed % 31)) {
+                            div.append(Image.getWithItemTypeName("tree", this.tile_size, seed).element());
+                        }
+                    } else if (hasWall) {
+                        div.append(Image.getWithItemTypeName("shop wall", this.tile_size, seed).element());
+                    } else {
+                        div.append(Image.getWithItemTypeName("shop floor", this.tile_size, seed).element());
+                        const decoration = ShopMap.decorationAt(cell_coordinates);
+                        if (decoration !== null) {
+                            div.append(Image.getWithItemTypeName(decoration, this.tile_size, seed).element());
+                        }
                     }
                 } else {
                     // Sand.
@@ -135,7 +141,7 @@ export class Map {
                     }
 
                     // Rock formation.
-                    if ($has_dungeon_wall && !(seed % 177)) {
+                    if (!(seed % 177)) {
                         div.append(Image.getWithItemTypeName("rock formation", this.tile_size, seed).element());
                     }
 
@@ -151,12 +157,10 @@ export class Map {
                 }
 
                 // Get item type.
-                let itemType = ItemType.getWithSeed(seed, depth);
-
-                // Check if item is dungeon entrance and there's a wall in the dungeon map.
-                // If so, do not show the item.
-                if ($has_dungeon_wall
-                    && itemType?.name === "dungeon entrance"
+                let itemType = hasWall ? null : ItemType.getWithSeed(seed, areaId);
+                if (areaId === SHOP_AREA
+                    && ShopMap.isOutside(cell_coordinates)
+                    && itemType?.name.startsWith("cat ")
                 ) {
                     itemType = null;
                 }
@@ -275,6 +279,17 @@ export class Map {
 
     isWithinTakingRange(coordinates: Coordinates): boolean {
         return this.state.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
+    }
+
+    isWallAt(coordinates: Coordinates, areaId = this.inventory.getAreaId()): boolean {
+        if (areaId === DUNGEON_AREA) {
+            return DungeonMap.hasWallAt(coordinates);
+        }
+        if (areaId === SHOP_AREA) {
+            return ShopMap.hasWallAt(coordinates);
+        }
+
+        return false;
     }
 
     setInteractionLocked(locked: boolean): void {

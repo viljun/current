@@ -19,7 +19,7 @@ export interface ItemActionResult {
 export interface ItemOrigin {
     latitude: number;
     longitude: number;
-    depth: number;
+    areaId: number;
 }
 
 export class Inventory {
@@ -99,7 +99,7 @@ export class Inventory {
             const origin = this.getItemOrigins(name)[0] ?? {
                 latitude: 0,
                 longitude: 0,
-                depth: this.getDepth(),
+                areaId: this.getAreaId(),
             };
             item.append(OriginArtwork.create(
                 name,
@@ -123,7 +123,7 @@ export class Inventory {
     }
 
     coordinatesToString(coordinates: Coordinates): string {
-        return coordinates.latitude + "," + coordinates.longitude + "," + this.getDepth();
+        return coordinates.latitude + "," + coordinates.longitude + "," + this.getAreaId();
     }
 
     // Returns true if item in the given location has been picked up.
@@ -138,7 +138,7 @@ export class Inventory {
     // Adds item in the given coordinates to inventory.
     takeItem(coordinates: Coordinates): ItemActionResult|null {
         let seed = coordinates.getSeed();
-        let itemType = ItemType.getWithSeed(seed, this.getDepth());
+        let itemType = ItemType.getWithSeed(seed, this.getAreaId());
         if (itemType === null) {
             console.log("There's no item at " + this.coordinatesToString(coordinates));
 
@@ -149,6 +149,11 @@ export class Inventory {
             console.log("You have already taken this " + itemType.name + ".");
 
             return null;
+        }
+        if (itemType.name === "stairs up") {
+            this.exitArea();
+
+            return { itemType, prizes: [], expenses: [] };
         }
 
         this.usedCoordinates[coordinatesKey] = true;
@@ -278,7 +283,7 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.depth);
+            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
             if (action === null) {
                 continue;
             }
@@ -316,14 +321,14 @@ export class Inventory {
         }
         const latitude = Number(parts[0]);
         const longitude = Number(parts[1]);
-        const depth = Number(parts[2]);
+        const areaId = Number(parts[2]);
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
-            || !Number.isSafeInteger(depth)
+            || !Number.isSafeInteger(areaId)
         ) {
             return null;
         }
 
-        return { latitude, longitude, depth };
+        return { latitude, longitude, areaId };
     }
 
     private entries(): [string, number][] {
@@ -353,8 +358,48 @@ export class Inventory {
         }
     }
 
-    // Returns current depth based on how many dungeon entrances and stairs up the player has taken.
-    getDepth(): number {
-        return this.countItems(new ItemType("dungeon entrance")) - this.countItems(new ItemType("stairs up"));
+    getAreaId(): number {
+        let areaId = 0;
+        for (const key of Object.keys(this.usedCoordinates)) {
+            const origin = this.parseOrigin(key);
+            if (origin?.areaId !== 0) {
+                continue;
+            }
+            const coordinates = new Coordinates(origin.latitude, origin.longitude);
+            const action = ItemType.getWithSeed(coordinates.getSeed(), 0)?.name;
+            if (action === "dungeon entrance") {
+                areaId = 1;
+            } else if (action === "shop entrance") {
+                areaId = 2;
+            }
+        }
+
+        return areaId;
+    }
+
+    exitArea(): void {
+        for (const key of Object.keys(this.usedCoordinates)) {
+            const origin = this.parseOrigin(key);
+            if (origin === null) {
+                continue;
+            }
+            const coordinates = new Coordinates(origin.latitude, origin.longitude);
+            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
+            if (action !== null && [
+                "dungeon entrance",
+                "shop entrance",
+                "stairs up",
+            ].includes(action.name)) {
+                delete this.usedCoordinates[key];
+                if ((this.quantities[action.name] ?? 0) > 0) {
+                    this.quantities[action.name]!--;
+                }
+            }
+        }
+        this.updateTotalQuantities();
+        this.save();
+        for (const listener of this.changeListeners) {
+            listener();
+        }
     }
 }

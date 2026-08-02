@@ -18,13 +18,17 @@ export class ItemTakingSummary {
             "wooden shield",
             "reinforced shield",
         ].includes(this.itemType.name);
-        let buttonText = this.itemType.name === "furnace"
-            ? "Smelt iron"
-            : this.itemType.name === "armorer's bench"
-                ? "Use armorer's bench"
-                : craftable
-                    ? "Craft " + this.itemType.name
-                    : "Take " + this.itemType.name;
+        const merchant = this.itemType.name.startsWith("cat buying ")
+            || this.itemType.name.startsWith("cat selling ");
+        let buttonText = merchant
+            ? "Trade with cat"
+            : this.itemType.name === "furnace"
+                ? "Smelt iron"
+                : this.itemType.name === "armorer's bench"
+                    ? "Use armorer's bench"
+                    : craftable
+                        ? "Craft " + this.itemType.name
+                        : "Take " + this.itemType.name;
         let additionalText = "";
         // Expenses.
         if (this.expenses.length > 0) {
