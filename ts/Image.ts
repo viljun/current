@@ -83,13 +83,11 @@ export class Image {
             rotate = (seed % 16) - 8;
             dimension = 1.2;
         } else if (name === "dungeon entrance") {
-            dimension = 2;
             srcs      = [
-                "cave.webp",
+                "dungeon-entrance-medieval-photoreal-grounded-v2.png",
             ];
-            rotate = (seed % 20) - 10;
-            dimension = 2 + (seed % 300) / 100;
-            style = "opacity:" + ((seed % 100) / 500 + 0.7).toFixed(2) + ";";
+            dimension = 2.6 + (seed % 60) / 100;
+            style = "opacity:" + ((seed % 8) / 100 + 0.9).toFixed(2) + ";";
         } else if (name === "dungeon floor") {
             srcs = [
                 // "dungeon_floor.webp",
@@ -148,14 +146,10 @@ export class Image {
             zIndex = 13;
         } else if (name === "hay") {
             srcs = [
-                "Hay-no-bg.png",
-                "296be9_f3f5ab4acf65417486a6a59c5b146e22~mv2.png",
-                "image_e60bdb0e-68ab-40d7-802d-4e256bf5c954_300x300.png",
-                "image_300x300.png",
+                "hay-medieval-photoreal-v1.png",
             ];
-            rotate = seed % 360;
-            dimension = 0.3 + (seed % 100) / 200;
-            style = "opacity:" + ((seed % 30) / 100 + 0.5).toFixed(2) + ";";
+            dimension = 0.75 + (seed % 25) / 100;
+            style = "opacity:" + ((seed % 8) / 100 + 0.88).toFixed(2) + ";";
             zIndex = 15;
         } else if (name === "yarrow") {
             srcs = [

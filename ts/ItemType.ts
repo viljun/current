@@ -60,7 +60,7 @@ export class ItemType {
             name = "treasure";
         } else if (!(seed % 3001)) {
             name = "iron";
-        } else if (!(seed % 103)) {
+        } else if (!(seed % 1030)) {
             name = "dungeon entrance";
         } else {
             return null;
