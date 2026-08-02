@@ -75,6 +75,9 @@ export class CardGame {
         "stone axe": { itemName: "stone axe", title: "Stone axe", damage: 4, block: 0, healing: 0 },
         sword:      { itemName: "sword",      title: "Sword",     damage: 6, block: 0, healing: 0 },
         heart:      { itemName: "heart",      title: "Heart",     damage: 0, block: 0, healing: 3 },
+        rat:        { itemName: "rat",        title: "Rat",       damage: 2, block: 0, healing: 0 },
+        orc:        { itemName: "orc",        title: "Orc",       damage: 4, block: 2, healing: 0 },
+        troll:      { itemName: "troll",      title: "Troll",     damage: 7, block: 2, healing: 0 },
     };
 
     private readonly monster: MonsterDefinition;
