@@ -28,6 +28,8 @@ export declare class Map {
     private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
     isWallAt(coordinates: Coordinates, areaId?: number): boolean;
+    private static shopOutsideDecoration;
+    private static decorationSeed;
     setInteractionLocked(locked: boolean): void;
     slide({ previous_coordinates, tile_size, }: {
         previous_coordinates: Coordinates;

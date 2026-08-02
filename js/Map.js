@@ -73,10 +73,11 @@ export class Map {
                     if (outside) {
                         div.classList.add("shop-outside");
                         div.append(Image.getWithItemTypeName("shop outside grass", this.tile_size, seed).element());
-                        if (!(seed % 31)) {
-                            const tree = Image.getWithItemTypeName("tree", this.tile_size, seed).element();
-                            tree.classList.add("shop-outside-tree");
-                            div.append(tree);
+                        const decoration = Map.shopOutsideDecoration(seed);
+                        if (decoration !== null) {
+                            const decorationImage = Image.getWithItemTypeName(decoration, this.tile_size, seed).element();
+                            decorationImage.classList.add("shop-outside-decoration");
+                            div.append(decorationImage);
                         }
                     }
                     else {
@@ -118,10 +119,16 @@ export class Map {
                     }
                 }
                 // Get item type.
-                let itemType = hasWall ? null : ItemType.getWithSeed(seed, areaId);
+                const shopOutside = areaId === SHOP_AREA
+                    && ShopMap.isOutside(cell_coordinates);
+                let itemType = hasWall
+                    ? null
+                    : shopOutside
+                        ? ItemType.getShopOutsideWithSeed(seed)
+                        : ItemType.getWithSeed(seed, areaId);
                 if (areaId === SHOP_AREA
                     && (itemType === null || itemType === void 0 ? void 0 : itemType.name.startsWith("cat "))
-                    && (ShopMap.isOutside(cell_coordinates)
+                    && (shopOutside
                         || ShopMap.isBesideWall(cell_coordinates))) {
                     itemType = null;
                 }
@@ -219,6 +226,29 @@ export class Map {
             return ShopMap.hasWallAt(coordinates);
         }
         return false;
+    }
+    static shopOutsideDecoration(seed) {
+        // Trees used to occur once per 11 seeds. Once per 330 is exactly 30x
+        // rarer, while the separately salted stream makes desert plants the
+        // main outside decoration without correlating their kind or placement.
+        if (!(seed % 330)) {
+            return "tree";
+        }
+        const placementSeed = Map.decorationSeed(seed, 0x6d2b79f5);
+        if (placementSeed % 7 !== 0) {
+            return null;
+        }
+        const kindSeed = Map.decorationSeed(seed, 0x1b873593);
+        return kindSeed % 2 === 0 ? "cactus" : "palm";
+    }
+    static decorationSeed(seed, salt) {
+        let value = (seed >>> 0) ^ salt;
+        value ^= value >>> 16;
+        value = Math.imul(value, 0x7feb352d) >>> 0;
+        value ^= value >>> 15;
+        value = Math.imul(value, 0x846ca68b) >>> 0;
+        value ^= value >>> 16;
+        return value >>> 0;
     }
     setInteractionLocked(locked) {
         this.interactionLocked = locked;

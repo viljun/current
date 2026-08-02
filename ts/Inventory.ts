@@ -2,6 +2,7 @@ import { Coordinates } from "./Coordinates.js";
 import { ItemType }    from "./ItemType.js";
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { OriginArtwork } from "./OriginArtwork.js";
+import { ShopMap } from "./ShopMap.js";
 import { View }        from './View.js';
 
 interface InventorySaveData {
@@ -138,7 +139,10 @@ export class Inventory {
     // Adds item in the given coordinates to inventory.
     takeItem(coordinates: Coordinates): ItemActionResult|null {
         let seed = coordinates.getSeed();
-        let itemType = ItemType.getWithSeed(seed, this.getAreaId());
+        const areaId = this.getAreaId();
+        let itemType = areaId === 2 && ShopMap.isOutside(coordinates)
+            ? ItemType.getShopOutsideWithSeed(seed)
+            : ItemType.getWithSeed(seed, areaId);
         if (itemType === null) {
             console.log("There's no item at " + this.coordinatesToString(coordinates));
 
@@ -283,7 +287,9 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
+            const action = origin.areaId === 2 && ShopMap.isOutside(coordinates)
+                ? ItemType.getShopOutsideWithSeed(coordinates.getSeed())
+                : ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
             if (action === null) {
                 continue;
             }
@@ -384,7 +390,9 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
+            const action = origin.areaId === 2 && ShopMap.isOutside(coordinates)
+                ? ItemType.getShopOutsideWithSeed(coordinates.getSeed())
+                : ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
             if (action !== null && [
                 "dungeon entrance",
                 "shop entrance",

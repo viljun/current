@@ -10,10 +10,12 @@ export declare class ItemType {
     constructor(name: string);
     isMonster(): boolean;
     static getWithSeed(seed: number, areaId: number): ItemType | null;
+    static getShopOutsideWithSeed(seed: number): ItemType | null;
     prizes(): ItemTypeAndQuantity[];
     requirements(): ItemTypeAndQuantity[];
     static intrinsicValue(itemName: string): number;
     static shopPrice(itemName: string, quantity: number, buying: boolean): number;
+    static vendorCatPlayerScale(tradeName: string): number;
     private static calculateIntrinsicValue;
     private static valueChanges;
     private static isDungeonEntranceSeed;

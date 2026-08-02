@@ -1,3 +1,5 @@
+import { ItemType } from "./ItemType.js";
+
 export class Image {
     dimension: number;
     src: string;
@@ -58,6 +60,14 @@ export class Image {
             srcs      = [
                 "cat-photoreal-grounded-paws-v2.png",
             ];
+        } else if (name === "cactus") {
+            srcs = [
+                "cactus-cluster-living-photoreal-grounded-v2.png",
+            ];
+            rotate = 0;
+            dimension = 1.4 + (dimensionSeed % 16) / 100;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+            zIndex = 31;
         } else if (name === "chest") {
             dimension *= 2;
             srcs      = [
@@ -226,6 +236,14 @@ export class Image {
             ];
             dimension *= 1.82;
             style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
+        } else if (name === "palm") {
+            srcs = [
+                "date-palm-green-brown-photoreal-grounded-v2.png",
+            ];
+            rotate = 0;
+            dimension = 2.2 + (dimensionSeed % 26) / 100;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+            zIndex = 32;
         } else if (name === "rat") {
             srcs = [
                 "monster-rat-photoreal-grounded-v2.png",
@@ -288,10 +306,15 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 100) / 400).toFixed(2) + ";";
             zIndex = 10;
         } else if (name.startsWith("cat buying ") || name.startsWith("cat selling ")) {
-            srcs = [
-                "cat-photoreal-grounded-paws-v2.png",
-            ];
-            dimension *= 2;
+            const playerDimension = (
+                0.9 + (Image.visualSeed(seed, "cat", 2) % 21) / 100
+            ) * 2;
+            srcs = [name.startsWith("cat buying ")
+                ? "vendor-cat-buyer-medieval-photoreal-v1.png"
+                : "vendor-cat-seller-medieval-photoreal-v1.png"];
+            rotate = 0;
+            dimension = playerDimension
+                * ItemType.vendorCatPlayerScale(name);
             zIndex = 30;
         } else if (name === "shop floor") {
             srcs = ["floor1.png", "floor2.png", "floor3.png", "floor4.png"];

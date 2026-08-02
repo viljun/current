@@ -33,15 +33,16 @@ html,
 }
 .cell.shop-outside,
 .origin-artwork-cell.shop-outside {
-    background-color: #4f6333;
-    background-image: url(images/grass1.png);
+    background-color: #9d8b66;
+    background-image:
+        url(images/seamless-sand-light-beach-square-texture-39125213.jpg);
     background-position: center;
     background-size: cover;
 }
 #map .shop-floor {
     z-index: 0 !important;
 }
-#map .shop-outside-tree {
+#map .shop-outside-decoration {
     z-index: 35 !important;
 }
 .cell.selected {

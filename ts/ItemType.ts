@@ -83,6 +83,8 @@ export class ItemType {
         if (areaId === 1) {
             if (ItemType.isDungeonEntranceSeed(seed)) {
                 name = "stairs up";
+            } else if (!(seed % 503)) {
+                name = "chest";
             } else if (!(seed % 1201)) {
                 name = "armorer's bench";
             } else if (!(seed % 2039) || !(seed % 3001)) {
@@ -114,8 +116,6 @@ export class ItemType {
             name = "yarrow";
         } else if (!(seed % 367)) {
             name = "hide";
-        } else if (!(seed % 503)) {
-            name = "chest";
         } else if (!(seed % 509)) {
             name = "rat";
         } else if (!(seed % 607)) {
@@ -145,6 +145,35 @@ export class ItemType {
         }
 
         return new ItemType(name);
+    }
+
+    static getShopOutsideWithSeed(seed: number): ItemType|null {
+        const areaItem = ItemType.getWithSeed(seed, 2);
+        if (areaItem?.name === "stairs up") {
+            return areaItem;
+        }
+        let name: string|null = null;
+        if (!(seed % 23)) {
+            name = "coin";
+        } else if (!(seed % 307)) {
+            name = "stick";
+        } else if (!(seed % 337)) {
+            name = "stone";
+        } else if (!(seed % 487)) {
+            name = "hay";
+        } else if (!(seed % 263)) {
+            name = "root";
+        } else if (!(seed % 1259)) {
+            name = "iron ore";
+        } else if (!(seed % 1381)) {
+            name = "yarrow";
+        } else if (!(seed % 2081)) {
+            name = "hide";
+        } else if (!(seed % 6089)) {
+            name = "torch";
+        }
+
+        return name === null ? null : new ItemType(name);
     }
 
     // Returns
@@ -312,6 +341,48 @@ export class ItemType {
             1,
             buying ? Math.floor(lotValue * .75) : Math.ceil(lotValue * 1.5),
         );
+    }
+
+    static vendorCatPlayerScale(tradeName: string): number {
+        const buyingPrefix = "cat buying ";
+        const sellingPrefix = "cat selling ";
+        const buying = tradeName.startsWith(buyingPrefix);
+        const selling = tradeName.startsWith(sellingPrefix);
+        if (!buying && !selling) {
+            return 1;
+        }
+
+        const itemName = tradeName.slice(
+            buying ? buyingPrefix.length : sellingPrefix.length,
+        );
+        const trade = ItemType.SHOP_TRADES.find(value => value.item === itemName);
+        if (trade === undefined) {
+            return 1;
+        }
+
+        const prices = ItemType.SHOP_TRADES.reduce<number[]>(
+            (values, tradeValue) => values.concat(
+                ItemType.shopPrice(
+                    tradeValue.item,
+                    tradeValue.quantity,
+                    true,
+                ),
+                ItemType.shopPrice(
+                    tradeValue.item,
+                    tradeValue.quantity,
+                    false,
+                ),
+            ),
+            [],
+        );
+        const minimumPrice = Math.min(...prices);
+        const maximumPrice = Math.max(...prices);
+        const price = ItemType.shopPrice(trade.item, trade.quantity, buying);
+        const pricePosition = (Math.log(price) - Math.log(minimumPrice))
+            / (Math.log(maximumPrice) - Math.log(minimumPrice));
+
+        // Price is the only size input: no coordinate or visual-seed jitter.
+        return 0.5 + pricePosition * 1.3;
     }
 
     private static calculateIntrinsicValue(

@@ -16,5 +16,6 @@ export declare class ShopMap {
     private static intervalContaining;
     private static doorCenter;
     private static circularDistance;
+    private static layoutPosition;
 }
 //# sourceMappingURL=ShopMap.d.ts.map
