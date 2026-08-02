@@ -423,7 +423,13 @@ export class FightView {
     }
     requestClose() {
         var _a;
-        if (((_a = this.game) === null || _a === void 0 ? void 0 : _a.getState().status) === "playing"
+        const state = (_a = this.game) === null || _a === void 0 ? void 0 : _a.getState();
+        const cardsHaveBeenPlayed = state !== undefined
+            && (state.round > 1
+                || state.playerPlayedCount > 0
+                || state.monsterPlayedCount > 0);
+        if ((state === null || state === void 0 ? void 0 : state.status) === "playing"
+            && cardsHaveBeenPlayed
             && !window.confirm("Retreat from this fight? Your inventory will not change.")) {
             return;
         }

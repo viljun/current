@@ -604,7 +604,15 @@ export class FightView {
     }
 
     private requestClose(): void {
-        if (this.game?.getState().status === "playing"
+        const state = this.game?.getState();
+        const cardsHaveBeenPlayed = state !== undefined
+            && (
+                state.round > 1
+                || state.playerPlayedCount > 0
+                || state.monsterPlayedCount > 0
+            );
+        if (state?.status === "playing"
+            && cardsHaveBeenPlayed
             && !window.confirm("Retreat from this fight? Your inventory will not change.")
         ) {
             return;
