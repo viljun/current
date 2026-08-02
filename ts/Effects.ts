@@ -88,11 +88,15 @@ export class Effects {
         }
     }
 
-    static showFightDefeated(board: HTMLElement): void {
+    static showFightOutcome(
+        board: HTMLElement,
+        outcome: "Victory"|"Defeated",
+    ): void {
         try {
             const text = document.createElement("div");
-            text.className = "fight-defeated-effect";
-            text.textContent = "Defeated";
+            text.className = "fight-outcome-effect fight-outcome-effect--"
+                + outcome.toLowerCase();
+            text.textContent = outcome;
             text.setAttribute("role", "status");
             board.append(text);
             const reducedMotion = window.matchMedia(
@@ -114,7 +118,7 @@ export class Effects {
             animation.addEventListener("cancel", remove, { once: true });
             window.setTimeout(remove, duration + 150);
         } catch (error) {
-            console.warn("Unable to show defeat effect.", error);
+            console.warn("Unable to show fight outcome effect.", error);
         }
     }
 
@@ -208,7 +212,10 @@ export class Effects {
                         target,
                     );
                 } else if (target !== null) {
-                    if (effect.type !== "block") {
+                    if (
+                        effect.type !== "block"
+                        && effect.type !== "defeated"
+                    ) {
                         await Effects.floatFightText(effect, description, target);
                     }
                 } else {

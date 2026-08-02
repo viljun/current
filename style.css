@@ -319,7 +319,7 @@ html,
     font-size: 0.9rem;
 }
 .fight-round-effect,
-.fight-defeated-effect {
+.fight-outcome-effect {
     position: absolute;
     z-index: 10006;
     top: 50%;
@@ -332,10 +332,16 @@ html,
     white-space: nowrap;
     pointer-events: none;
 }
-.fight-defeated-effect {
-    color: #ff7272;
+.fight-outcome-effect {
     font-size: clamp(2rem, 8vw, 4rem);
+}
+.fight-outcome-effect--defeated {
+    color: #ff7272;
     text-shadow: 0 2px 5px #000, 0 0 16px #9e1f2b;
+}
+.fight-outcome-effect--victory {
+    color: #9dffae;
+    text-shadow: 0 2px 5px #000, 0 0 16px #2d8f4b;
 }
 .fight-combatants {
     display: flex;

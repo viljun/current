@@ -362,23 +362,21 @@ export class FightView {
         const status = this.overlay.querySelector(".fight-turn-status");
         if (status !== null) {
             status.className = "fight-outcome fight-outcome--" + state.status;
-            status.textContent = state.status === "won" ? "Victory" : "";
+            status.textContent = "";
         }
         const closeButton = this.overlay.querySelector(".fight-close");
         closeButton === null || closeButton === void 0 ? void 0 : closeButton.setAttribute("aria-label", "Close fight");
         if (state.status === "won") {
             this.applyVictory();
         }
-        else {
-            const board = this.overlay.querySelector(".fight-board");
-            if (board !== null) {
-                Effects.showFightDefeated(board);
-            }
-            this.autoCloseTimer = window.setTimeout(() => {
-                this.autoCloseTimer = null;
-                this.close();
-            }, 3000);
+        const board = this.overlay.querySelector(".fight-board");
+        if (board !== null) {
+            Effects.showFightOutcome(board, state.status === "won" ? "Victory" : "Defeated");
         }
+        this.autoCloseTimer = window.setTimeout(() => {
+            this.autoCloseTimer = null;
+            this.close();
+        }, 3000);
     }
     async sweepBoardCards() {
         if (this.overlay === null) {

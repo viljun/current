@@ -11,7 +11,7 @@ export declare class Effects {
     static initialize(soundSwitch: HTMLInputElement): void;
     static playItemAction(result: ItemActionResult, sourceElement: HTMLElement | null): void;
     static showFightRound(board: HTMLElement, remainingRounds: number): void;
-    static showFightDefeated(board: HTMLElement): void;
+    static showFightOutcome(board: HTMLElement, outcome: "Victory" | "Defeated"): void;
     static showSpentFightCard(card: HTMLElement): void;
     static playFightCard(resolution: CardPlayResolution, cardElement: HTMLElement | null, monsterPortraitElement: HTMLElement | null, playerPortraitElement: HTMLElement | null, monsterShieldArea: HTMLElement | null, playerShieldArea: HTMLElement | null, monsterName: string): Promise<void>;
     static dealFightCards(deckElement: HTMLElement, cardElements: HTMLElement[]): void;

@@ -60,11 +60,12 @@ export class Effects {
             console.warn("Unable to show round effect.", error);
         }
     }
-    static showFightDefeated(board) {
+    static showFightOutcome(board, outcome) {
         try {
             const text = document.createElement("div");
-            text.className = "fight-defeated-effect";
-            text.textContent = "Defeated";
+            text.className = "fight-outcome-effect fight-outcome-effect--"
+                + outcome.toLowerCase();
+            text.textContent = outcome;
             text.setAttribute("role", "status");
             board.append(text);
             const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -85,7 +86,7 @@ export class Effects {
             window.setTimeout(remove, duration + 150);
         }
         catch (error) {
-            console.warn("Unable to show defeat effect.", error);
+            console.warn("Unable to show fight outcome effect.", error);
         }
     }
     static showSpentFightCard(card) {
@@ -145,7 +146,8 @@ export class Effects {
                     await Effects.animateEffectBadge(cardElement, "healing", effect.amount, target);
                 }
                 else if (target !== null) {
-                    if (effect.type !== "block") {
+                    if (effect.type !== "block"
+                        && effect.type !== "defeated") {
                         await Effects.floatFightText(effect, description, target);
                     }
                 }
