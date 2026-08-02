@@ -53,7 +53,11 @@ export class TakeItemButton {
                 return;
             }
 
-            Effects.playItemAction(result, sourceElement);
+            Effects.playItemAction(
+                result,
+                sourceElement,
+                this.selected_coordinates.getSeed(),
+            );
             this.map.show({});
             View.setMessage(this.messageBox, this.inventory.getText());
         }

@@ -13,6 +13,8 @@ export class Map {
     constructor(map, messageBox, cols, rows, inventory, state, tile_size, onCellSelected, onInteractionUnlocked) {
         this.slidingAnimationInProgress = false;
         this.interactionLocked = false;
+        this.catFacingX = 1;
+        this.catVisualState = null;
         this.map = map;
         this.messageBox = messageBox;
         this.cols = cols;
@@ -25,8 +27,15 @@ export class Map {
     }
     // Redraws map.
     show({ previousCoordinates = null, }) {
-        // updateRealWorldMap(latitude, longitude);
         var _a;
+        // updateRealWorldMap(latitude, longitude);
+        if (previousCoordinates !== null) {
+            const horizontalMovement = this.state.coordinates.latitude
+                - previousCoordinates.latitude;
+            if (horizontalMovement !== 0) {
+                this.catFacingX = horizontalMovement > 0 ? 1 : -1;
+            }
+        }
         // Depth is how many dungeon entrances minus stairs up the player has taken.
         let depth = this.inventory.getDepth();
         const dungeon_map_extra_size = 10; // Extra size to make dungeon map big enough. Its edges tend to be a bit shaky.
@@ -139,7 +148,11 @@ export class Map {
                 // Current location.
                 if (x === (this.cols + 1) / 2 && y === (this.rows + 1) / 2) {
                     // Cat.
-                    div.append(Image.getWithItemTypeName("cat", this.tile_size, seed).element());
+                    const catImage = Image.getWithItemTypeName("cat", this.tile_size, seed);
+                    const cat = catImage.element();
+                    cat.style.setProperty("--item-mirror", String(this.catFacingX));
+                    this.animateCatVisual(cat, catImage);
+                    div.append(cat);
                 }
                 this.map.append(div);
             }
@@ -148,6 +161,33 @@ export class Map {
         if (previousCoordinates !== null) {
             this.slide({ previous_coordinates: previousCoordinates, tile_size: this.tile_size });
         }
+    }
+    animateCatVisual(cat, image) {
+        const nextState = {
+            rotation: image.rotate,
+            dimension: image.dimension,
+            mirror: this.catFacingX,
+        };
+        const previousState = this.catVisualState;
+        this.catVisualState = nextState;
+        if (previousState === null
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            return;
+        }
+        const startScale = previousState.dimension / nextState.dimension;
+        cat.animate([
+            {
+                transform: "rotate(" + previousState.rotation + "deg) scaleX("
+                    + previousState.mirror + ") scale(" + startScale + ")",
+            },
+            {
+                transform: "rotate(" + nextState.rotation + "deg) scaleX("
+                    + nextState.mirror + ") scale(1)",
+            },
+        ], {
+            duration: 420,
+            easing: "cubic-bezier(.4,0,.2,1)",
+        });
     }
     isWithinTakingRange(coordinates) {
         return this.state.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;

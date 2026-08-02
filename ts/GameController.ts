@@ -31,8 +31,10 @@ export class GameController {
     private readonly restartControl = this.element<HTMLButtonElement>("restartControl");
     private readonly gpsStatus = this.element<HTMLDivElement>("gpsStatus");
     private readonly inventory = new Inventory();
+    private readonly mapDimensionStyle = document.createElement("style");
     private readonly state: MapState;
     private readonly map: Map;
+    private resizeFrame: number|null = null;
 
     private latestGpsCoordinates: Coordinates|null = null;
     private latestGpsAccuracy: number|null = null;
@@ -53,6 +55,7 @@ export class GameController {
         this.exploreSwitch.checked = this.state.exploreMode;
         this.mapContainer.classList.toggle("explore-mode", this.state.exploreMode);
         Effects.initialize(this.soundSwitch);
+        document.head.append(this.mapDimensionStyle);
 
         const dimensions = this.configureMapDimensions();
         this.map = new Map(
@@ -103,12 +106,10 @@ export class GameController {
         const mapMarginTop = (
             this.mapContainer.clientHeight - (rows * GameController.TILE_SIZE + 1)
         ) / 2;
-        const style = document.createElement("style");
-        style.textContent = ".cell {width:" + GameController.TILE_SIZE
+        this.mapDimensionStyle.textContent = ".cell {width:" + GameController.TILE_SIZE
             + "px;height:" + GameController.TILE_SIZE
             + "px;} #map{margin-left:" + mapMarginLeft
             + "px;margin-top:" + mapMarginTop + "px;}";
-        document.head.append(style);
 
         return { cols, rows };
     }
@@ -124,6 +125,30 @@ export class GameController {
         this.inventory.onChange(() => this.updateInventoryControl());
         this.updateInventoryControl();
         this.restartControl.addEventListener("click", () => this.restart());
+        window.addEventListener("resize", () => this.scheduleResize());
+        window.visualViewport?.addEventListener(
+            "resize",
+            () => this.scheduleResize(),
+        );
+    }
+
+    private scheduleResize(): void {
+        if (this.resizeFrame !== null) {
+            return;
+        }
+        this.resizeFrame = window.requestAnimationFrame(() => {
+            this.resizeFrame = null;
+            const dimensions = this.configureMapDimensions();
+            if (
+                dimensions.cols === this.map.cols
+                && dimensions.rows === this.map.rows
+            ) {
+                return;
+            }
+            this.map.cols = dimensions.cols;
+            this.map.rows = dimensions.rows;
+            this.map.show({});
+        });
     }
 
     private updateInventoryControl(): void {

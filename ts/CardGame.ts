@@ -65,7 +65,10 @@ export class CardGame {
     private static readonly CARDS_PER_ROUND = 3;
     private static readonly ITEM_QUALITY: Record<string, number> = {
         pass: 0,
-        hay: 0.5,
+        hide: 2,
+        "padded hide": 3,
+        "wooden shield": 4,
+        "reinforced shield": 6,
         stick: 1,
         root: 1,
         stone: 1.5,
@@ -73,7 +76,6 @@ export class CardGame {
         crucible: 2,
         torch: 2,
         "iron ore": 2,
-        iron: 2.5,
         club: 3,
         yarrow: 3,
         orc: 3.5,
@@ -83,14 +85,16 @@ export class CardGame {
     };
     private static readonly CARD_TYPES: Record<string, Omit<CardDefinition, "id"|"origin">> = {
         pass:       { itemName: "pass",       title: "Pass",      damage: 0, block: 0, healing: 0 },
+        hide:        { itemName: "hide",       title: "Hide",      damage: 0, block: 2, healing: 0 },
+        "padded hide": { itemName: "padded hide", title: "Padded hide", damage: 0, block: 3, healing: 0 },
+        "wooden shield": { itemName: "wooden shield", title: "Wooden shield", damage: 0, block: 4, healing: 0 },
+        "reinforced shield": { itemName: "reinforced shield", title: "Reinforced shield", damage: 0, block: 6, healing: 0 },
         stick:      { itemName: "stick",      title: "Stick",     damage: 1, block: 0, healing: 0 },
         stone:      { itemName: "stone",      title: "Stone",     damage: 1, block: 0, healing: 0 },
         root:       { itemName: "root",       title: "Root",      damage: 0, block: 0, healing: 1 },
-        hay:        { itemName: "hay",        title: "Hay",       damage: 0, block: 1, healing: 0 },
         crucible:   { itemName: "crucible",   title: "Crucible",  damage: 0, block: 2, healing: 0 },
         torch:      { itemName: "torch",      title: "Torch",     damage: 2, block: 1, healing: 0 },
         "iron ore": { itemName: "iron ore",   title: "Iron ore",  damage: 1, block: 1, healing: 0 },
-        iron:       { itemName: "iron",       title: "Iron",      damage: 0, block: 3, healing: 0 },
         club:       { itemName: "club",       title: "Club",      damage: 3, block: 0, healing: 0 },
         "stone axe": { itemName: "stone axe", title: "Stone axe", damage: 4, block: 0, healing: 0 },
         sword:      { itemName: "sword",      title: "Sword",     damage: 6, block: 0, healing: 0 },

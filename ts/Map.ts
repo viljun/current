@@ -20,6 +20,12 @@ export interface MapState {
 export class Map {
     slidingAnimationInProgress: boolean = false;
     interactionLocked: boolean = false;
+    private catFacingX = 1;
+    private catVisualState: {
+        rotation: number;
+        dimension: number;
+        mirror: number;
+    }|null = null;
 
     map: HTMLDivElement;
     messageBox: HTMLDivElement;
@@ -59,6 +65,13 @@ export class Map {
         previousCoordinates?: Coordinates|null,
     } ) {
         // updateRealWorldMap(latitude, longitude);
+        if (previousCoordinates !== null) {
+            const horizontalMovement = this.state.coordinates.latitude
+                - previousCoordinates.latitude;
+            if (horizontalMovement !== 0) {
+                this.catFacingX = horizontalMovement > 0 ? 1 : -1;
+            }
+        }
 
         // Depth is how many dungeon entrances minus stairs up the player has taken.
         let depth                    = this.inventory.getDepth();
@@ -213,7 +226,11 @@ export class Map {
                 // Current location.
                 if (x === (this.cols + 1) / 2 && y === (this.rows + 1) / 2) {
                     // Cat.
-                    div.append(Image.getWithItemTypeName("cat", this.tile_size, seed).element());
+                    const catImage = Image.getWithItemTypeName("cat", this.tile_size, seed);
+                    const cat = catImage.element();
+                    cat.style.setProperty("--item-mirror", String(this.catFacingX));
+                    this.animateCatVisual(cat, catImage);
+                    div.append(cat);
                 }
 
                 this.map.append(div);
@@ -224,6 +241,36 @@ export class Map {
         if (previousCoordinates !== null) {
             this.slide({ previous_coordinates: previousCoordinates, tile_size: this.tile_size });
         }
+    }
+
+    private animateCatVisual(cat: HTMLImageElement, image: Image): void {
+        const nextState = {
+            rotation: image.rotate,
+            dimension: image.dimension,
+            mirror: this.catFacingX,
+        };
+        const previousState = this.catVisualState;
+        this.catVisualState = nextState;
+        if (previousState === null
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+            return;
+        }
+
+        const startScale = previousState.dimension / nextState.dimension;
+        cat.animate([
+            {
+                transform: "rotate(" + previousState.rotation + "deg) scaleX("
+                    + previousState.mirror + ") scale(" + startScale + ")",
+            },
+            {
+                transform: "rotate(" + nextState.rotation + "deg) scaleX("
+                    + nextState.mirror + ") scale(1)",
+            },
+        ], {
+            duration: 420,
+            easing: "cubic-bezier(.4,0,.2,1)",
+        });
     }
 
     isWithinTakingRange(coordinates: Coordinates): boolean {

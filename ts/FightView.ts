@@ -312,7 +312,7 @@ export class FightView {
         details.className = "fight-health-details";
         const healthIcon = document.createElement("span");
         healthIcon.className = "fight-health-icon";
-        healthIcon.textContent = "✿";
+        healthIcon.textContent = "♥";
         healthIcon.setAttribute("aria-hidden", "true");
         const value = document.createElement("span");
         value.className = "fight-health-value";
@@ -444,6 +444,12 @@ export class FightView {
             ) ?? null,
             this.overlay?.querySelector<HTMLElement>(
                 ".fight-fighter--player .fight-portrait-art",
+            ) ?? null,
+            this.overlay?.querySelector<HTMLElement>(
+                ".fight-monster-health .fight-health-icon",
+            ) ?? null,
+            this.overlay?.querySelector<HTMLElement>(
+                ".fight-player-health .fight-health-icon",
             ) ?? null,
             this.overlay,
             this.overlay,
@@ -588,7 +594,11 @@ export class FightView {
         }
         const result = this.inventory.takeItem(this.coordinates);
         if (result !== null) {
-            Effects.playItemAction(result, this.sourceElement);
+            Effects.playItemAction(
+                result,
+                this.sourceElement,
+                this.coordinates.getSeed(),
+            );
             this.map.show({});
         }
     }

@@ -14,6 +14,8 @@ export class GameController {
         this.restartControl = this.element("restartControl");
         this.gpsStatus = this.element("gpsStatus");
         this.inventory = new Inventory();
+        this.mapDimensionStyle = document.createElement("style");
+        this.resizeFrame = null;
         this.latestGpsCoordinates = null;
         this.latestGpsAccuracy = null;
         this.smoothedGpsLocation = null;
@@ -30,6 +32,7 @@ export class GameController {
         this.exploreSwitch.checked = this.state.exploreMode;
         this.mapContainer.classList.toggle("explore-mode", this.state.exploreMode);
         Effects.initialize(this.soundSwitch);
+        document.head.append(this.mapDimensionStyle);
         const dimensions = this.configureMapDimensions();
         this.map = new Map(this.mapElement, this.messageBox, dimensions.cols, dimensions.rows, this.inventory, this.state, GameController.TILE_SIZE, coordinates => this.selectCoordinates(coordinates), () => this.resumeMovement());
         this.map.show({});
@@ -53,15 +56,14 @@ export class GameController {
         const rows = Math.floor(this.mapContainer.clientHeight / tileOuterDimension / 2) * 2 + 1 + GameController.SAFETY_MARGIN;
         const mapMarginLeft = (this.mapContainer.clientWidth - (cols * GameController.TILE_SIZE + 1)) / 2;
         const mapMarginTop = (this.mapContainer.clientHeight - (rows * GameController.TILE_SIZE + 1)) / 2;
-        const style = document.createElement("style");
-        style.textContent = ".cell {width:" + GameController.TILE_SIZE
+        this.mapDimensionStyle.textContent = ".cell {width:" + GameController.TILE_SIZE
             + "px;height:" + GameController.TILE_SIZE
             + "px;} #map{margin-left:" + mapMarginLeft
             + "px;margin-top:" + mapMarginTop + "px;}";
-        document.head.append(style);
         return { cols, rows };
     }
     bindControls() {
+        var _a;
         this.exploreSwitch.addEventListener("change", () => {
             this.setExploreMode(this.exploreSwitch.checked);
         });
@@ -69,6 +71,24 @@ export class GameController {
         this.inventory.onChange(() => this.updateInventoryControl());
         this.updateInventoryControl();
         this.restartControl.addEventListener("click", () => this.restart());
+        window.addEventListener("resize", () => this.scheduleResize());
+        (_a = window.visualViewport) === null || _a === void 0 ? void 0 : _a.addEventListener("resize", () => this.scheduleResize());
+    }
+    scheduleResize() {
+        if (this.resizeFrame !== null) {
+            return;
+        }
+        this.resizeFrame = window.requestAnimationFrame(() => {
+            this.resizeFrame = null;
+            const dimensions = this.configureMapDimensions();
+            if (dimensions.cols === this.map.cols
+                && dimensions.rows === this.map.rows) {
+                return;
+            }
+            this.map.cols = dimensions.cols;
+            this.map.rows = dimensions.rows;
+            this.map.show({});
+        });
     }
     updateInventoryControl() {
         const count = this.inventory.countItemTypes();

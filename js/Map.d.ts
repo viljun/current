@@ -10,6 +10,8 @@ export interface MapState {
 export declare class Map {
     slidingAnimationInProgress: boolean;
     interactionLocked: boolean;
+    private catFacingX;
+    private catVisualState;
     map: HTMLDivElement;
     messageBox: HTMLDivElement;
     cols: number;
@@ -23,6 +25,7 @@ export declare class Map {
     show({ previousCoordinates, }: {
         previousCoordinates?: Coordinates | null;
     }): void;
+    private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
     setInteractionLocked(locked: boolean): void;
     slide({ previous_coordinates, tile_size, }: {

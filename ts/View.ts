@@ -1,10 +1,12 @@
 export class View {
     static getQuantityText(text: string, quantity: number) {
-        if (quantity !== 1) {
-            text += "s";
+        if (quantity === 1) {
+            const article = /^[aeiou]/i.test(text) ? "an" : "a";
+
+            return article + " " + text;
         }
 
-        return quantity + " " + text;
+        return quantity + " " + text + "s";
     }
 
     // Returns array of texts as a sentence.

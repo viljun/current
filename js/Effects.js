@@ -20,10 +20,10 @@ export class Effects {
         });
     }
     // Starts optional presentation and returns immediately. Gameplay never waits for effects.
-    static playItemAction(result, sourceElement) {
+    static playItemAction(result, sourceElement, actionSeed) {
         try {
             const type = Effects.getType(result.itemType.name);
-            Effects.showChanges(result, sourceElement, type);
+            Effects.showChanges(result, sourceElement, type, actionSeed);
             Effects.playSound(type);
             Effects.vibrate(type);
         }
@@ -110,12 +110,14 @@ export class Effects {
         });
     }
     // Plays one card and each of its effects in the order resolved by the game.
-    static async playFightCard(resolution, cardElement, monsterPortraitElement, playerPortraitElement, monsterShieldArea, playerShieldArea, monsterName) {
+    static async playFightCard(resolution, cardElement, monsterPortraitElement, playerPortraitElement, monsterHealthIcon, playerHealthIcon, monsterShieldArea, playerShieldArea, monsterName) {
         try {
             const monsterBounds = monsterPortraitElement === null || monsterPortraitElement === void 0 ? void 0 : monsterPortraitElement.getBoundingClientRect();
             const playerBounds = playerPortraitElement === null || playerPortraitElement === void 0 ? void 0 : playerPortraitElement.getBoundingClientRect();
             const monsterTarget = Effects.centerOf(monsterBounds);
             const playerTarget = Effects.centerOf(playerBounds);
+            const monsterHealthTarget = Effects.centerOf(monsterHealthIcon === null || monsterHealthIcon === void 0 ? void 0 : monsterHealthIcon.getBoundingClientRect());
+            const playerHealthTarget = Effects.centerOf(playerHealthIcon === null || playerHealthIcon === void 0 ? void 0 : playerHealthIcon.getBoundingClientRect());
             const defenderShieldArea = resolution.actor === "player"
                 ? monsterShieldArea
                 : playerShieldArea;
@@ -138,12 +140,23 @@ export class Effects {
                 }
                 if (effect.type === "damage") {
                     await Effects.animateShieldHits(effect, defenderShieldArea, cardElement);
-                    if (effect.amount > 0 && target !== null) {
-                        await Effects.animateEffectBadge(cardElement, "damage", effect.amount, target);
+                    const healthIcon = effect.target === "player"
+                        ? playerHealthIcon
+                        : monsterHealthIcon;
+                    const healthTarget = effect.target === "player"
+                        ? playerHealthTarget
+                        : monsterHealthTarget;
+                    if (effect.amount > 0 && healthTarget !== null) {
+                        await Effects.animateEffectBadge(cardElement, "damage", effect.amount, healthTarget, healthIcon);
                     }
                 }
-                else if (effect.type === "healing" && target !== null) {
-                    await Effects.animateEffectBadge(cardElement, "healing", effect.amount, target);
+                else if (effect.type === "healing") {
+                    const healthTarget = effect.target === "player"
+                        ? playerHealthTarget
+                        : monsterHealthTarget;
+                    if (healthTarget !== null) {
+                        await Effects.animateEffectBadge(cardElement, "healing", effect.amount, healthTarget);
+                    }
                 }
                 else if (target !== null) {
                     if (effect.type !== "block"
@@ -301,8 +314,8 @@ export class Effects {
         }
         return "collect";
     }
-    static showChanges(result, sourceElement, type) {
-        var _a;
+    static showChanges(result, sourceElement, type, actionSeed) {
+        var _a, _b;
         const changes = new Map();
         changes.set(result.itemType.name, 1);
         for (const change of [...result.expenses, ...result.prizes]) {
@@ -314,16 +327,25 @@ export class Effects {
             x: sourceBounds ? sourceBounds.left + sourceBounds.width / 2 : window.innerWidth / 2,
             y: sourceBounds ? sourceBounds.top + sourceBounds.height / 2 : window.innerHeight / 2,
         };
+        const inventoryBounds = (_b = document.getElementById("inventoryControl")) === null || _b === void 0 ? void 0 : _b.getBoundingClientRect();
+        const target = {
+            x: inventoryBounds
+                ? inventoryBounds.left + inventoryBounds.width / 2
+                : window.innerWidth,
+            y: inventoryBounds
+                ? inventoryBounds.top + inventoryBounds.height / 2
+                : window.innerHeight,
+        };
         visibleChanges.forEach(([name, quantity], index) => {
             const animationCount = Math.min(quantity, Effects.MAX_ITEM_ANIMATIONS_PER_TYPE);
             for (let itemIndex = 0; itemIndex < animationCount; itemIndex++) {
-                Effects.floatItem(name, origin, itemIndex, index, type === "rare");
+                Effects.floatItem(name, origin, itemIndex, index, type === "rare", actionSeed, target);
             }
         });
     }
-    static floatItem(itemName, origin, itemIndex, typeIndex, rare) {
+    static floatItem(itemName, origin, itemIndex, typeIndex, rare, actionSeed, target) {
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const seed = Effects.stringSeed(itemName) + itemIndex * 97 + typeIndex * 53;
+        const seed = Effects.flightSeed(actionSeed, itemName, itemIndex, typeIndex);
         const item = document.createElement("img");
         item.className = "effect-item" + (rare ? " effect-item--rare" : "");
         item.src = "images/" + GameImage.getWithItemTypeName(itemName, 54, seed).src;
@@ -332,33 +354,41 @@ export class Effects {
         item.style.top = origin.y + "px";
         item.setAttribute("aria-hidden", "true");
         document.body.append(item);
-        const angle = (-160 + seed % 141) * Math.PI / 180;
-        const distance = reducedMotion ? 28 : 75 + seed % 105;
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance - 25;
+        const x = target.x - origin.x;
+        const y = target.y - origin.y;
+        const distance = Math.max(1, Math.hypot(x, y));
+        const perpendicularX = -y / distance;
+        const perpendicularY = x / distance;
+        const bend = reducedMotion
+            ? 0
+            : ((seed % 201) - 100) / 100 * Math.min(220, 70 + distance * .22);
+        const lift = reducedMotion ? 0 : 35 + ((seed >>> 8) % 76);
         const rotation = reducedMotion ? 0 : -140 + seed % 281;
-        const delay = reducedMotion ? itemIndex * 8 : itemIndex * 18;
-        const duration = reducedMotion ? 650 : 1050 + seed % 350;
+        const delay = reducedMotion ? itemIndex * 4 : itemIndex * 12 + seed % 17;
+        const duration = reducedMotion ? 380 : 850 + seed % 351;
         const animation = item.animate([
             { transform: "translate(-50%, -50%) scale(.3)", opacity: 0 },
             {
-                transform: "translate(calc(-50% + " + x * .2
-                    + "px), calc(-50% + " + y * .45
-                    + "px)) scale(1.05) rotate(" + rotation * .2 + "deg)",
+                transform: "translate(calc(-50% + " + (x * .25 + perpendicularX * bend) + "px), calc(-50% + " + (y * .25 + perpendicularY * bend - lift) + "px)) scale(1.05) rotate(" + rotation * .2 + "deg)",
                 opacity: 1,
-                offset: .24,
+                offset: .3,
+            },
+            {
+                transform: "translate(calc(-50% + " + (x * .68 + perpendicularX * bend * .55) + "px), calc(-50% + " + (y * .68 + perpendicularY * bend * .55 - lift * .45) + "px)) scale(.85) rotate(" + rotation * .72 + "deg)",
+                opacity: 1,
+                offset: .7,
             },
             {
                 transform: "translate(calc(-50% + " + x
                     + "px), calc(-50% + " + y
-                    + "px)) scale(.95) rotate(" + rotation + "deg)",
+                    + "px)) scale(.28) rotate(" + rotation + "deg)",
                 opacity: 1,
-                offset: .72,
+                offset: .92,
             },
             {
-                transform: "translate(calc(-50% + " + x * 1.15
-                    + "px), calc(-50% + " + (y + 60)
-                    + "px)) scale(.7) rotate(" + rotation * 1.35 + "deg)",
+                transform: "translate(calc(-50% + " + x
+                    + "px), calc(-50% + " + y
+                    + "px)) scale(.08) rotate(" + rotation + "deg)",
                 opacity: 0,
             },
         ], {
@@ -371,6 +401,15 @@ export class Effects {
         animation.addEventListener("finish", remove, { once: true });
         animation.addEventListener("cancel", remove, { once: true });
         window.setTimeout(remove, delay + duration + 150);
+    }
+    static flightSeed(actionSeed, itemName, itemIndex, typeIndex) {
+        let seed = actionSeed ^ Effects.stringSeed(itemName);
+        seed ^= Math.imul(itemIndex + 1, 0x9e3779b1);
+        seed ^= Math.imul(typeIndex + 1, 0x85ebca6b);
+        seed ^= seed >>> 16;
+        seed = Math.imul(seed, 0x7feb352d);
+        seed ^= seed >>> 15;
+        return seed >>> 0;
     }
     static stringSeed(value) {
         let seed = 0;
@@ -391,12 +430,14 @@ export class Effects {
             value.textContent = String(card.block);
         }
         const direction = monsterCard ? 1 : -1;
+        const blockOffset = direction * .7;
+        sourceElement.dataset.blockOffset = String(blockOffset);
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const duration = reducedMotion ? 150 : 320;
         const movement = sourceElement.animate([
             { transform: "translateY(0)", filter: "brightness(1)" },
             {
-                transform: "translateY(" + direction * .7 + "rem)",
+                transform: "translateY(" + blockOffset + "rem)",
                 filter: "brightness(1.2)",
             },
         ], {
@@ -405,6 +446,9 @@ export class Effects {
             fill: "forwards",
         });
         await Effects.animationFinished(movement, duration);
+        sourceElement.style.transform = "translateY(" + blockOffset + "rem)";
+        sourceElement.style.filter = "brightness(1.2)";
+        movement.cancel();
     }
     static async flipMonsterCard(cardElement, card) {
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -433,46 +477,54 @@ export class Effects {
         showFront.cancel();
     }
     static async animateShieldHits(effect, shieldArea, sourceCard) {
+        var _a;
         for (const hit of effect.shieldHits) {
             const shield = Effects.findShieldElement(shieldArea, hit.id);
             if (shield === null) {
                 continue;
             }
             const shieldTarget = Effects.centerOf(shield.getBoundingClientRect());
-            if (shieldTarget !== null) {
-                await Effects.animateEffectBadge(sourceCard, "damage", hit.absorbed, shieldTarget);
-            }
             const value = shield.querySelector(".fight-shield-value");
+            const badgeTarget = (_a = Effects.centerOf(value === null || value === void 0 ? void 0 : value.getBoundingClientRect())) !== null && _a !== void 0 ? _a : shieldTarget;
+            if (badgeTarget !== null) {
+                await Effects.animateEffectBadge(sourceCard, "damage", hit.absorbed, badgeTarget, value);
+            }
             const initialBlock = hit.remainingBlock + hit.absorbed;
             const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
                 ? 180
                 : 420;
-            const impact = shield.animate([
-                { transform: "translateX(0) scale(1)", filter: "brightness(1)" },
-                {
-                    transform: "translateX(-8px) scale(1.08)",
-                    filter: "brightness(1.8)",
-                    offset: .25,
-                },
-                { transform: "translateX(6px) scale(.98)", offset: .55 },
-                { transform: "translateX(0) scale(1)", filter: "brightness(1)" },
-            ], {
-                duration,
-                easing: "cubic-bezier(.2,.8,.2,1)",
-            });
             const valueAnimation = Effects.animateShieldValue(value, initialBlock, hit.remainingBlock, duration);
-            await Promise.all([
-                Effects.animationFinished(impact, duration),
-                valueAnimation,
-            ]);
+            await valueAnimation;
             if (hit.remainingBlock === 0) {
+                await Effects.animateExhaustedShieldReturn(shield);
                 shield.classList.remove("fight-card--blocking");
                 Effects.showSpentFightCard(shield);
                 await Effects.pause(460);
             }
         }
     }
-    static async animateEffectBadge(sourceCard, type, amount, target) {
+    static async animateExhaustedShieldReturn(shield) {
+        const offset = Number(shield.dataset.blockOffset);
+        const safeOffset = Number.isFinite(offset) ? offset : 0;
+        shield.getAnimations().forEach(animation => animation.cancel());
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const duration = reducedMotion ? 140 : 360;
+        const movement = shield.animate([
+            { transform: "translateY(" + safeOffset + "rem)" },
+            { transform: "translateY(0)" },
+        ], {
+            duration,
+            easing: "cubic-bezier(.2,.8,.2,1)",
+            fill: "forwards",
+        });
+        await Effects.animationFinished(movement, duration);
+        shield.style.transform = "translateY(0)";
+        shield.style.filter = "";
+        delete shield.dataset.blockOffset;
+        movement.cancel();
+    }
+    static async animateEffectBadge(sourceCard, type, amount, target, impactBadge = null) {
+        var _a, _b, _c, _d;
         const source = sourceCard === null || sourceCard === void 0 ? void 0 : sourceCard.querySelector(".fight-effect--" + type);
         if (source === undefined || source === null) {
             await Effects.pause(240);
@@ -489,26 +541,108 @@ export class Effects {
         const x = target.x - (bounds.left + bounds.width / 2);
         const y = target.y - (bounds.top + bounds.height / 2);
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const duration = reducedMotion ? 180 : 460;
-        const animation = badge.animate([
-            { transform: "translate(0, 0) scale(1)", opacity: 1 },
-            {
-                transform: "translate(" + x + "px, " + y + "px) scale(1.3)",
-                opacity: 1,
-                offset: .82,
-            },
-            {
-                transform: "translate(" + x + "px, " + y + "px) scale(.65)",
-                opacity: 0,
-            },
-        ], {
+        const duration = reducedMotion ? 180 : 650;
+        const seedText = ((_a = sourceCard === null || sourceCard === void 0 ? void 0 : sourceCard.dataset.cardId) !== null && _a !== void 0 ? _a : "card")
+            + ":" + ((_d = (_c = (_b = impactBadge === null || impactBadge === void 0 ? void 0 : impactBadge.closest("[data-shield-id]")) === null || _b === void 0 ? void 0 : _b.dataset.shieldId) !== null && _c !== void 0 ? _c : impactBadge === null || impactBadge === void 0 ? void 0 : impactBadge.className) !== null && _d !== void 0 ? _d : "target")
+            + ":" + type + ":" + amount;
+        const seed = Effects.stringSeed(seedText);
+        const distance = Math.max(1, Math.hypot(x, y));
+        const perpendicularX = -y / distance;
+        const perpendicularY = x / distance;
+        const direction = seed % 2 === 0 ? 1 : -1;
+        const bend = reducedMotion
+            ? 0
+            : direction * Math.min(145, 38 + distance * .3)
+                * (.72 + ((seed >>> 8) % 57) / 100);
+        const swing = reducedMotion
+            ? 0
+            : -direction * (14 + ((seed >>> 16) % 39));
+        const rotation = reducedMotion ? 0 : direction * (18 + seed % 39);
+        const progressPoints = reducedMotion
+            ? [0, 1]
+            : [0, .1, .22, .36, .5, .64, .76, .86, .94, 1];
+        const flight = progressPoints.map(progress => {
+            const curve = Math.sin(Math.PI * progress) * bend
+                + Math.sin(2 * Math.PI * progress) * swing;
+            const translateX = x * progress + perpendicularX * curve;
+            const translateY = y * progress + perpendicularY * curve;
+            const scale = 1 + 1.55 * progress;
+            return {
+                transform: "translate(" + translateX + "px, "
+                    + translateY + "px) scale(" + scale + ") rotate("
+                    + rotation * progress + "deg)",
+                opacity: progress === 1 ? 0 : 1,
+                offset: progress,
+            };
+        });
+        const animation = badge.animate(flight, {
             duration,
-            easing: "cubic-bezier(.25,.75,.25,1)",
+            easing: reducedMotion ? "linear" : "cubic-bezier(.16,.82,.25,1)",
             fill: "forwards",
         });
         await Effects.animationFinished(animation, duration);
         badge.remove();
+        if (impactBadge !== null) {
+            Effects.animateDamagedBadge(impactBadge);
+        }
         await Effects.pause(reducedMotion ? 40 : 100);
+    }
+    static animateDamagedBadge(source) {
+        const bounds = source.getBoundingClientRect();
+        if (bounds.width <= 0 || bounds.height <= 0) {
+            return;
+        }
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const duration = reducedMotion ? 180 : 520;
+        const halves = [
+            {
+                clipPath: "polygon(0 0, 58% 0, 45% 35%, 58% 57%, 43% 100%, 0 100%)",
+                end: "translate(-115%, 50%) rotate(-28deg) scale(3.8)",
+                origin: "right center",
+            },
+            {
+                clipPath: "polygon(58% 0, 100% 0, 100% 100%, 43% 100%, 58% 57%, 45% 35%)",
+                end: "translate(115%, 50%) rotate(28deg) scale(3.8)",
+                origin: "left center",
+            },
+        ].map(part => {
+            const fragment = document.createElement("span");
+            fragment.className = "fight-damaged-badge";
+            fragment.style.left = bounds.left + "px";
+            fragment.style.top = bounds.top + "px";
+            fragment.style.width = bounds.width + "px";
+            fragment.style.height = bounds.height + "px";
+            fragment.style.clipPath = part.clipPath;
+            fragment.style.transformOrigin = part.origin;
+            fragment.setAttribute("aria-hidden", "true");
+            const copy = source.cloneNode(true);
+            copy.removeAttribute("aria-label");
+            copy.style.width = "100%";
+            copy.style.height = "100%";
+            copy.style.display = "flex";
+            fragment.append(copy);
+            document.body.append(fragment);
+            const animation = fragment.animate([
+                { transform: "translate(0, 0) scale(1)", opacity: 1 },
+                {
+                    transform: "translate(0, 0) scale(3)",
+                    opacity: .9,
+                    offset: .32,
+                },
+                {
+                    transform: part.end,
+                    opacity: 0,
+                },
+            ], {
+                duration,
+                easing: "cubic-bezier(.2,.75,.25,1)",
+                fill: "forwards",
+            });
+            return { fragment, animation };
+        });
+        void Promise.all(halves.map(({ animation }) => Effects.animationFinished(animation, duration))).then(() => {
+            halves.forEach(({ fragment }) => fragment.remove());
+        });
     }
     static animateShieldValue(element, from, to, duration) {
         if (element === null) {
@@ -710,9 +844,12 @@ Effects.CRAFT_ITEMS = new Set([
     "club",
     "crucible",
     "iron",
+    "padded hide",
+    "reinforced shield",
     "stone axe",
     "sword",
     "torch",
+    "wooden shield",
 ]);
 Effects.RARE_ITEMS = new Set([
     "chest",

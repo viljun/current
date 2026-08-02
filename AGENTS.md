@@ -1,5 +1,51 @@
 # Project guidance
 
+## Determinism
+
+Everything in this game must be 100% deterministic. Given the same initial
+state, coordinates, saved inventory, and sequence of player actions, replaying
+the game must produce exactly the same map, backgrounds, items, fights, stats,
+rewards, visual variations, animations, and UI state.
+
+- Never use `Math.random()`, `crypto.getRandomValues()`, random UUIDs, or any
+  other nondeterministic random source.
+- When a request says "random", "randomly", "chance", or similar, interpret it
+  as deterministic pseudorandom variation.
+- Derive every pseudorandom value from stable game inputs such as coordinates,
+  item or entity type, action seed, fight seed, turn or round number, and the
+  stable index of the affected instance.
+- Use independently salted deterministic seed streams for unrelated properties
+  such as placement, source image, rotation, mirroring, size, opacity, fight
+  decisions, and animation paths. Do not reuse one raw modulo stream in ways
+  that create visible or gameplay correlations.
+- Do not use current time, frame timing, element order, or asynchronous
+  completion order to choose outcomes or UI variants. Clocks such as
+  `performance.now()` may measure animation progress only; they must never
+  influence a seed, choice, result, or persistent state.
+- Keep iteration and tie-breaking order stable. Sort data first when object,
+  set, event, or external-input ordering could otherwise change a result.
+- Preserve established seed formulas unless a requested change intentionally
+  changes existing deterministic outcomes.
+
+## Persistence
+
+The only gameplay state that may be saved is the set of coordinates where
+items have been taken, including the stable coordinate context needed to
+identify those locations. Everything else must be derived deterministically
+from those coordinates and the game rules.
+
+- Do not persist inventory quantities, item lists, player or monster stats,
+  health, map contents, fights, rewards, crafting results, seeds, visual
+  variants, animation choices, or other derived gameplay state.
+- Reconstruct inventory, progression, and all other gameplay state from the
+  taken-coordinate history whenever the game loads.
+- Separately persisted UI preferences are allowed only when explicitly
+  appropriate, for example whether Explore mode or sound is enabled. UI
+  preferences must not encode or indirectly preserve gameplay outcomes.
+- If a new feature appears to require additional saved gameplay state,
+  redesign it around the taken coordinates or ask for explicit approval
+  before expanding persistence.
+
 ## Game artwork
 
 Before generating or editing a game image, follow these rules:

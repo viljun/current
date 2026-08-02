@@ -224,7 +224,7 @@ export class FightView {
         details.className = "fight-health-details";
         const healthIcon = document.createElement("span");
         healthIcon.className = "fight-health-icon";
-        healthIcon.textContent = "✿";
+        healthIcon.textContent = "♥";
         healthIcon.setAttribute("aria-hidden", "true");
         const value = document.createElement("span");
         value.className = "fight-health-value";
@@ -312,8 +312,8 @@ export class FightView {
         this.syncFightState();
     }
     async playCardEffects(resolution, cardElement) {
-        var _a, _b, _c, _d;
-        await Effects.playFightCard(resolution, cardElement, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-fighter--monster .fight-portrait-art")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-fighter--player .fight-portrait-art")) !== null && _d !== void 0 ? _d : null, this.overlay, this.overlay, this.itemTakingSummary.itemType.name);
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        await Effects.playFightCard(resolution, cardElement, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-fighter--monster .fight-portrait-art")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-fighter--player .fight-portrait-art")) !== null && _d !== void 0 ? _d : null, (_f = (_e = this.overlay) === null || _e === void 0 ? void 0 : _e.querySelector(".fight-monster-health .fight-health-icon")) !== null && _f !== void 0 ? _f : null, (_h = (_g = this.overlay) === null || _g === void 0 ? void 0 : _g.querySelector(".fight-player-health .fight-health-icon")) !== null && _h !== void 0 ? _h : null, this.overlay, this.overlay, this.itemTakingSummary.itemType.name);
     }
     syncFightState() {
         if (this.overlay === null || this.game === null) {
@@ -407,7 +407,7 @@ export class FightView {
         }
         const result = this.inventory.takeItem(this.coordinates);
         if (result !== null) {
-            Effects.playItemAction(result, this.sourceElement);
+            Effects.playItemAction(result, this.sourceElement, this.coordinates.getSeed());
             this.map.show({});
         }
     }

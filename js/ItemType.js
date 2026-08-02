@@ -39,6 +39,9 @@ export class ItemType {
         else if (!(seed % 349)) {
             name = "yarrow";
         }
+        else if (!(seed % 367)) {
+            name = "hide";
+        }
         else if (!(seed % 503)) {
             name = "chest";
         }
@@ -57,6 +60,12 @@ export class ItemType {
         else if (!(seed % 859)) {
             name = "club";
         }
+        else if (!(seed % 877)) {
+            name = "padded hide";
+        }
+        else if (!(seed % 883)) {
+            name = "wooden shield";
+        }
         else if (!(seed % 929)) {
             name = "stone axe";
         }
@@ -65,6 +74,9 @@ export class ItemType {
         }
         else if (!(seed % 1301)) {
             name = "sword";
+        }
+        else if (!(seed % 1427)) {
+            name = "reinforced shield";
         }
         else if (!(seed % 2013)) {
             name = "treasure";
@@ -120,6 +132,25 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("iron ore"), -1),
                 new ItemTypeAndQuantity(new ItemType("hay"), -1),
                 new ItemTypeAndQuantity(new ItemType("iron"), 2),
+            ];
+        }
+        if (this.name === "padded hide") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("hay"), -1),
+            ];
+        }
+        if (this.name === "wooden shield") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("stick"), -3),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+            ];
+        }
+        if (this.name === "reinforced shield") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("wooden shield"), -1),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -2),
             ];
         }
         if (this.name === "rat") {

@@ -24,10 +24,16 @@ export class ItemTakingSummary {
 
     // Returns "take"-button text.
     getTakeButtonText() {
+        const craftable = [
+            "crucible",
+            "padded hide",
+            "wooden shield",
+            "reinforced shield",
+        ].includes(this.itemType.name);
         let buttonText = this.itemType.name === "iron"
             ? "Smelt iron"
-            : this.itemType.name === "crucible"
-                ? "Craft crucible"
+            : craftable
+                ? "Craft " + this.itemType.name
                 : "Take " + this.itemType.name;
         let additionalText = "";
 

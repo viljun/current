@@ -32,27 +32,26 @@ export class Image {
 
     // Returns image for item type.
     static getWithItemTypeName(name: string, tile_size: number, seed: number = 0, isTaken: boolean = false, takeable: boolean = true): Image {
-        let srcs: string[] = [];
-        let rotate: number = 0;
-        let dimension: number = 1;
-        let domId: string | null = null;
-        let style: string = "";
-        let zIndex: number = 20;
         const rotationSeed = Image.visualSeed(seed, name, 1);
         const dimensionSeed = Image.visualSeed(seed, name, 2);
         const opacitySeed = Image.visualSeed(seed, name, 3);
         const sourceSeed = Image.visualSeed(seed, name, 4);
+        let srcs: string[] = [];
+        let rotate = (rotationSeed % 21) - 10;
+        let dimension = 0.9 + (dimensionSeed % 21) / 100;
+        let domId: string | null = null;
+        let style: string = "";
+        let zIndex: number = 20;
 
         if (name === "cat") {
-            rotate    = (rotationSeed % 10) - 5;
-            dimension = 2;
+            dimension *= 2;
             zIndex    = 30;
             domId     = "cat";
             srcs      = [
-                "pngtree-cute-cat-animal-png-image_10149335.png",
+                "cat-photoreal-grounded-paws-v2.png",
             ];
         } else if (name === "chest") {
-            dimension = 2;
+            dimension *= 2;
             srcs      = [
                 "chest-medieval-grounded-v6.png",
             ];
@@ -63,7 +62,6 @@ export class Image {
                 "set-of-realistic-color-shade-cloud-illustration-on-transparency-background-png.png",
                 "simple-sunny-day-cloud-image-realistic-cloud-on-a-transparent-background-cloud-on-the-sky-free-png.png",
             ];
-            rotate = (rotationSeed % 20) - 10;
             dimension = 0.3 + (dimensionSeed % 700) / 70;
             style = "opacity:" + ((opacitySeed % 13) / 50 + 0.05).toFixed(2) + ";";
             zIndex = 40;
@@ -73,24 +71,23 @@ export class Image {
                 "wooden_club.png",
             ];
             rotate = rotationSeed % 360;
-            dimension = 2.0;
+            dimension *= 2;
         } else if (name === "coin") {
             srcs = [
                 "f9da09a345b352d9f6cd4e59f66197c4.png",
             ];
             rotate = rotationSeed % 360;
-            dimension = 0.1;
+            dimension *= 0.1;
         } else if (name === "crucible") {
             srcs = [
                 "crucible-medieval-photoreal-v1.png",
             ];
-            rotate = (rotationSeed % 16) - 8;
-            dimension = 1.2;
+            dimension *= 1.8;
         } else if (name === "dungeon entrance") {
             srcs      = [
                 "dungeon-entrance-medieval-photoreal-grounded-v2.png",
             ];
-            dimension = 2.6 + (dimensionSeed % 60) / 100;
+            dimension *= 2.9;
             style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
         } else if (name === "dungeon floor") {
             srcs = [
@@ -105,7 +102,6 @@ export class Image {
                 "floor3",
                 "floor4",
             ];
-            rotate = (rotationSeed % 10) - 5;
             style = "opacity:" + ((opacitySeed % 90) / 90 + 0.3).toFixed(2) + ";";
             dimension = 0.6 + (dimensionSeed % 110) / 80;
             zIndex = 1;
@@ -123,7 +119,7 @@ export class Image {
             ];
             rotate = rotationSeed % 77 / 30;
             style = "opacity:" + ((opacitySeed % 100) / 500 + 0.9).toFixed(2) + ";";
-            dimension = 1.3 + (dimensionSeed % 110) / 500;
+            dimension *= 1.41;
             zIndex = 2;
         } else if (name === "forest") {  // quite similar to "tree"
             srcs = [
@@ -150,17 +146,42 @@ export class Image {
             zIndex = 13;
         } else if (name === "hay") {
             srcs = [
-                "hay-medieval-photoreal-v1.png",
+                "hay-medieval-photoreal-soft-edge-v2.png",
             ];
-            dimension = 0.75 + (dimensionSeed % 25) / 100;
-            style = "opacity:" + ((opacitySeed % 8) / 100 + 0.88).toFixed(2) + ";";
+            const sizeMultiplier = 1.5
+                + (Image.visualSeed(seed, name, 5) % 26) / 100;
+            rotate = rotationSeed % 360;
+            dimension = (0.75 + (dimensionSeed % 25) / 100) * sizeMultiplier;
+            style = "filter:brightness(1.12) contrast(1.08) saturate(0.95);"
+                + "opacity:" + ((opacitySeed % 6) / 100 + 0.94).toFixed(2) + ";";
             zIndex = 15;
+        } else if (name === "hide") {
+            srcs = [
+                "hide-medieval-photoreal-v1.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension *= 1.35;
+        } else if (name === "padded hide") {
+            srcs = [
+                "padded-hide-medieval-photoreal-v1.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension *= 1.45;
+        } else if (name === "wooden shield") {
+            srcs = [
+                "wooden-shield-medieval-photoreal-v1.png",
+            ];
+            dimension *= 1.55;
+        } else if (name === "reinforced shield") {
+            srcs = [
+                "reinforced-shield-medieval-photoreal-v1.png",
+            ];
+            dimension *= 1.65;
         } else if (name === "yarrow") {
             srcs = [
                 "yarrow-photoreal-v3.png",
             ];
-            rotate = (rotationSeed % 20) - 10;
-            dimension = 0.9 + (dimensionSeed % 30) / 100;
+            dimension *= 1.05;
             style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
         } else if (name === "iron") {
             srcs = [
@@ -182,13 +203,13 @@ export class Image {
             srcs = [
                 "monster-orc-photoreal-grounded-v2.png",
             ];
-            dimension = 1.7 + (dimensionSeed % 25) / 100;
+            dimension *= 1.82;
             style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
         } else if (name === "rat") {
             srcs = [
                 "monster-rat-photoreal-grounded-v2.png",
             ];
-            dimension = 1.1 + (dimensionSeed % 15) / 100;
+            dimension *= 1.17;
             style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
         } else if (name === "restaurant") {
             srcs = [
@@ -196,7 +217,6 @@ export class Image {
                 "restaurant2.png",
                 "restaurant3.webp",
             ];
-            rotate = (rotationSeed % 20) - 10;
             dimension = 1.0 + ((dimensionSeed % 100) / 100);
         } else if (name === "road") {
             srcs = [
@@ -221,9 +241,12 @@ export class Image {
             zIndex = 14;
         } else if (name === "big rock") {
             srcs = [
-                "weeping-stone-photoreal-soft-edge-grounded-v2.png",
+                "weeping-stone-bedrock-terrain-blended-v7.png",
             ];
+            rotate = rotationSeed % 360;
             dimension = 2 + (dimensionSeed % 90) / 10;
+            style = "opacity:" + ((opacitySeed % 19) / 100 + 0.62).toFixed(2) + ";";
+            zIndex = 14;
         } else if (name === "root") {
             srcs = [
                 "root-photoreal-v1.png",
@@ -244,7 +267,7 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 100) / 400).toFixed(2) + ";";
             zIndex = 10;
         } else if (name === "stairs up") {
-            dimension = 1 + (dimensionSeed % 130) / 600;
+            dimension *= 1.11;
             zIndex    = 25;
             srcs      = [
                 "stairs_up.png",
@@ -258,16 +281,17 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 41) / 50 + 0.3).toFixed(2) + ";";
         } else if (name === "stone") {
             srcs = [
-                "weeping-stone-photoreal-soft-edge-grounded-v2.png",
+                "stone-item-photoreal-blended-v2.png",
             ];
-            dimension = 0.2 + (dimensionSeed % 60) / 100;
-            style = "opacity:" + ((opacitySeed % 31) / 100 + 0.5).toFixed(2) + ";";
+            rotate = rotationSeed % 360;
+            dimension = 0.45 + (dimensionSeed % 35) / 100;
+            style = "opacity:" + ((opacitySeed % 12) / 100 + 0.78).toFixed(2) + ";";
         } else if (name === "stone axe") {
             srcs = [
                 "image-asset-1.png",
             ];
             rotate = rotationSeed % 360;
-            dimension = 2.0;
+            dimension *= 2;
         } else if (name === "sword") {
             srcs = [
                 "Sword.png",
@@ -276,19 +300,18 @@ export class Image {
                 "White_Sword_of_the_Sky_-_TotK_icon.png",
             ];
             rotate = rotationSeed % 360;
-            dimension = 2.0;
+            dimension *= 2;
         } else if (name === "treasure") {
             srcs = [
                 "treasure-medieval-pouch-photoreal-grounded-v2.png",
             ];
-            dimension = 1.1 + (dimensionSeed % 15) / 100;
+            dimension *= 1.17;
             style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
         } else if (name === "torch") {
             srcs = [
                 "torch.png",
             ];
-            rotate = (rotationSeed % 24) - 12;
-            dimension = 1.6;
+            dimension *= 1.6;
         } else if (name === "tree") {
             srcs = [
                 "tree-grounded-olive-v1.png",
@@ -303,7 +326,7 @@ export class Image {
             srcs = [
                 "monster-troll-photoreal-grounded-v2.png",
             ];
-            dimension = 2.2 + (dimensionSeed % 30) / 100;
+            dimension *= 2.35;
             style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
         } else if (name === "water") {
             srcs = [
@@ -317,6 +340,9 @@ export class Image {
         } else {
             console.log("getWithItemTypeName: faulty name " + name);
         }
+        style += "--item-mirror:"
+            + (name !== "cat" && Image.visualSeed(seed, name, 6) % 2 ? -1 : 1)
+            + ";";
 
         return new Image(
             dimension,
@@ -373,9 +399,8 @@ export class Image {
             style += "filter:grayscale(55%) sepia(35%) saturate(55%) "
                 + "brightness(72%) contrast(85%) blur(0.6px);opacity:0.55;";
         }
-        if (this.rotate !== 0) {
-            style += "transform:rotate(" + this.rotate + "deg);";
-        }
+        style += "transform:rotate(" + this.rotate
+            + "deg) scaleX(var(--item-mirror));";
 
         // Create image element.
         let img = document.createElement("img");

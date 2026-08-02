@@ -16,8 +16,10 @@ export declare class GameController {
     private readonly restartControl;
     private readonly gpsStatus;
     private readonly inventory;
+    private readonly mapDimensionStyle;
     private readonly state;
     private readonly map;
+    private resizeFrame;
     private latestGpsCoordinates;
     private latestGpsAccuracy;
     private smoothedGpsLocation;
@@ -26,6 +28,7 @@ export declare class GameController {
     start(): void;
     private configureMapDimensions;
     private bindControls;
+    private scheduleResize;
     private updateInventoryControl;
     private setExploreMode;
     private selectCoordinates;
