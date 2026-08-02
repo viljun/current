@@ -155,9 +155,6 @@ export class Map {
                 if (itemType) {
                     // Check if item has been taken.
                     isTaken = this.inventory.isItemTaken(cell_coordinates)
-                    if (!isTaken && itemType.canBeTakenOnlyOnce()) {
-                        isTaken = this.inventory.isItemTypeTaken(itemType);
-                    }
 
                     // Summary.
                     item_taking_summary = new ItemTaking(itemType, this.inventory).summary();

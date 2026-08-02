@@ -43,15 +43,15 @@ export class FightView {
         this.overlay = document.createElement("div");
         this.overlay.className = "fight-overlay";
         document.body.append(this.overlay);
-        if ((this.inventory.totalQuantities["heart"] ?? 0) <= 0) {
-            this.renderMissingHeart();
+        if ((this.inventory.totalQuantities["yarrow"] ?? 0) <= 0) {
+            this.renderMissingYarrow();
 
             return;
         }
         this.startGame(monster);
     }
 
-    private renderMissingHeart(): void {
+    private renderMissingYarrow(): void {
         if (this.overlay === null) {
             return;
         }
@@ -64,7 +64,7 @@ export class FightView {
         title.textContent = "Battle";
         const message = document.createElement("p");
         message.className = "fight-unavailable";
-        message.textContent = "You need to find at least one heart to fight.";
+        message.textContent = "You need to find at least one yarrow plant to fight.";
         panel.append(closeButton, title, this.createCombatants(), message);
         this.overlay.append(panel);
     }
@@ -93,7 +93,7 @@ export class FightView {
             this.coordinates.getSeed(),
             requiredNames,
             itemOrigins,
-            this.inventory.totalQuantities["heart"] ?? 0,
+            this.inventory.totalQuantities["yarrow"] ?? 0,
         );
         this.render();
     }
@@ -310,15 +310,15 @@ export class FightView {
 
         const details = document.createElement("div");
         details.className = "fight-health-details";
-        const heart = document.createElement("span");
-        heart.className = "fight-health-icon";
-        heart.textContent = "♥";
-        heart.setAttribute("aria-hidden", "true");
+        const healthIcon = document.createElement("span");
+        healthIcon.className = "fight-health-icon";
+        healthIcon.textContent = "✿";
+        healthIcon.setAttribute("aria-hidden", "true");
         const value = document.createElement("span");
         value.className = "fight-health-value";
         value.textContent = String(health);
         value.setAttribute("aria-label", health + " health remaining");
-        details.append(heart, value);
+        details.append(healthIcon, value);
         display.append(bar, details);
 
         return display;

@@ -3,14 +3,6 @@ export class ItemType {
     constructor(name) {
         this.name = name;
     }
-    // Returns true if the item can be taken only once.
-    canBeTakenOnlyOnce() {
-        return [
-            "smelter",
-            "nature shop",
-            "weapon shop",
-        ].includes(this.name);
-    }
     isMonster() {
         return ["rat", "orc", "troll"].includes(this.name);
     }
@@ -45,7 +37,7 @@ export class ItemType {
             name = "iron ore";
         }
         else if (!(seed % 349)) {
-            name = "heart";
+            name = "yarrow";
         }
         else if (!(seed % 503)) {
             name = "chest";
@@ -54,7 +46,7 @@ export class ItemType {
             name = "rat";
         }
         else if (!(seed % 607)) {
-            name = "smelter";
+            name = "crucible";
         }
         else if (!(seed % 709)) {
             name = "orc";
@@ -68,26 +60,17 @@ export class ItemType {
         else if (!(seed % 929)) {
             name = "stone axe";
         }
-        else if (!(seed % 937)) {
-            name = "nature shop";
-        }
         else if (!(seed % 997)) {
             name = "troll";
         }
         else if (!(seed % 1301)) {
             name = "sword";
         }
-        else if (!(seed % 2003)) {
-            name = "weapon shop";
-        }
         else if (!(seed % 2013)) {
             name = "treasure";
         }
         else if (!(seed % 3001)) {
             name = "iron";
-        }
-        else if (!(seed % 3013)) {
-            name = "body shop";
         }
         else if (!(seed % 103)) {
             name = "dungeon entrance";
@@ -104,16 +87,16 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("coin"), 5),
             ];
         }
-        if (this.name === "body shop") {
-            return [
-                new ItemTypeAndQuantity(new ItemType("coin"), -1000),
-                new ItemTypeAndQuantity(new ItemType("heart"), 100),
-            ];
-        }
         if (this.name === "club") {
             return [
                 new ItemTypeAndQuantity(new ItemType("stick"), -1),
                 new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
+        if (this.name === "crucible") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("stone"), -5),
+                new ItemTypeAndQuantity(new ItemType("hay"), -1),
             ];
         }
         if (this.name === "dungeon wall") {
@@ -126,25 +109,17 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("dungeon floor"), -300),
             ];
         }
-        if (this.name === "nature shop") {
-            return [
-                new ItemTypeAndQuantity(new ItemType("coin"), -100),
-                new ItemTypeAndQuantity(new ItemType("stick"), 10),
-                new ItemTypeAndQuantity(new ItemType("stone"), 10),
-                new ItemTypeAndQuantity(new ItemType("root"), 10),
-            ];
-        }
         if (this.name === "orc") {
             return [
                 new ItemTypeAndQuantity(new ItemType("torch"), -2),
                 new ItemTypeAndQuantity(new ItemType("coin"), 100),
             ];
         }
-        if (this.name === "smelter") {
+        if (this.name === "iron") {
             return [
                 new ItemTypeAndQuantity(new ItemType("iron ore"), -1),
                 new ItemTypeAndQuantity(new ItemType("hay"), -1),
-                new ItemTypeAndQuantity(new ItemType("iron"), 3),
+                new ItemTypeAndQuantity(new ItemType("iron"), 2),
             ];
         }
         if (this.name === "rat") {
@@ -187,11 +162,13 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("stone"), 3),
             ];
         }
-        if (this.name === "weapon shop") {
+        return [];
+    }
+    // Reusable items needed for an action but not consumed by it.
+    requirements() {
+        if (this.name === "iron") {
             return [
-                new ItemTypeAndQuantity(new ItemType("coin"), -300),
-                new ItemTypeAndQuantity(new ItemType("club"), 10),
-                new ItemTypeAndQuantity(new ItemType("stone axe"), 10),
+                new ItemTypeAndQuantity(new ItemType("crucible"), 1),
             ];
         }
         return [];

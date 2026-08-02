@@ -14,3 +14,8 @@ Before generating or editing a game image, follow these rules:
 - For transparent map assets, do not bake in scenery, a floor, reflections, cast shadows, or contact shadows.
 - Preserve clean, softly antialiased edges. Use a soft alpha matte and slight edge feathering when needed to prevent the object from looking pasted onto the background.
 - Keep small-map readability in mind: a clear silhouette and a few strong details are better than bright highlights or fine visual clutter.
+- Design and validate map assets at their actual display size, typically about 40–50 pixels, against both green vegetation and brown soil. Do not judge visibility only from the large source image or a transparent-background preview.
+- Give readability a modest safety margin: an item must be immediately identifiable, not merely visible at the limit. It should survive natural variation in map color, screen brightness, and per-item rotation without becoming lost.
+- Prefer compact, substantial silhouettes over tall, sparse stems, hair-thin branches, scattered details, or large empty gaps. For flowering plants, use a broad, clearly visible flower crown; for roots and similar materials, retain several thick primary forms.
+- Separate an item from terrain through realistic differences in value, temperature, and material color. For example, use aged ivory flowers against foliage or dry ochre roots against soil. Do not solve contrast with neon saturation, magical glow, artificial outlines, or shiny highlights.
+- Avoid making collectible map assets excessively translucent. After extraction, set their in-game size and opacity high enough to remain readable, while keeping secondary resources slightly quieter than important or health-related items.

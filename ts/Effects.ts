@@ -10,15 +10,12 @@ export class Effects {
     private static readonly SOUND_STORAGE_KEY = "gpsgame.soundEnabled";
     private static readonly COMBAT_ITEMS = new Set(["rat", "orc", "troll"]);
     private static readonly CRAFT_ITEMS = new Set([
-        "body shop",
         "club",
+        "crucible",
         "iron",
-        "nature shop",
-        "smelter",
         "stone axe",
         "sword",
         "torch",
-        "weapon shop",
     ]);
     private static readonly RARE_ITEMS = new Set([
         "chest",

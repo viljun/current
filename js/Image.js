@@ -28,12 +28,6 @@ export class Image {
                 "pngtree-cute-cat-animal-png-image_10149335.png",
             ];
         }
-        else if (name === "body shop") {
-            dimension = 3;
-            srcs = [
-                "1966313.png",
-            ];
-        }
         else if (name === "chest") {
             rotate = (seed % 10) - 5;
             dimension = 2;
@@ -67,6 +61,13 @@ export class Image {
             ];
             rotate = seed % 360;
             dimension = 0.1;
+        }
+        else if (name === "crucible") {
+            srcs = [
+                "crucible-medieval-photoreal-v1.png",
+            ];
+            rotate = (seed % 16) - 8;
+            dimension = 1.2;
         }
         else if (name === "dungeon entrance") {
             dimension = 2;
@@ -150,13 +151,13 @@ export class Image {
             style = "opacity:" + ((seed % 30) / 100 + 0.5).toFixed(2) + ";";
             zIndex = 15;
         }
-        else if (name === "heart") {
+        else if (name === "yarrow") {
             srcs = [
-                "pngtree-smooth-glossy-heart-vector-file-ai-and-png-png-image_4557871.png",
+                "yarrow-photoreal-v3.png",
             ];
-            rotate = seed % 30;
-            dimension = 0.5 + (seed % 60) / 200;
-            style = "opacity:" + ((seed % 30) / 100 + 0.6).toFixed(2) + ";";
+            rotate = (seed % 20) - 10;
+            dimension = 0.9 + (seed % 30) / 100;
+            style = "opacity:" + ((seed % 8) / 100 + 0.9).toFixed(2) + ";";
         }
         else if (name === "iron") {
             srcs = [
@@ -175,12 +176,6 @@ export class Image {
             style = "opacity:" + ((seed % 31) / 100 + 0.5).toFixed(2) + ";";
             rotate = 360;
             dimension = 0.5 + (seed % 49) / 200;
-        }
-        else if (name === "nature shop") {
-            srcs = [
-                "869636.png",
-            ];
-            dimension = 2.0;
         }
         else if (name === "orc") {
             srcs = [
@@ -236,11 +231,11 @@ export class Image {
         }
         else if (name === "root") {
             srcs = [
-                "e4bee5977278bccccde170df93dea643-roots-stroke-botanical.png",
+                "root-photoreal-v1.png",
             ];
             rotate = seed % 360;
-            dimension = 0.3 + (seed % 130) / 100;
-            style = "opacity:" + ((seed % 41) / 100 + 0.3).toFixed(2) + ";";
+            dimension = 0.65 + (seed % 35) / 100;
+            style = "opacity:" + ((seed % 12) / 100 + 0.82).toFixed(2) + ";";
         }
         else if (name === "sand") {
             srcs = [
@@ -254,12 +249,6 @@ export class Image {
             dimension = 0.3 + (seed % 270) / 30;
             style = "opacity:" + ((seed % 100) / 400).toFixed(2) + ";";
             zIndex = 10;
-        }
-        else if (name === "smelter") {
-            srcs = [
-                "Smelter.png",
-            ];
-            dimension = 3;
         }
         else if (name === "stairs up") {
             dimension = 1 + (seed % 130) / 600;
@@ -342,12 +331,6 @@ export class Image {
             dimension = 2.0 + (seed % 123) / 30;
             style = "opacity:" + ((seed % 105) / 10).toFixed(2) + ";";
             zIndex = 120;
-        }
-        else if (name === "weapon shop") {
-            srcs = [
-                "free-shop-2149883-1806293.png",
-            ];
-            dimension = 2.0;
         }
         else {
             console.log("getWithItemTypeName: faulty name " + name);

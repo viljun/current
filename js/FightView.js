@@ -33,13 +33,13 @@ export class FightView {
         this.overlay = document.createElement("div");
         this.overlay.className = "fight-overlay";
         document.body.append(this.overlay);
-        if (((_a = this.inventory.totalQuantities["heart"]) !== null && _a !== void 0 ? _a : 0) <= 0) {
-            this.renderMissingHeart();
+        if (((_a = this.inventory.totalQuantities["yarrow"]) !== null && _a !== void 0 ? _a : 0) <= 0) {
+            this.renderMissingYarrow();
             return;
         }
         this.startGame(monster);
     }
-    renderMissingHeart() {
+    renderMissingYarrow() {
         if (this.overlay === null) {
             return;
         }
@@ -52,7 +52,7 @@ export class FightView {
         title.textContent = "Battle";
         const message = document.createElement("p");
         message.className = "fight-unavailable";
-        message.textContent = "You need to find at least one heart to fight.";
+        message.textContent = "You need to find at least one yarrow plant to fight.";
         panel.append(closeButton, title, this.createCombatants(), message);
         this.overlay.append(panel);
     }
@@ -73,7 +73,7 @@ export class FightView {
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
             itemOrigins[itemName] = this.inventory.getItemOrigins(itemName);
         }
-        this.game = new CardGame(monster, this.inventory.totalQuantities, this.coordinates.getSeed(), requiredNames, itemOrigins, (_a = this.inventory.totalQuantities["heart"]) !== null && _a !== void 0 ? _a : 0);
+        this.game = new CardGame(monster, this.inventory.totalQuantities, this.coordinates.getSeed(), requiredNames, itemOrigins, (_a = this.inventory.totalQuantities["yarrow"]) !== null && _a !== void 0 ? _a : 0);
         this.render();
     }
     render() {
@@ -222,15 +222,15 @@ export class FightView {
         bar.append(fill);
         const details = document.createElement("div");
         details.className = "fight-health-details";
-        const heart = document.createElement("span");
-        heart.className = "fight-health-icon";
-        heart.textContent = "♥";
-        heart.setAttribute("aria-hidden", "true");
+        const healthIcon = document.createElement("span");
+        healthIcon.className = "fight-health-icon";
+        healthIcon.textContent = "✿";
+        healthIcon.setAttribute("aria-hidden", "true");
         const value = document.createElement("span");
         value.className = "fight-health-value";
         value.textContent = String(health);
         value.setAttribute("aria-label", health + " health remaining");
-        details.append(heart, value);
+        details.append(healthIcon, value);
         display.append(bar, details);
         return display;
     }

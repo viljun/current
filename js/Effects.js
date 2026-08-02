@@ -707,15 +707,12 @@ Effects.MAX_ITEM_ANIMATIONS_PER_TYPE = 50;
 Effects.SOUND_STORAGE_KEY = "gpsgame.soundEnabled";
 Effects.COMBAT_ITEMS = new Set(["rat", "orc", "troll"]);
 Effects.CRAFT_ITEMS = new Set([
-    "body shop",
     "club",
+    "crucible",
     "iron",
-    "nature shop",
-    "smelter",
     "stone axe",
     "sword",
     "torch",
-    "weapon shop",
 ]);
 Effects.RARE_ITEMS = new Set([
     "chest",

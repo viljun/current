@@ -19,7 +19,7 @@ export declare class FightView {
     private autoCloseTimer;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
     open(): void;
-    private renderMissingHeart;
+    private renderMissingYarrow;
     private startGame;
     private render;
     private createFightDeck;

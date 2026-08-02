@@ -121,6 +121,7 @@ export class Inventory {
         };
     }
     load() {
+        var _a, _b;
         try {
             const serialized = localStorage.getItem(Inventory.STORAGE_KEY);
             if (serialized === null) {
@@ -132,8 +133,27 @@ export class Inventory {
                 return;
             }
             this.quantities = Object.assign({}, saveData.quantities);
+            let saveNeedsCleanup = false;
+            if (Object.prototype.hasOwnProperty.call(this.quantities, "heart")) {
+                const legacyHearts = (_a = this.quantities["heart"]) !== null && _a !== void 0 ? _a : 0;
+                if (legacyHearts > 0) {
+                    this.quantities["yarrow"] =
+                        ((_b = this.quantities["yarrow"]) !== null && _b !== void 0 ? _b : 0) + legacyHearts;
+                }
+                delete this.quantities["heart"];
+                saveNeedsCleanup = true;
+            }
+            for (const name of Inventory.REMOVED_ITEM_NAMES) {
+                if (Object.prototype.hasOwnProperty.call(this.quantities, name)) {
+                    delete this.quantities[name];
+                    saveNeedsCleanup = true;
+                }
+            }
             this.usedCoordinates = Object.assign({}, saveData.usedCoordinates);
             this.updateTotalQuantities();
+            if (saveNeedsCleanup) {
+                this.save();
+            }
         }
         catch (error) {
             console.warn("Unable to load inventory save data.", error);
@@ -256,3 +276,9 @@ export class Inventory {
 }
 Inventory.STORAGE_KEY = "gpsgame.inventory";
 Inventory.SAVE_VERSION = 1;
+Inventory.REMOVED_ITEM_NAMES = [
+    "body shop",
+    "nature shop",
+    "smelter",
+    "weapon shop",
+];

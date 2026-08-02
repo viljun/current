@@ -14,6 +14,7 @@ export interface ItemOrigin {
 export declare class Inventory {
     private static readonly STORAGE_KEY;
     private static readonly SAVE_VERSION;
+    private static readonly REMOVED_ITEM_NAMES;
     quantities: Record<string, number>;
     totalQuantities: Record<string, number>;
     usedCoordinates: Record<string, boolean>;

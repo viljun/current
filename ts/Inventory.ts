@@ -25,6 +25,12 @@ export interface ItemOrigin {
 export class Inventory {
     private static readonly STORAGE_KEY = "gpsgame.inventory";
     private static readonly SAVE_VERSION = 1;
+    private static readonly REMOVED_ITEM_NAMES = [
+        "body shop",
+        "nature shop",
+        "smelter",
+        "weapon shop",
+    ];
 
     quantities:      Record<string, number>  = {};
     totalQuantities: Record<string, number>  = {};
@@ -179,8 +185,27 @@ export class Inventory {
             }
 
             this.quantities = { ...saveData.quantities };
+            let saveNeedsCleanup = false;
+            if (Object.prototype.hasOwnProperty.call(this.quantities, "heart")) {
+                const legacyHearts = this.quantities["heart"] ?? 0;
+                if (legacyHearts > 0) {
+                    this.quantities["yarrow"] =
+                        (this.quantities["yarrow"] ?? 0) + legacyHearts;
+                }
+                delete this.quantities["heart"];
+                saveNeedsCleanup = true;
+            }
+            for (const name of Inventory.REMOVED_ITEM_NAMES) {
+                if (Object.prototype.hasOwnProperty.call(this.quantities, name)) {
+                    delete this.quantities[name];
+                    saveNeedsCleanup = true;
+                }
+            }
             this.usedCoordinates = { ...saveData.usedCoordinates };
             this.updateTotalQuantities();
+            if (saveNeedsCleanup) {
+                this.save();
+            }
         } catch (error) {
             console.warn("Unable to load inventory save data.", error);
         }

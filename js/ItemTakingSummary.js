@@ -2,16 +2,21 @@ import { ItemType } from "./ItemType.js";
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { View } from './View.js';
 export class ItemTakingSummary {
-    constructor(itemType, prizes, expenses, missing) {
+    constructor(itemType, prizes, expenses, requirements, missing) {
         this.itemType = itemType; // Item type of the item that is being taken.
         this.prizes = prizes; // Items that will be added to inventory.
         this.expenses = expenses; // Items that will be removed from inventory.
+        this.requirements = requirements;
         this.missing = missing; // Items that are missing in inventory to take the item.
     }
     // Returns "take"-button text.
     getTakeButtonText() {
         var _a;
-        let buttonText = "Take " + this.itemType.name;
+        let buttonText = this.itemType.name === "iron"
+            ? "Smelt iron"
+            : this.itemType.name === "crucible"
+                ? "Craft crucible"
+                : "Take " + this.itemType.name;
         let additionalText = "";
         // Expenses.
         if (this.expenses.length > 0) {
@@ -20,6 +25,14 @@ export class ItemTakingSummary {
                 itemTexts.push(View.getQuantityText(value.itemType.name, -value.quantity));
             }
             additionalText += " with " + View.arrayToText(itemTexts);
+        }
+        // Reusable requirements.
+        if (this.requirements.length > 0) {
+            const itemTexts = [];
+            for (const value of this.requirements) {
+                itemTexts.push(View.getQuantityText(value.itemType.name, value.quantity));
+            }
+            additionalText += " using " + View.arrayToText(itemTexts);
         }
         // Prizes.
         if (this.missing.length === 0 && this.prizes.length > 0) {
