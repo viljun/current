@@ -1,4 +1,5 @@
 export declare class MonsterDefinition {
+    private static readonly DEFINITIONS;
     name: string;
     health: number;
     cardStrength: number;

@@ -2,6 +2,24 @@ import { Coordinates } from "./Coordinates.js";
 import { Effects } from "./Effects.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
+export function calculateMapLayout(viewportWidth, viewportHeight, tileSize, safetyMargin) {
+    const oddSizeAtLeast = (visibleSize) => {
+        const minimum = Math.max(1, Math.ceil(visibleSize) + safetyMargin);
+        return minimum % 2 === 0 ? minimum + 1 : minimum;
+    };
+    const cols = oddSizeAtLeast(viewportWidth / tileSize);
+    const rows = oddSizeAtLeast(viewportHeight / tileSize);
+    const mapWidth = cols * tileSize;
+    const mapHeight = rows * tileSize;
+    return {
+        cols,
+        rows,
+        mapWidth,
+        mapHeight,
+        marginLeft: (viewportWidth - mapWidth) / 2,
+        marginTop: (viewportHeight - mapHeight) / 2,
+    };
+}
 export class GameController {
     constructor() {
         var _a;
@@ -51,16 +69,18 @@ export class GameController {
         });
     }
     configureMapDimensions() {
-        const tileOuterDimension = GameController.TILE_SIZE + 1;
-        const cols = Math.floor(this.mapContainer.clientWidth / tileOuterDimension / 2) * 2 + 1 + GameController.SAFETY_MARGIN;
-        const rows = Math.floor(this.mapContainer.clientHeight / tileOuterDimension / 2) * 2 + 1 + GameController.SAFETY_MARGIN;
-        const mapMarginLeft = (this.mapContainer.clientWidth - (cols * GameController.TILE_SIZE + 1)) / 2;
-        const mapMarginTop = (this.mapContainer.clientHeight - (rows * GameController.TILE_SIZE + 1)) / 2;
+        const layout = calculateMapLayout(this.mapContainer.clientWidth, this.mapContainer.clientHeight, GameController.TILE_SIZE, GameController.SAFETY_MARGIN);
         this.mapDimensionStyle.textContent = ".cell {width:" + GameController.TILE_SIZE
-            + "px;height:" + GameController.TILE_SIZE
-            + "px;} #map{margin-left:" + mapMarginLeft
-            + "px;margin-top:" + mapMarginTop + "px;}";
-        return { cols, rows };
+            + "px;height:" + GameController.TILE_SIZE + "px;} #map{"
+            + "grid-template-columns:repeat(" + layout.cols + ","
+            + GameController.TILE_SIZE + "px);"
+            + "grid-template-rows:repeat(" + layout.rows + ","
+            + GameController.TILE_SIZE + "px);"
+            + "width:" + layout.mapWidth + "px;"
+            + "height:" + layout.mapHeight + "px;"
+            + "margin-left:" + layout.marginLeft + "px;"
+            + "margin-top:" + layout.marginTop + "px;}";
+        return { cols: layout.cols, rows: layout.rows };
     }
     bindControls() {
         var _a;

@@ -10,6 +10,82 @@ export class Image {
     domId: string | null;
     zIndex: number;
     tile_size: number;
+    private static readonly DUNGEON_MONSTER_IMAGES: Readonly<Record<string, string>> = {
+        "bone rat": "monster-bone-rat-medieval-photoreal-v1.png",
+        "cave bat": "monster-cave-bat-medieval-photoreal-v1.png",
+        "giant spider": "monster-giant-spider-medieval-photoreal-v1.png",
+        "plague beetle": "monster-plague-beetle-medieval-photoreal-v1.png",
+        "crypt hound": "monster-crypt-hound-medieval-photoreal-v1.png",
+        "skeletal guard": "monster-skeletal-guard-medieval-photoreal-v1.png",
+        "dungeon scavenger": "monster-dungeon-scavenger-medieval-photoreal-v1.png",
+        "goblin cutthroat": "monster-goblin-cutthroat-medieval-photoreal-v1.png",
+        "tomb robber": "monster-tomb-robber-medieval-photoreal-v1.png",
+        "cave crawler": "monster-cave-crawler-medieval-photoreal-v1.png",
+        "ghoul": "monster-ghoul-medieval-photoreal-v1.png",
+        "wight": "monster-wight-medieval-photoreal-v1.png",
+        "cultist": "monster-cultist-medieval-photoreal-v1.png",
+        "armored skeleton": "monster-armored-skeleton-medieval-photoreal-v1.png",
+        "brood spider": "monster-brood-spider-medieval-photoreal-v1.png",
+        "cave troll": "monster-cave-troll-medieval-photoreal-v1.png",
+        "dungeon orc": "monster-dungeon-orc-medieval-photoreal-v1.png",
+        "plague bearer": "monster-plague-bearer-medieval-photoreal-v1.png",
+        "stone sentinel": "monster-stone-sentinel-medieval-photoreal-v1.png",
+        "crypt knight": "monster-crypt-knight-medieval-photoreal-v1.png",
+        "banshee": "monster-banshee-medieval-photoreal-v1.png",
+        "necromancer": "monster-necromancer-medieval-photoreal-v1.png",
+        "ogre jailer": "monster-ogre-jailer-medieval-photoreal-v1.png",
+        "basilisk": "monster-basilisk-medieval-photoreal-v1.png",
+        "minotaur": "monster-minotaur-medieval-photoreal-v1.png",
+        "vampire": "monster-vampire-medieval-photoreal-v1.png",
+        "lich": "monster-lich-medieval-photoreal-v1.png",
+        "bone colossus": "monster-bone-colossus-medieval-photoreal-v1.png",
+        "abyssal knight": "monster-abyssal-knight-medieval-photoreal-v1.png",
+        "dungeon dragon": "monster-dungeon-dragon-medieval-photoreal-v1.png",
+    };
+    private static readonly VENDOR_CAT_IMAGES: Readonly<Record<string, string>> = {
+        "cat buying stick": "vendor-cat-buyer-stick-medieval-photoreal-v1.png",
+        "cat buying stone": "vendor-cat-buyer-stone-medieval-photoreal-v1.png",
+        "cat buying hay": "vendor-cat-buyer-hay-medieval-photoreal-v1.png",
+        "cat buying root": "vendor-cat-buyer-root-medieval-photoreal-v1.png",
+        "cat buying iron ore": "vendor-cat-buyer-iron-ore-medieval-photoreal-v1.png",
+        "cat buying iron": "vendor-cat-buyer-iron-medieval-photoreal-v1.png",
+        "cat buying yarrow": "vendor-cat-buyer-yarrow-medieval-photoreal-v1.png",
+        "cat buying hide": "vendor-cat-buyer-hide-medieval-photoreal-v1.png",
+        "cat buying chest": "vendor-cat-buyer-chest-medieval-photoreal-v1.png",
+        "cat buying rat": "vendor-cat-buyer-rat-medieval-photoreal-v1.png",
+        "cat buying orc": "vendor-cat-buyer-orc-medieval-photoreal-v1.png",
+        "cat buying troll": "vendor-cat-buyer-troll-medieval-photoreal-v1.png",
+        "cat buying torch": "vendor-cat-buyer-torch-medieval-photoreal-v1.png",
+        "cat buying club": "vendor-cat-buyer-club-medieval-photoreal-v1.png",
+        "cat buying stone axe": "vendor-cat-buyer-stone-axe-medieval-photoreal-v1.png",
+        "cat buying sword": "vendor-cat-buyer-sword-medieval-photoreal-v1.png",
+        "cat buying padded hide": "vendor-cat-buyer-padded-hide-medieval-photoreal-v1.png",
+        "cat buying wooden shield": "vendor-cat-buyer-wooden-shield-medieval-photoreal-v1.png",
+        "cat buying reinforced shield": "vendor-cat-buyer-reinforced-shield-medieval-photoreal-v1.png",
+        "cat buying crucible": "vendor-cat-buyer-crucible-medieval-photoreal-v1.png",
+        "cat buying treasure": "vendor-cat-buyer-treasure-medieval-photoreal-v1.png",
+        "cat selling stick": "vendor-cat-seller-stick-medieval-photoreal-v1.png",
+        "cat selling stone": "vendor-cat-seller-stone-medieval-photoreal-v1.png",
+        "cat selling hay": "vendor-cat-seller-hay-medieval-photoreal-v1.png",
+        "cat selling root": "vendor-cat-seller-root-medieval-photoreal-v1.png",
+        "cat selling iron ore": "vendor-cat-seller-iron-ore-medieval-photoreal-v1.png",
+        "cat selling iron": "vendor-cat-seller-iron-medieval-photoreal-v1.png",
+        "cat selling yarrow": "vendor-cat-seller-yarrow-medieval-photoreal-v1.png",
+        "cat selling hide": "vendor-cat-seller-hide-medieval-photoreal-v1.png",
+        "cat selling chest": "vendor-cat-seller-chest-medieval-photoreal-v1.png",
+        "cat selling rat": "vendor-cat-seller-rat-medieval-photoreal-v1.png",
+        "cat selling orc": "vendor-cat-seller-orc-medieval-photoreal-v1.png",
+        "cat selling troll": "vendor-cat-seller-troll-medieval-photoreal-v1.png",
+        "cat selling torch": "vendor-cat-seller-torch-medieval-photoreal-v1.png",
+        "cat selling club": "vendor-cat-seller-club-medieval-photoreal-v1.png",
+        "cat selling stone axe": "vendor-cat-seller-stone-axe-medieval-photoreal-v1.png",
+        "cat selling sword": "vendor-cat-seller-sword-medieval-photoreal-v1.png",
+        "cat selling padded hide": "vendor-cat-seller-padded-hide-medieval-photoreal-v1.png",
+        "cat selling wooden shield": "vendor-cat-seller-wooden-shield-medieval-photoreal-v1.png",
+        "cat selling reinforced shield": "vendor-cat-seller-reinforced-shield-medieval-photoreal-v1.png",
+        "cat selling crucible": "vendor-cat-seller-crucible-medieval-photoreal-v1.png",
+        "cat selling treasure": "vendor-cat-seller-treasure-medieval-photoreal-v1.png",
+    };
     constructor(
         dimension: number,
         src: string,
@@ -44,6 +120,8 @@ export class Image {
         let domId: string | null = null;
         let style: string = "";
         let zIndex: number = 20;
+        const dungeonMonsterSource = Image.DUNGEON_MONSTER_IMAGES[name];
+        const vendorCatSource = Image.VENDOR_CAT_IMAGES[name];
 
         if (name === "armorer's bench") {
             srcs = [
@@ -127,6 +205,89 @@ export class Image {
             dimension *= 2.5;
         } else if (name === "masterwork greatsword") {
             srcs = ["masterwork-greatsword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.7;
+        } else if (name === "poisoned masterwork greatsword") {
+            srcs = [
+                "poisoned-masterwork-greatsword-medieval-photoreal-transparent-v2.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension *= 2.7;
+        } else if (name === "calendula") {
+            srcs = ["flower-calendula-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.2;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+        } else if (name === "chamomile") {
+            srcs = ["flower-chamomile-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.2;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+        } else if (name === "lavender") {
+            srcs = ["flower-lavender-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.2;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+        } else if (name === "red poppy") {
+            srcs = ["flower-red-poppy-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.2;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+        } else if (name === "cornflower") {
+            srcs = ["flower-cornflower-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.2;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2) + ";";
+        } else if (name === "healing potion") {
+            srcs = ["healing-potion-medieval-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.35;
+        } else if (name === "poison potion") {
+            srcs = ["poison-potion-medieval-photoreal-v1.png"];
+            rotate = 0;
+            dimension *= 1.35;
+        } else if (["bone knife", "iron dagger"].includes(name)) {
+            srcs = ["arming-sword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.8;
+        } else if (["spiked cudgel", "morning star"].includes(name)) {
+            srcs = ["flanged-mace-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.1;
+        } else if (["falchion", "estoc"].includes(name)) {
+            srcs = ["sword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.2;
+        } else if (["war pick", "relic warhammer"].includes(name)) {
+            srcs = ["war-hammer-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.2;
+        } else if (["heavy crossbow", "bec de corbin"].includes(name)) {
+            srcs = ["poleaxe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.4;
+        } else if (["zweihander", "royal claymore"].includes(name)) {
+            srcs = ["longsword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (["halberd", "blacksteel glaive"].includes(name)) {
+            srcs = ["poleaxe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (["executioner's axe", "dragonbone axe"].includes(name)) {
+            srcs = ["two-handed-battle-axe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (["gothic mace", "runed longsword"].includes(name)) {
+            srcs = [name === "gothic mace"
+                ? "flanged-mace-medieval-photoreal-v1.png"
+                : "longsword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (["obsidian polearm", "dungeon-forged greatblade"].includes(name)) {
+            srcs = [name === "obsidian polearm"
+                ? "poleaxe-medieval-photoreal-v1.png"
+                : "masterwork-greatsword-medieval-photoreal-v1.png"];
             rotate = rotationSeed % 360;
             dimension *= 2.7;
         } else if (name === "coin") {
@@ -232,6 +393,56 @@ export class Image {
             ];
             rotate = rotationSeed % 360;
             dimension *= 1.35;
+        } else if (["bones", "bone carving"].includes(name)) {
+            srcs = ["root-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.15;
+            style = "filter:grayscale(.82) sepia(.18) brightness(1.18);";
+        } else if (["cracked skull", "skull crushing"].includes(name)) {
+            srcs = ["stone-item-photoreal-blended-v2.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.05;
+            style = "filter:sepia(.28) brightness(1.15);";
+        } else if (["rusted chain", "chain smelting"].includes(name)) {
+            srcs = ["iron_ore.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.1;
+            style = "filter:sepia(.7) saturate(.75);";
+        } else if (["grave dust", "dust distilling"].includes(name)) {
+            srcs = ["hay-medieval-photoreal-soft-edge-v2.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 0.85;
+            style = "filter:grayscale(.75) brightness(.7);";
+        } else if (["bat wing", "wing tanning"].includes(name)) {
+            srcs = ["hide-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.05;
+            style = "filter:brightness(.55) saturate(.55);";
+        } else if (["spider silk", "silk binding"].includes(name)) {
+            srcs = ["hay-medieval-photoreal-soft-edge-v2.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 0.9;
+            style = "filter:grayscale(1) brightness(1.35);";
+        } else if (["black candle", "candle reclaiming"].includes(name)) {
+            srcs = ["torch.png"];
+            rotate = 0;
+            dimension *= 1.15;
+            style = "filter:grayscale(.8) brightness(.55);";
+        } else if (["ancient nail", "nail reforging"].includes(name)) {
+            srcs = ["iron_ore2.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 0.8;
+            style = "filter:sepia(.7) saturate(.7);";
+        } else if (["broken tile", "tile knapping"].includes(name)) {
+            srcs = ["stone-item-photoreal-blended-v2.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 0.9;
+            style = "filter:sepia(.45);";
+        } else if (["dungeon moss", "moss brewing"].includes(name)) {
+            srcs = ["yarrow-photoreal-v3.png"];
+            rotate = 0;
+            dimension *= 0.95;
+            style = "filter:hue-rotate(45deg) saturate(.7) brightness(.7);";
         } else if (name === "padded hide") {
             srcs = [
                 "padded-hide-medieval-photoreal-v1.png",
@@ -270,6 +481,33 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 31) / 100 + 0.5).toFixed(2) + ";";
             rotate = 360;
             dimension = 0.5 + (dimensionSeed % 49) / 200;
+        } else if ([
+            "bone rat", "cave bat", "giant spider", "plague beetle",
+            "crypt hound", "dungeon scavenger", "tomb robber",
+            "cave crawler", "brood spider", "banshee",
+        ].includes(name)) {
+            srcs = [dungeonMonsterSource ?? ""];
+            rotate = 0;
+            dimension *= 1.2 + (dimensionSeed % 31) / 100;
+            style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
+        } else if ([
+            "skeletal guard", "goblin cutthroat", "ghoul", "wight",
+            "cultist", "armored skeleton", "dungeon orc",
+            "plague bearer", "crypt knight", "necromancer",
+        ].includes(name)) {
+            srcs = [dungeonMonsterSource ?? ""];
+            rotate = 0;
+            dimension *= 1.75 + (dimensionSeed % 31) / 100;
+            style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
+        } else if ([
+            "cave troll", "stone sentinel", "ogre jailer", "basilisk",
+            "minotaur", "vampire", "lich", "bone colossus",
+            "abyssal knight", "dungeon dragon",
+        ].includes(name)) {
+            srcs = [dungeonMonsterSource ?? ""];
+            rotate = 0;
+            dimension *= 2.15 + (dimensionSeed % 41) / 100;
+            style = "opacity:" + ((opacitySeed % 6) / 100 + 0.93).toFixed(2) + ";";
         } else if (name === "orc") {
             srcs = [
                 "monster-orc-photoreal-grounded-v2.png",
@@ -345,13 +583,11 @@ export class Image {
             dimension = 0.3 + (dimensionSeed % 270) / 30;
             style = "opacity:" + ((opacitySeed % 100) / 400).toFixed(2) + ";";
             zIndex = 10;
-        } else if (name.startsWith("cat buying ") || name.startsWith("cat selling ")) {
+        } else if (vendorCatSource !== undefined) {
             const playerDimension = (
                 0.9 + (Image.visualSeed(seed, "cat", 2) % 21) / 100
             ) * 2;
-            srcs = [name.startsWith("cat buying ")
-                ? "vendor-cat-buyer-medieval-photoreal-v1.png"
-                : "vendor-cat-seller-medieval-photoreal-v1.png"];
+            srcs = [vendorCatSource];
             rotate = 0;
             dimension = playerDimension
                 * ItemType.vendorCatPlayerScale(name);

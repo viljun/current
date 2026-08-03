@@ -1,28 +1,41 @@
-* {box-sizing: border-box;}
-body,
-html {
-    margin: 0;
-    overflow: hidden;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-    /* background-image: url(images/seamless-sand-light-beach-square-texture-39125213.jpg); */
-    background-repeat: repeat;
+* {
+    box-sizing: border-box;
 }
-body,
 html,
-#mapContainer {
+body {
     width: 100%;
     height: 100%;
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    background: #26351f;
+    background-repeat: repeat;
+}
+body {
+    position: fixed;
+    inset: 0;
+    font-family: sans-serif;
+    font-size: 1rem;
 }
 #mapContainer {
-    width: 100dvw;
-    height: 100dvh;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    min-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    isolation: isolate;
 }
 #map {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: grid;
     overflow: hidden;
-    width: max-content;
-    height: max-content;
 }
 .item {
     position: absolute;
@@ -50,15 +63,40 @@ html,
     outline-offset: -3px;
 }
 #messageBox {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
+    right: 0;
     z-index: 9999;
-    width: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: 3.75rem;
+    min-height: 3.75rem;
+    overflow: hidden;
     background-color: rgba(0, 0, 0, 0.7);
     text-align: center;
-    padding: 1rem;
+    padding: 0.5rem 1rem;
     color: white;
+    font-size: 1rem;
+    line-height: 1.35;
+}
+#messageBox > .message {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: auto;
+    scrollbar-width: none;
+}
+#messageBox > .message::-webkit-scrollbar {
+    display: none;
+}
+#messageBox button,
+#messageBox .button {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.9rem;
+    font: inherit;
+    touch-action: manipulation;
 }
 #exploreControl,
 #soundControl,
@@ -129,7 +167,8 @@ html,
     background: rgba(0, 0, 0, 0.75);
     color: white;
     font-family: sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    line-height: 1.25;
     pointer-events: none;
 }
 #gpsStatus[data-state="warning"] {
@@ -712,11 +751,15 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 
 @media (max-width: 600px), (max-width: 900px) and (max-height: 500px) {
     #messageBox {
+        height: calc(3.75rem + env(safe-area-inset-top));
+        min-height: calc(3.75rem + env(safe-area-inset-top));
         padding:
-            max(0.55rem, env(safe-area-inset-top))
-            0.55rem
-            0.55rem;
-        font-size: 0.9rem;
+            max(0.5rem, env(safe-area-inset-top))
+            max(0.75rem, env(safe-area-inset-right))
+            0.5rem
+            max(0.75rem, env(safe-area-inset-left));
+        font-size: 1.05rem;
+        line-height: 1.25;
         font-family: sans-serif;
     }
     #exploreControl,
@@ -724,10 +767,11 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     #inventoryControl,
     #restartControl {
         right: max(0.45rem, env(safe-area-inset-right));
-        width: 5.8rem;
-        min-height: 2.75rem;
-        padding: 0.45rem 0.55rem;
-        font-size: 0.78rem;
+        width: 7rem;
+        min-height: 3rem;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.95rem;
+        line-height: 1.2;
         touch-action: manipulation;
         align-items: center;
         justify-content: flex-start;
@@ -740,18 +784,23 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
         bottom: max(0.45rem, env(safe-area-inset-bottom));
     }
     #soundControl {
-        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 3.05rem);
+        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 3.25rem);
     }
     #restartControl {
-        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 6.1rem);
+        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 6.5rem);
     }
     #inventoryControl {
-        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 9.15rem);
+        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 9.75rem);
     }
     #gpsStatus {
         left: max(0.45rem, env(safe-area-inset-left));
         bottom: max(0.45rem, env(safe-area-inset-bottom));
-        max-width: calc(100% - 7rem);
+        max-width: calc(100% - 8rem);
+        min-height: 2.5rem;
+        display: flex;
+        align-items: center;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.95rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -773,7 +822,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     .fight-panel h1 {
         margin-bottom: 0.45rem;
         padding-inline: 2.8rem;
-        font-size: 1.25rem;
+        font-size: 1.4rem;
     }
     .fight-board {
         gap: 0.25rem;
@@ -792,6 +841,9 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     }
     .fight-health-bar {
         height: 4.5rem;
+    }
+    .fight-health-value {
+        font-size: 1rem;
     }
     .fight-hand {
         grid-template-columns: repeat(auto-fit, 5.25rem);
@@ -814,7 +866,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     .fight-monster-card.fight-card--blocking {
         padding: 0.45rem;
         gap: 0.2rem;
-        font-size: 0.78rem;
+        font-size: 0.9rem;
     }
     .fight-card-art {
         height: 4rem;
@@ -837,7 +889,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     .fight-turn-status {
         min-height: 1rem;
         margin: 0.2rem 0;
-        font-size: 0.85rem;
+        font-size: 0.95rem;
     }
     .inventory-dialog {
         width: calc(100% - 0.7rem);
@@ -850,6 +902,9 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     }
     .inventory-entry-art {
         height: 5.5rem;
+    }
+    .inventory-entry strong {
+        font-size: 0.95rem;
     }
 }
 

@@ -93,7 +93,9 @@ export class FightView {
             this.coordinates.getSeed(),
             requiredNames,
             itemOrigins,
-            this.inventory.totalQuantities["yarrow"] ?? 0,
+            CardGame.playerHealthForYarrow(
+                this.inventory.totalQuantities["yarrow"] ?? 0,
+            ),
         );
         this.render();
     }
@@ -566,6 +568,9 @@ export class FightView {
         closeButton?.setAttribute("aria-label", "Close fight");
         if (state.status === "won") {
             this.applyVictory();
+        } else {
+            this.map.messageBox.textContent =
+                "Defeated. Gather more yarrow or craft stronger equipment, then try again.";
         }
         const board = this.overlay.querySelector<HTMLElement>(".fight-board");
         if (board !== null) {

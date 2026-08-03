@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "test": "node --experimental-default-type=module --test tests/*.test.js",
+    "test:browser": "node --experimental-default-type=module tests/browser-layout.test.js",
     "typecheck": "tsc --noEmit"
   },
   "author": "",

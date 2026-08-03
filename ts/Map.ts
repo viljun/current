@@ -79,10 +79,11 @@ export class Map {
         const areaId = this.inventory.getAreaId();
         const dungeonMapExtraSize = 10;
         const dungeonMap = areaId === DUNGEON_AREA
-            ? new DungeonMap(
-                this.cols + dungeonMapExtraSize * 2,
-                this.rows + dungeonMapExtraSize * 2,
+            ? DungeonMap.forViewport(
+                this.cols,
+                this.rows,
                 this.state.coordinates,
+                dungeonMapExtraSize,
             )
             : null;
         this.visibleDungeonWalls = {};

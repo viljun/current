@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html,
+        body,
+        iframe {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            border: 0;
+        }
+        #result {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="game" title="Game layout test"></iframe>
+    <pre id="result"></pre>
+    <script>
+        const frame = document.getElementById("game");
+        const resultElement = document.getElementById("result");
+        const parameters = new URLSearchParams(window.location.search);
+        frame.style.width = parameters.get("width") + "px";
+        frame.style.height = parameters.get("height") + "px";
+
+        const rectangle = element => {
+            const value = element.getBoundingClientRect();
+
+            return {
+                top: value.top,
+                right: value.right,
+                bottom: value.bottom,
+                left: value.left,
+                width: value.width,
+                height: value.height,
+                centerX: value.left + value.width / 2,
+                centerY: value.top + value.height / 2,
+            };
+        };
+        const fontSize = element =>
+            Number.parseFloat(frame.contentWindow.getComputedStyle(element).fontSize);
+        const cellAt = (document, x, y) =>
+            document.elementFromPoint(x, y)?.closest(".cell") !== null;
+
+        const measure = () => {
+            const window = frame.contentWindow;
+            const document = frame.contentDocument;
+            const map = document.getElementById("map");
+            const cat = document.getElementById("cat");
+            const message = document.getElementById("messageBox");
+            const container = document.getElementById("mapContainer");
+            if (
+                map === null
+                || map.children.length === 0
+                || cat === null
+                || message === null
+                || container === null
+            ) {
+                window.setTimeout(measure, 50);
+
+                return;
+            }
+
+            const textRange = document.createRange();
+            textRange.selectNodeContents(message);
+            const textRectangle = textRange.getBoundingClientRect();
+            const messageHeightWithoutButton = message.getBoundingClientRect().height;
+            const controls = [
+                "inventoryControl",
+                "restartControl",
+                "soundControl",
+                "exploreControl",
+            ].map(id => {
+                const element = document.getElementById(id);
+
+                return {
+                    id,
+                    rectangle: rectangle(element),
+                    fontSize: fontSize(element),
+                };
+            });
+            const measurement = {
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                },
+                container: rectangle(container),
+                map: rectangle(map),
+                cat: rectangle(cat),
+                message: {
+                    rectangle: rectangle(message),
+                    text: {
+                        top: textRectangle.top,
+                        bottom: textRectangle.bottom,
+                        height: textRectangle.height,
+                        centerY: textRectangle.top + textRectangle.height / 2,
+                    },
+                    fontSize: fontSize(message),
+                },
+                gps: {
+                    rectangle: rectangle(document.getElementById("gpsStatus")),
+                    fontSize: fontSize(document.getElementById("gpsStatus")),
+                },
+                controls,
+                paintedEdges: {
+                    right: cellAt(
+                        document,
+                        window.innerWidth - 1,
+                        window.innerHeight / 2,
+                    ),
+                    bottom: cellAt(
+                        document,
+                        window.innerWidth / 2,
+                        window.innerHeight - 1,
+                    ),
+                },
+                document: {
+                    scrollWidth: document.documentElement.scrollWidth,
+                    scrollHeight: document.documentElement.scrollHeight,
+                },
+            };
+            const buttonMessage = document.createElement("div");
+            buttonMessage.className = "message";
+            const button = document.createElement("button");
+            button.className = "button";
+            button.type = "button";
+            button.textContent = "Take item";
+            buttonMessage.append(button, " with required materials.");
+            message.replaceChildren(buttonMessage);
+            measurement.message.buttonState = {
+                barHeight: message.getBoundingClientRect().height,
+                buttonHeight: button.getBoundingClientRect().height,
+            };
+            measurement.message.heightWithoutButton =
+                messageHeightWithoutButton;
+            resultElement.textContent = window.btoa(JSON.stringify(measurement));
+        };
+
+        frame.src = "../game.html";
+        window.setTimeout(measure, 50);
+    </script>
+</body>
+</html>

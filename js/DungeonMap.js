@@ -2,6 +2,10 @@ import { Coordinates as GameCoordinates } from "./Coordinates.js";
 import { DUNGEON_AREA } from "./Area.js";
 import { ItemType } from "./ItemType.js";
 export class DungeonMap {
+    static forViewport(cols, rows, center, extraSize) {
+        const origin = new GameCoordinates(center.latitude - (cols + 1) / 2 - extraSize, center.longitude - (rows + 1) / 2 - extraSize);
+        return new DungeonMap(cols + extraSize * 2, rows + extraSize * 2, origin);
+    }
     constructor(width, height, coordinates) {
         this.width = width;
         this.height = height;

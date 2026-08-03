@@ -9,6 +9,41 @@ interface SmoothedLocation {
     longitude: number;
 }
 
+export interface MapLayout {
+    cols: number;
+    rows: number;
+    mapWidth: number;
+    mapHeight: number;
+    marginLeft: number;
+    marginTop: number;
+}
+
+export function calculateMapLayout(
+    viewportWidth: number,
+    viewportHeight: number,
+    tileSize: number,
+    safetyMargin: number,
+): MapLayout {
+    const oddSizeAtLeast = (visibleSize: number): number => {
+        const minimum = Math.max(1, Math.ceil(visibleSize) + safetyMargin);
+
+        return minimum % 2 === 0 ? minimum + 1 : minimum;
+    };
+    const cols = oddSizeAtLeast(viewportWidth / tileSize);
+    const rows = oddSizeAtLeast(viewportHeight / tileSize);
+    const mapWidth = cols * tileSize;
+    const mapHeight = rows * tileSize;
+
+    return {
+        cols,
+        rows,
+        mapWidth,
+        mapHeight,
+        marginLeft: (viewportWidth - mapWidth) / 2,
+        marginTop: (viewportHeight - mapHeight) / 2,
+    };
+}
+
 export class GameController {
     private static readonly EXPLORE_STORAGE_KEY = "gpsgame.exploreMode";
     private static readonly EXPLORE_LOCATION_STORAGE_KEY = "gpsgame.exploreLocation";
@@ -93,25 +128,24 @@ export class GameController {
     }
 
     private configureMapDimensions(): { cols: number; rows: number } {
-        const tileOuterDimension = GameController.TILE_SIZE + 1;
-        const cols = Math.floor(
-            this.mapContainer.clientWidth / tileOuterDimension / 2,
-        ) * 2 + 1 + GameController.SAFETY_MARGIN;
-        const rows = Math.floor(
-            this.mapContainer.clientHeight / tileOuterDimension / 2,
-        ) * 2 + 1 + GameController.SAFETY_MARGIN;
-        const mapMarginLeft = (
-            this.mapContainer.clientWidth - (cols * GameController.TILE_SIZE + 1)
-        ) / 2;
-        const mapMarginTop = (
-            this.mapContainer.clientHeight - (rows * GameController.TILE_SIZE + 1)
-        ) / 2;
+        const layout = calculateMapLayout(
+            this.mapContainer.clientWidth,
+            this.mapContainer.clientHeight,
+            GameController.TILE_SIZE,
+            GameController.SAFETY_MARGIN,
+        );
         this.mapDimensionStyle.textContent = ".cell {width:" + GameController.TILE_SIZE
-            + "px;height:" + GameController.TILE_SIZE
-            + "px;} #map{margin-left:" + mapMarginLeft
-            + "px;margin-top:" + mapMarginTop + "px;}";
+            + "px;height:" + GameController.TILE_SIZE + "px;} #map{"
+            + "grid-template-columns:repeat(" + layout.cols + ","
+            + GameController.TILE_SIZE + "px);"
+            + "grid-template-rows:repeat(" + layout.rows + ","
+            + GameController.TILE_SIZE + "px);"
+            + "width:" + layout.mapWidth + "px;"
+            + "height:" + layout.mapHeight + "px;"
+            + "margin-left:" + layout.marginLeft + "px;"
+            + "margin-top:" + layout.marginTop + "px;}";
 
-        return { cols, rows };
+        return { cols: layout.cols, rows: layout.rows };
     }
 
     private bindControls(): void {

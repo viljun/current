@@ -8,7 +8,26 @@ export class DungeonMap {
     height:      number;
     coordinates: Coordinates;
     map:         boolean[][];
-    constructor(width: number, height: number, coordinates: Coordinates) {
+
+    static forViewport(
+        cols: number,
+        rows: number,
+        center: Coordinates,
+        extraSize: number,
+    ): DungeonMap {
+        const origin = new GameCoordinates(
+            center.latitude - (cols + 1) / 2 - extraSize,
+            center.longitude - (rows + 1) / 2 - extraSize,
+        );
+
+        return new DungeonMap(
+            cols + extraSize * 2,
+            rows + extraSize * 2,
+            origin,
+        );
+    }
+
+    private constructor(width: number, height: number, coordinates: Coordinates) {
         this.width       = width;
         this.height      = height;
         this.coordinates = coordinates;

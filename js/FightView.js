@@ -73,7 +73,7 @@ export class FightView {
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
             itemOrigins[itemName] = this.inventory.getItemOrigins(itemName);
         }
-        this.game = new CardGame(monster, this.inventory.totalQuantities, this.coordinates.getSeed(), requiredNames, itemOrigins, (_a = this.inventory.totalQuantities["yarrow"]) !== null && _a !== void 0 ? _a : 0);
+        this.game = new CardGame(monster, this.inventory.totalQuantities, this.coordinates.getSeed(), requiredNames, itemOrigins, CardGame.playerHealthForYarrow((_a = this.inventory.totalQuantities["yarrow"]) !== null && _a !== void 0 ? _a : 0));
         this.render();
     }
     render() {
@@ -392,6 +392,10 @@ export class FightView {
         closeButton === null || closeButton === void 0 ? void 0 : closeButton.setAttribute("aria-label", "Close fight");
         if (state.status === "won") {
             this.applyVictory();
+        }
+        else {
+            this.map.messageBox.textContent =
+                "Defeated. Gather more yarrow or craft stronger equipment, then try again.";
         }
         const board = this.overlay.querySelector(".fight-board");
         if (board !== null) {

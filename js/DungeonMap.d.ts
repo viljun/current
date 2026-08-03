@@ -4,7 +4,8 @@ export declare class DungeonMap {
     height: number;
     coordinates: Coordinates;
     map: boolean[][];
-    constructor(width: number, height: number, coordinates: Coordinates);
+    static forViewport(cols: number, rows: number, center: Coordinates, extraSize: number): DungeonMap;
+    private constructor();
     static hasWallAt(coordinates: Coordinates): boolean;
     private generate;
     private isNearStairs;

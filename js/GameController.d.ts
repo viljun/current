@@ -1,3 +1,12 @@
+export interface MapLayout {
+    cols: number;
+    rows: number;
+    mapWidth: number;
+    mapHeight: number;
+    marginLeft: number;
+    marginTop: number;
+}
+export declare function calculateMapLayout(viewportWidth: number, viewportHeight: number, tileSize: number, safetyMargin: number): MapLayout;
 export declare class GameController {
     private static readonly EXPLORE_STORAGE_KEY;
     private static readonly EXPLORE_LOCATION_STORAGE_KEY;

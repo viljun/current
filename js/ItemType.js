@@ -4,7 +4,40 @@ export class ItemType {
         this.name = name;
     }
     isMonster() {
-        return ["rat", "orc", "troll"].includes(this.name);
+        return ["rat", "orc", "troll"].includes(this.name)
+            || ItemType.DUNGEON_MONSTERS.some(([, name]) => name === this.name);
+    }
+    isPortableFightItem() {
+        if (this.name.startsWith("cat buying ")
+            || this.name.startsWith("cat selling ")) {
+            return false;
+        }
+        if (ItemType.DUNGEON_ACTIONS.some(([, name]) => name === this.name)) {
+            return false;
+        }
+        return ![
+            "dungeon entrance",
+            "shop entrance",
+            "stairs up",
+            "furnace",
+            "armorer's bench",
+            "dungeon wall",
+            "dungeon floor",
+            "shop wall",
+            "shop floor",
+            "shop outside grass",
+            "shop shelf",
+            "shop table",
+            "sand",
+            "grass",
+            "road",
+            "tree",
+            "cactus",
+            "palm",
+            "cloud",
+            "rock formation",
+            "big rock",
+        ].includes(this.name);
     }
     // Returns item type by seed or null if there is no item in the location with the given seed.
     static getWithSeed(seed, areaId) {
@@ -38,7 +71,21 @@ export class ItemType {
             else if (!(seed % 503)) {
                 name = "chest";
             }
-            else if (!(seed % 3571)) {
+            else {
+                const dungeonEntry = [
+                    ...ItemType.DUNGEON_MONSTERS,
+                    ...ItemType.DUNGEON_MATERIALS,
+                    ...ItemType.DUNGEON_WEAPONS,
+                    ...ItemType.DUNGEON_ACTIONS,
+                ].find(([modulus]) => !(seed % modulus));
+                if (dungeonEntry !== undefined) {
+                    name = dungeonEntry[1];
+                }
+            }
+            if (name !== null) {
+                return new ItemType(name);
+            }
+            if (!(seed % 3571)) {
                 name = "masterwork greatsword";
             }
             else if (!(seed % 3203)) {
@@ -118,10 +165,10 @@ export class ItemType {
         else if (!(seed % 709)) {
             name = "orc";
         }
-        else if (!(seed % 811)) {
+        else if (!(seed % 811) || !(seed % 887)) {
             name = "torch";
         }
-        else if (!(seed % 859)) {
+        else if (!(seed % 859) || !(seed % 907)) {
             name = "club";
         }
         else if (!(seed % 877)) {
@@ -158,6 +205,30 @@ export class ItemType {
         let name = null;
         if (!(seed % 23)) {
             name = "coin";
+        }
+        else if (!(seed % 29)) {
+            name = "calendula";
+        }
+        else if (!(seed % 37)) {
+            name = "chamomile";
+        }
+        else if (!(seed % 43)) {
+            name = "lavender";
+        }
+        else if (!(seed % 47)) {
+            name = "red poppy";
+        }
+        else if (!(seed % 59)) {
+            name = "cornflower";
+        }
+        else if (!(seed % 421)) {
+            name = "healing potion";
+        }
+        else if (!(seed % 631)) {
+            name = "poison potion";
+        }
+        else if (!(seed % 887)) {
+            name = "poisoned masterwork greatsword";
         }
         else if (!(seed % 307)) {
             name = "stick";
@@ -210,6 +281,34 @@ export class ItemType {
             return [
                 new ItemTypeAndQuantity(new ItemType("coin"), 5),
             ];
+        }
+        const dungeonMonsterIndex = ItemType.DUNGEON_MONSTERS.findIndex(([, name]) => name === this.name);
+        if (dungeonMonsterIndex >= 0) {
+            const tier = Math.floor(dungeonMonsterIndex / 10);
+            const rewardStyle = dungeonMonsterIndex % 3;
+            const changes = [
+                new ItemTypeAndQuantity(new ItemType("grave dust"), -(1 + tier)),
+            ];
+            if (rewardStyle === 0) {
+                changes.push(new ItemTypeAndQuantity(new ItemType("coin"), 10 + dungeonMonsterIndex * 5));
+            }
+            if (rewardStyle === 1 || rewardStyle === 2) {
+                const material = ItemType.DUNGEON_MONSTER_REWARD_MATERIALS[dungeonMonsterIndex];
+                if (material !== undefined) {
+                    changes.push(new ItemTypeAndQuantity(new ItemType(material), 1 + tier));
+                }
+                if (rewardStyle === 2) {
+                    changes.push(new ItemTypeAndQuantity(new ItemType("coin"), 5 + dungeonMonsterIndex * 3));
+                }
+                else if (tier === 2) {
+                    const secondMaterial = ItemType.DUNGEON_MONSTER_REWARD_MATERIALS[(dungeonMonsterIndex + 1)
+                        % ItemType.DUNGEON_MONSTER_REWARD_MATERIALS.length];
+                    if (secondMaterial !== undefined) {
+                        changes.push(new ItemTypeAndQuantity(new ItemType(secondMaterial), 1));
+                    }
+                }
+            }
+            return changes;
         }
         if (this.name === "club") {
             return [
@@ -294,6 +393,240 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("coin"), -500),
             ];
         }
+        if (this.name === "healing potion") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("calendula"), -1),
+                new ItemTypeAndQuantity(new ItemType("chamomile"), -1),
+                new ItemTypeAndQuantity(new ItemType("lavender"), -1),
+                new ItemTypeAndQuantity(new ItemType("red poppy"), -1),
+                new ItemTypeAndQuantity(new ItemType("cornflower"), -1),
+            ];
+        }
+        if (this.name === "poison potion") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("healing potion"), -1),
+                new ItemTypeAndQuantity(new ItemType("grave dust"), -1),
+            ];
+        }
+        if (this.name === "poisoned masterwork greatsword") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("masterwork greatsword"), -1),
+                new ItemTypeAndQuantity(new ItemType("poison potion"), -1),
+            ];
+        }
+        if (this.name === "bone knife") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("bones"), -2),
+                new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
+        if (this.name === "spiked cudgel") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("club"), -1),
+                new ItemTypeAndQuantity(new ItemType("ancient nail"), -2),
+                new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
+        if (this.name === "iron dagger") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("sword"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -2),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("ancient nail"), -1),
+            ];
+        }
+        if (this.name === "falchion") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("iron dagger"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -3),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("bat wing"), -1),
+            ];
+        }
+        if (this.name === "morning star") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("flanged mace"), -1),
+                new ItemTypeAndQuantity(new ItemType("rusted chain"), -2),
+                new ItemTypeAndQuantity(new ItemType("ancient nail"), -2),
+            ];
+        }
+        if (this.name === "war pick") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("war hammer"), -1),
+                new ItemTypeAndQuantity(new ItemType("ancient nail"), -3),
+                new ItemTypeAndQuantity(new ItemType("iron"), -2),
+            ];
+        }
+        if (this.name === "heavy crossbow") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("stick"), -4),
+                new ItemTypeAndQuantity(new ItemType("spider silk"), -3),
+                new ItemTypeAndQuantity(new ItemType("iron"), -2),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+            ];
+        }
+        if (this.name === "zweihander") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("longsword"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -5),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("rusted chain"), -1),
+            ];
+        }
+        if (this.name === "halberd") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("bearded battle axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("stick"), -2),
+                new ItemTypeAndQuantity(new ItemType("iron"), -4),
+                new ItemTypeAndQuantity(new ItemType("rusted chain"), -1),
+            ];
+        }
+        if (this.name === "executioner's axe") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("two-handed battle axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -4),
+                new ItemTypeAndQuantity(new ItemType("hide"), -2),
+                new ItemTypeAndQuantity(new ItemType("cracked skull"), -1),
+            ];
+        }
+        if (this.name === "estoc") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("arming sword"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -6),
+                new ItemTypeAndQuantity(new ItemType("spider silk"), -1),
+            ];
+        }
+        if (this.name === "bec de corbin") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("war pick"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -4),
+                new ItemTypeAndQuantity(new ItemType("rusted chain"), -1),
+            ];
+        }
+        if (this.name === "gothic mace") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("flanged mace"), -1),
+                new ItemTypeAndQuantity(new ItemType("ancient nail"), -4),
+                new ItemTypeAndQuantity(new ItemType("iron"), -6),
+            ];
+        }
+        if (this.name === "runed longsword") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("longsword"), -1),
+                new ItemTypeAndQuantity(new ItemType("grave dust"), -2),
+                new ItemTypeAndQuantity(new ItemType("iron"), -6),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -1),
+            ];
+        }
+        if (this.name === "blacksteel glaive") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("halberd"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -8),
+                new ItemTypeAndQuantity(new ItemType("dungeon moss"), -2),
+                new ItemTypeAndQuantity(new ItemType("poison potion"), -1),
+            ];
+        }
+        if (this.name === "relic warhammer") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("war hammer"), -1),
+                new ItemTypeAndQuantity(new ItemType("cracked skull"), -2),
+                new ItemTypeAndQuantity(new ItemType("grave dust"), -3),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -1),
+            ];
+        }
+        if (this.name === "dragonbone axe") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("executioner's axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("bones"), -5),
+                new ItemTypeAndQuantity(new ItemType("iron"), -8),
+                new ItemTypeAndQuantity(new ItemType("poison potion"), -1),
+            ];
+        }
+        if (this.name === "royal claymore") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("masterwork greatsword"), -1),
+                new ItemTypeAndQuantity(new ItemType("rusted chain"), -3),
+                new ItemTypeAndQuantity(new ItemType("iron"), -10),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -2),
+            ];
+        }
+        if (this.name === "obsidian polearm") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("blacksteel glaive"), -1),
+                new ItemTypeAndQuantity(new ItemType("broken tile"), -5),
+                new ItemTypeAndQuantity(new ItemType("grave dust"), -4),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -2),
+            ];
+        }
+        if (this.name === "dungeon-forged greatblade") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("royal claymore"), -1),
+                new ItemTypeAndQuantity(new ItemType("bones"), -5),
+                new ItemTypeAndQuantity(new ItemType("iron"), -15),
+                new ItemTypeAndQuantity(new ItemType("poison potion"), -2),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -3),
+            ];
+        }
+        if (this.name === "bone carving") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("bones"), -2),
+                new ItemTypeAndQuantity(new ItemType("stick"), 1),
+            ];
+        }
+        if (this.name === "skull crushing") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("cracked skull"), -1),
+                new ItemTypeAndQuantity(new ItemType("stone"), 2),
+            ];
+        }
+        if (this.name === "chain smelting") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("rusted chain"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), 2),
+            ];
+        }
+        if (this.name === "dust distilling") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("grave dust"), -2),
+                new ItemTypeAndQuantity(new ItemType("healing potion"), 1),
+            ];
+        }
+        if (this.name === "wing tanning") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("bat wing"), -2),
+                new ItemTypeAndQuantity(new ItemType("hide"), 1),
+            ];
+        }
+        if (this.name === "silk binding") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("spider silk"), -2),
+                new ItemTypeAndQuantity(new ItemType("hay"), 1),
+            ];
+        }
+        if (this.name === "candle reclaiming") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("black candle"), -1),
+                new ItemTypeAndQuantity(new ItemType("torch"), 1),
+            ];
+        }
+        if (this.name === "nail reforging") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("ancient nail"), -3),
+                new ItemTypeAndQuantity(new ItemType("iron ore"), 1),
+            ];
+        }
+        if (this.name === "tile knapping") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("broken tile"), -2),
+                new ItemTypeAndQuantity(new ItemType("stone axe"), 1),
+            ];
+        }
+        if (this.name === "moss brewing") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("dungeon moss"), -2),
+                new ItemTypeAndQuantity(new ItemType("yarrow"), 1),
+            ];
+        }
         if (this.name === "crucible") {
             return [
                 new ItemTypeAndQuantity(new ItemType("stone"), -5),
@@ -313,7 +646,8 @@ export class ItemType {
         if (this.name === "orc") {
             return [
                 new ItemTypeAndQuantity(new ItemType("torch"), -2),
-                new ItemTypeAndQuantity(new ItemType("coin"), 100),
+                new ItemTypeAndQuantity(new ItemType("coin"), 50),
+                new ItemTypeAndQuantity(new ItemType("hide"), 1),
             ];
         }
         if (this.name === "furnace") {
@@ -353,7 +687,7 @@ export class ItemType {
         if (this.name === "rat") {
             return [
                 new ItemTypeAndQuantity(new ItemType("torch"), -1),
-                new ItemTypeAndQuantity(new ItemType("coin"), 100),
+                new ItemTypeAndQuantity(new ItemType("coin"), 10),
             ];
         }
         if (this.name === "stone axe") {
@@ -385,9 +719,9 @@ export class ItemType {
         if (this.name === "troll") {
             return [
                 new ItemTypeAndQuantity(new ItemType("torch"), -3),
-                new ItemTypeAndQuantity(new ItemType("coin"), 1000),
                 new ItemTypeAndQuantity(new ItemType("club"), 1),
-                new ItemTypeAndQuantity(new ItemType("stone"), 3),
+                new ItemTypeAndQuantity(new ItemType("iron"), 2),
+                new ItemTypeAndQuantity(new ItemType("hide"), 2),
             ];
         }
         return [];
@@ -513,9 +847,60 @@ ItemType.FOUNDATIONAL_VALUES = {
     hay: 1,
     hide: 6,
     "iron ore": 3,
+    orc: 35,
+    rat: 10,
     root: 1,
     stick: 1,
     stone: 2,
+    troll: 80,
     yarrow: 10,
 };
 ItemType.PRODUCTION_ACTIONS = ["furnace"];
+ItemType.DUNGEON_MONSTERS = [
+    [4001, "bone rat"], [4027, "cave bat"], [4051, "giant spider"],
+    [4073, "plague beetle"], [4099, "crypt hound"],
+    [4133, "skeletal guard"], [4159, "dungeon scavenger"],
+    [4201, "goblin cutthroat"], [4241, "tomb robber"],
+    [4273, "cave crawler"], [4327, "ghoul"], [4363, "wight"],
+    [4409, "cultist"], [4447, "armored skeleton"],
+    [4483, "brood spider"], [4519, "cave troll"],
+    [4561, "dungeon orc"], [4597, "plague bearer"],
+    [4639, "stone sentinel"], [4673, "crypt knight"],
+    [4721, "banshee"], [4759, "necromancer"], [4801, "ogre jailer"],
+    [4831, "basilisk"], [4871, "minotaur"], [4909, "vampire"],
+    [4951, "lich"], [4993, "bone colossus"],
+    [5021, "abyssal knight"], [5059, "dungeon dragon"],
+];
+ItemType.DUNGEON_MATERIALS = [
+    [5101, "bones"], [5147, "cracked skull"], [5189, "rusted chain"],
+    [53, "grave dust"], [5273, "bat wing"], [5323, "spider silk"],
+    [5351, "black candle"], [5393, "ancient nail"],
+    [5431, "broken tile"], [5479, "dungeon moss"],
+];
+ItemType.DUNGEON_MONSTER_REWARD_MATERIALS = [
+    "bones", "bat wing", "spider silk", "dungeon moss", "bones",
+    "cracked skull", "ancient nail", "black candle", "broken tile",
+    "dungeon moss", "bones", "black candle", "black candle",
+    "rusted chain", "spider silk", "bones", "rusted chain",
+    "dungeon moss", "broken tile", "ancient nail", "black candle",
+    "cracked skull", "rusted chain", "dungeon moss", "bones",
+    "bat wing", "black candle", "bones", "ancient nail", "rusted chain",
+];
+ItemType.DUNGEON_WEAPONS = [
+    [5521, "bone knife"], [5563, "spiked cudgel"], [5591, "iron dagger"],
+    [5639, "falchion"], [5683, "morning star"], [5717, "war pick"],
+    [5749, "heavy crossbow"], [5791, "zweihander"], [5839, "halberd"],
+    [5869, "executioner's axe"], [5923, "estoc"],
+    [5953, "bec de corbin"], [5987, "gothic mace"],
+    [6029, "runed longsword"], [6067, "blacksteel glaive"],
+    [6101, "relic warhammer"], [6131, "dragonbone axe"],
+    [6173, "royal claymore"], [6211, "obsidian polearm"],
+    [6257, "dungeon-forged greatblade"],
+];
+ItemType.DUNGEON_ACTIONS = [
+    [6301, "bone carving"], [6343, "skull crushing"],
+    [6379, "chain smelting"], [6421, "dust distilling"],
+    [6469, "wing tanning"], [6491, "silk binding"],
+    [6521, "candle reclaiming"], [6563, "nail reforging"],
+    [6607, "tile knapping"], [6653, "moss brewing"],
+];

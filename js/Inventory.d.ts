@@ -15,6 +15,9 @@ export declare class Inventory {
     private static readonly STORAGE_KEY;
     private static readonly SAVE_VERSION;
     private static readonly REMOVED_ITEM_NAMES;
+    private static readonly TROLL_WEAPONS;
+    private static readonly DUNGEON_WEAPONS;
+    private static readonly STRONG_WEAPONS;
     quantities: Record<string, number>;
     totalQuantities: Record<string, number>;
     usedCoordinates: Record<string, boolean>;
@@ -24,7 +27,11 @@ export declare class Inventory {
     countItemTypes(): number;
     onChange(listener: () => void): void;
     getItemOrigins(itemName: string): ItemOrigin[];
-    getText(): HTMLDivElement | "Find a stick and a root to craft your first club.";
+    getText(): string | HTMLDivElement;
+    getProgressHint(): string;
+    private craftingHint;
+    private has;
+    private quantity;
     openDialog(): void;
     isItemTypeTaken(itemType: ItemType): boolean;
     coordinatesToString(coordinates: Coordinates): string;

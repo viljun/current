@@ -32,6 +32,53 @@ export class Inventory {
         "smelter",
         "weapon shop",
     ];
+    private static readonly TROLL_WEAPONS = [
+        "iron-spiked club",
+        "iron hand axe",
+        "flanged mace",
+        "bearded battle axe",
+        "arming sword",
+        "war hammer",
+        "longsword",
+        "two-handed battle axe",
+        "poleaxe",
+        "masterwork greatsword",
+    ];
+    private static readonly DUNGEON_WEAPONS = [
+        "bone knife",
+        "spiked cudgel",
+        "iron dagger",
+        "falchion",
+        "morning star",
+        "war pick",
+        "heavy crossbow",
+        "zweihander",
+        "halberd",
+        "executioner's axe",
+        "estoc",
+        "bec de corbin",
+        "gothic mace",
+        "runed longsword",
+        "blacksteel glaive",
+        "relic warhammer",
+        "dragonbone axe",
+        "royal claymore",
+        "obsidian polearm",
+        "dungeon-forged greatblade",
+    ];
+    private static readonly STRONG_WEAPONS = [
+        "sword",
+        "flanged mace",
+        "bearded battle axe",
+        "arming sword",
+        "war hammer",
+        "longsword",
+        "two-handed battle axe",
+        "poleaxe",
+        "masterwork greatsword",
+        "poisoned masterwork greatsword",
+        ...Inventory.DUNGEON_WEAPONS.slice(3),
+    ];
 
     quantities:      Record<string, number>  = {};
     totalQuantities: Record<string, number>  = {};
@@ -64,7 +111,7 @@ export class Inventory {
     getText() {
         const entries = this.entries();
         if (entries.length === 0) {
-            return "Find a stick and a root to craft your first club.";
+            return this.getProgressHint();
         }
 
         const items = entries.map(([name, quantity]) =>
@@ -73,9 +120,172 @@ export class Inventory {
 
         const div = document.createElement("div");
         div.className = "message inventory-status";
-        div.textContent = "You have " + View.arrayToText(items) + ".";
+        div.textContent = this.getProgressHint()
+            + " You have " + View.arrayToText(items) + ".";
 
         return div;
+    }
+
+    getProgressHint(): string {
+        const hasAnyWeapon = [
+            "club",
+            "stone axe",
+            "sword",
+            "poisoned masterwork greatsword",
+            ...Inventory.TROLL_WEAPONS,
+            ...Inventory.DUNGEON_WEAPONS,
+        ].some(itemName => this.has(itemName));
+        if (!hasAnyWeapon) {
+            return this.craftingHint(
+                "club",
+                "your first club",
+                "You have what you need—find a club and craft it now.",
+            );
+        }
+        if (!this.has("yarrow")) {
+            return "Next: find a yarrow plant so you have health for your first fight.";
+        }
+        const hasImprovedWeapon = this.has("stone axe")
+            || this.has("iron-spiked club")
+            || this.has("iron hand axe")
+            || Inventory.STRONG_WEAPONS.some(itemName => this.has(itemName));
+        if (!this.has("rat")) {
+            if (!this.has("torch")) {
+                return this.craftingHint(
+                    "torch",
+                    "a torch",
+                    "Materials ready—find a torch and craft it.",
+                );
+            }
+            if (!hasImprovedWeapon) {
+                return "Next: try fighting a rat. If you lose, gather more yarrow and craft a stone axe.";
+            }
+            if (this.quantity("yarrow") < 5) {
+                return "Next: gather "
+                    + View.getQuantityText(
+                        "yarrow",
+                        5 - this.quantity("yarrow"),
+                    )
+                    + " before trying the rat again.";
+            }
+
+            return "Next: find and fight a rat.";
+        }
+        if (!hasImprovedWeapon) {
+            return this.craftingHint(
+                "stone axe",
+                "a stone axe",
+                "Materials ready—find a stone axe and craft it.",
+            );
+        }
+        if (!this.has("wooden shield") && !this.has("reinforced shield")) {
+            return this.craftingHint(
+                "wooden shield",
+                "a wooden shield",
+                "Materials ready—find a wooden shield and craft it.",
+            );
+        }
+        if (!Inventory.STRONG_WEAPONS.some(itemName => this.has(itemName))) {
+            return this.craftingHint(
+                "sword",
+                "a sword; find iron in a shop or dungeon",
+                "Materials ready—find a sword and craft it.",
+            );
+        }
+        if (!this.has("orc")) {
+            if (this.quantity("yarrow") < 9) {
+                return "Next: gather "
+                    + View.getQuantityText(
+                        "yarrow",
+                        9 - this.quantity("yarrow"),
+                    )
+                    + " before challenging an orc.";
+            }
+            if (this.quantity("torch") < 3) {
+                return "Next: carry 3 torches before challenging an orc.";
+            }
+
+            return "Ready for the next challenge—find and fight an orc.";
+        }
+        if (!this.has("troll")) {
+            if (!this.has("reinforced shield")) {
+                return this.craftingHint(
+                    "reinforced shield",
+                    "a reinforced shield",
+                    "Materials ready—find a reinforced shield and craft it.",
+                );
+            }
+            const trollWeaponCount = [
+                ...Inventory.TROLL_WEAPONS,
+                "poisoned masterwork greatsword",
+                ...Inventory.DUNGEON_WEAPONS.slice(1),
+            ].reduce(
+                (total, itemName) =>
+                    total + Math.min(3, this.quantity(itemName)),
+                0,
+            );
+            if (trollWeaponCount < 5) {
+                return "Next: craft more upgraded weapons for a troll ("
+                    + trollWeaponCount + " of 5 ready).";
+            }
+            if (this.quantity("yarrow") < 13) {
+                return "Next: gather "
+                    + View.getQuantityText(
+                        "yarrow",
+                        13 - this.quantity("yarrow"),
+                    )
+                    + " before challenging a troll.";
+            }
+            if (this.quantity("torch") < 3) {
+                return "Next: carry 3 torches before challenging a troll.";
+            }
+
+            return "Ready for a hard battle—find and fight a troll.";
+        }
+        if (this.getAreaId() !== 1) {
+            return "Next: find a dungeon entrance and explore underground.";
+        }
+        if (!this.has("grave dust")) {
+            return "Next: collect grave dust before fighting a dungeon monster.";
+        }
+        if (!Inventory.DUNGEON_WEAPONS.some(itemName => this.has(itemName))) {
+            return "Next: collect dungeon materials and craft your first dungeon weapon.";
+        }
+
+        return "Next: fight dungeon monsters from weakest upward and use their rewards for stronger weapons.";
+    }
+
+    private craftingHint(
+        actionName: string,
+        goal: string,
+        readyText: string,
+    ): string {
+        const missing = new ItemType(actionName).prizes()
+            .filter(change => change.quantity < 0)
+            .map(change => ({
+                itemName: change.itemType.name,
+                quantity: Math.max(
+                    0,
+                    -change.quantity - this.quantity(change.itemType.name),
+                ),
+            }))
+            .filter(change => change.quantity > 0);
+        if (missing.length === 0) {
+            return readyText;
+        }
+        const missingText = missing.map(change =>
+            View.getQuantityText(change.itemName, change.quantity)
+        );
+
+        return "Next: find " + View.arrayToText(missingText) + " for " + goal + ".";
+    }
+
+    private has(itemName: string): boolean {
+        return this.quantity(itemName) > 0;
+    }
+
+    private quantity(itemName: string): number {
+        return this.totalQuantities[itemName] ?? 0;
     }
 
     openDialog(): void {
