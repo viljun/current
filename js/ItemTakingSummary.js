@@ -17,6 +17,16 @@ export class ItemTakingSummary {
             "padded hide",
             "wooden shield",
             "reinforced shield",
+            "iron-spiked club",
+            "iron hand axe",
+            "flanged mace",
+            "bearded battle axe",
+            "arming sword",
+            "war hammer",
+            "longsword",
+            "two-handed battle axe",
+            "poleaxe",
+            "masterwork greatsword",
         ].includes(this.itemType.name);
         const merchant = this.itemType.name.startsWith("cat buying ")
             || this.itemType.name.startsWith("cat selling ");

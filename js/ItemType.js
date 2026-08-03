@@ -38,6 +38,36 @@ export class ItemType {
             else if (!(seed % 503)) {
                 name = "chest";
             }
+            else if (!(seed % 3571)) {
+                name = "masterwork greatsword";
+            }
+            else if (!(seed % 3203)) {
+                name = "poleaxe";
+            }
+            else if (!(seed % 2903)) {
+                name = "two-handed battle axe";
+            }
+            else if (!(seed % 2609)) {
+                name = "longsword";
+            }
+            else if (!(seed % 2351)) {
+                name = "war hammer";
+            }
+            else if (!(seed % 2153)) {
+                name = "arming sword";
+            }
+            else if (!(seed % 1901)) {
+                name = "bearded battle axe";
+            }
+            else if (!(seed % 1753)) {
+                name = "flanged mace";
+            }
+            else if (!(seed % 1601)) {
+                name = "iron hand axe";
+            }
+            else if (!(seed % 1451)) {
+                name = "iron-spiked club";
+            }
             else if (!(seed % 1201)) {
                 name = "armorer's bench";
             }
@@ -185,6 +215,83 @@ export class ItemType {
             return [
                 new ItemTypeAndQuantity(new ItemType("stick"), -1),
                 new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
+        if (this.name === "iron-spiked club") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("club"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -1),
+                new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
+        if (this.name === "iron hand axe") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("stone axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -2),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+            ];
+        }
+        if (this.name === "flanged mace") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("iron-spiked club"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -3),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+            ];
+        }
+        if (this.name === "bearded battle axe") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("iron hand axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -4),
+                new ItemTypeAndQuantity(new ItemType("root"), -2),
+            ];
+        }
+        if (this.name === "arming sword") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("sword"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -4),
+                new ItemTypeAndQuantity(new ItemType("hide"), -1),
+                new ItemTypeAndQuantity(new ItemType("root"), -1),
+            ];
+        }
+        if (this.name === "war hammer") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("flanged mace"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -6),
+                new ItemTypeAndQuantity(new ItemType("hide"), -2),
+            ];
+        }
+        if (this.name === "longsword") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("arming sword"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -8),
+                new ItemTypeAndQuantity(new ItemType("hide"), -2),
+                new ItemTypeAndQuantity(new ItemType("root"), -2),
+            ];
+        }
+        if (this.name === "two-handed battle axe") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("bearded battle axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -10),
+                new ItemTypeAndQuantity(new ItemType("hide"), -3),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -1),
+            ];
+        }
+        if (this.name === "poleaxe") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("war hammer"), -1),
+                new ItemTypeAndQuantity(new ItemType("bearded battle axe"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -12),
+                new ItemTypeAndQuantity(new ItemType("root"), -3),
+                new ItemTypeAndQuantity(new ItemType("hide"), -2),
+            ];
+        }
+        if (this.name === "masterwork greatsword") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("longsword"), -1),
+                new ItemTypeAndQuantity(new ItemType("iron"), -18),
+                new ItemTypeAndQuantity(new ItemType("hide"), -4),
+                new ItemTypeAndQuantity(new ItemType("treasure"), -2),
+                new ItemTypeAndQuantity(new ItemType("coin"), -500),
             ];
         }
         if (this.name === "crucible") {

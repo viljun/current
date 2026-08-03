@@ -32,6 +32,7 @@ export declare class FightView {
     private createPortrait;
     private playPlayerCard;
     private playCardEffects;
+    private chooseMonsterCardElement;
     private syncFightState;
     private finishFight;
     private sweepBoardCards;

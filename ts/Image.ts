@@ -89,6 +89,46 @@ export class Image {
             ];
             rotate = rotationSeed % 360;
             dimension *= 2;
+        } else if (name === "iron-spiked club") {
+            srcs = ["iron-spiked-club-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2;
+        } else if (name === "iron hand axe") {
+            srcs = ["iron-hand-axe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.1;
+        } else if (name === "flanged mace") {
+            srcs = ["flanged-mace-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.1;
+        } else if (name === "bearded battle axe") {
+            srcs = ["bearded-battle-axe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.2;
+        } else if (name === "arming sword") {
+            srcs = ["arming-sword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.3;
+        } else if (name === "war hammer") {
+            srcs = ["war-hammer-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.2;
+        } else if (name === "longsword") {
+            srcs = ["longsword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (name === "two-handed battle axe") {
+            srcs = ["two-handed-battle-axe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (name === "poleaxe") {
+            srcs = ["poleaxe-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.5;
+        } else if (name === "masterwork greatsword") {
+            srcs = ["masterwork-greatsword-medieval-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 2.7;
         } else if (name === "coin") {
             srcs = [
                 "f9da09a345b352d9f6cd4e59f66197c4.png",

@@ -863,14 +863,24 @@ Effects.SOUND_STORAGE_KEY = "gpsgame.soundEnabled";
 Effects.COMBAT_ITEMS = new Set(["rat", "orc", "troll"]);
 Effects.CRAFT_ITEMS = new Set([
     "armorer's bench",
+    "arming sword",
+    "bearded battle axe",
     "club",
     "crucible",
+    "flanged mace",
     "furnace",
+    "iron hand axe",
+    "iron-spiked club",
+    "longsword",
+    "masterwork greatsword",
     "padded hide",
+    "poleaxe",
     "reinforced shield",
     "stone axe",
     "sword",
     "torch",
+    "two-handed battle axe",
+    "war hammer",
     "wooden shield",
 ]);
 Effects.RARE_ITEMS = new Set([

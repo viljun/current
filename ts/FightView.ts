@@ -397,8 +397,8 @@ export class FightView {
 
             return;
         }
-        const monsterCard = this.overlay.querySelector<HTMLElement>(
-            ".fight-monster-card-back:not(.fight-card--empty)",
+        const monsterCard = this.chooseMonsterCardElement(
+            this.game.getState(),
         );
         const monsterResolution = this.game.playMonsterCard();
         if (monsterResolution === null) {
@@ -455,6 +455,36 @@ export class FightView {
             this.overlay,
             this.itemTakingSummary.itemType.name,
         );
+    }
+
+    private chooseMonsterCardElement(
+        state: CardGameState,
+    ): HTMLElement|null {
+        if (this.overlay === null) {
+            return null;
+        }
+        const cards = Array.from(this.overlay.querySelectorAll<HTMLElement>(
+            ".fight-monster-card-back:not(.fight-card--empty)",
+        ));
+        if (cards.length === 0) {
+            return null;
+        }
+
+        const seedText = [
+            "monster-card-position",
+            this.itemTakingSummary.itemType.name,
+            this.coordinates.latitude,
+            this.coordinates.longitude,
+            state.round,
+            state.monsterPlayedCount,
+        ].join(":");
+        let hash = 2_166_136_261;
+        for (let index = 0; index < seedText.length; index++) {
+            hash = Math.imul(hash ^ seedText.charCodeAt(index), 16_777_619);
+        }
+        hash ^= hash >>> 16;
+
+        return cards[(hash >>> 0) % cards.length] ?? null;
     }
 
     private syncFightState(): void {

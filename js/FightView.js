@@ -283,7 +283,7 @@ export class FightView {
             this.animating = false;
             return;
         }
-        const monsterCard = this.overlay.querySelector(".fight-monster-card-back:not(.fight-card--empty)");
+        const monsterCard = this.chooseMonsterCardElement(this.game.getState());
         const monsterResolution = this.game.playMonsterCard();
         if (monsterResolution === null) {
             this.animating = false;
@@ -314,6 +314,30 @@ export class FightView {
     async playCardEffects(resolution, cardElement) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
         await Effects.playFightCard(resolution, cardElement, (_b = (_a = this.overlay) === null || _a === void 0 ? void 0 : _a.querySelector(".fight-fighter--monster .fight-portrait-art")) !== null && _b !== void 0 ? _b : null, (_d = (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.querySelector(".fight-fighter--player .fight-portrait-art")) !== null && _d !== void 0 ? _d : null, (_f = (_e = this.overlay) === null || _e === void 0 ? void 0 : _e.querySelector(".fight-monster-health .fight-health-icon")) !== null && _f !== void 0 ? _f : null, (_h = (_g = this.overlay) === null || _g === void 0 ? void 0 : _g.querySelector(".fight-player-health .fight-health-icon")) !== null && _h !== void 0 ? _h : null, this.overlay, this.overlay, this.itemTakingSummary.itemType.name);
+    }
+    chooseMonsterCardElement(state) {
+        var _a;
+        if (this.overlay === null) {
+            return null;
+        }
+        const cards = Array.from(this.overlay.querySelectorAll(".fight-monster-card-back:not(.fight-card--empty)"));
+        if (cards.length === 0) {
+            return null;
+        }
+        const seedText = [
+            "monster-card-position",
+            this.itemTakingSummary.itemType.name,
+            this.coordinates.latitude,
+            this.coordinates.longitude,
+            state.round,
+            state.monsterPlayedCount,
+        ].join(":");
+        let hash = 2166136261;
+        for (let index = 0; index < seedText.length; index++) {
+            hash = Math.imul(hash ^ seedText.charCodeAt(index), 16777619);
+        }
+        hash ^= hash >>> 16;
+        return (_a = cards[(hash >>> 0) % cards.length]) !== null && _a !== void 0 ? _a : null;
     }
     syncFightState() {
         if (this.overlay === null || this.game === null) {
