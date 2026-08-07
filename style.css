@@ -148,7 +148,7 @@ body {
         );
 }
 .surface-road--road::after {
-    z-index: 9;
+    z-index: 14;
     background-size: var(--surface-road-texture-size, 336px) !important;
     background-blend-mode: multiply;
     opacity: .24;
@@ -299,7 +299,7 @@ body {
     filter: brightness(1) saturate(.82) contrast(1.08);
 }
 .surface-road-crossing--ford::after {
-    z-index: 13;
+    z-index: 14;
     opacity: .24;
 }
 .surface-road-crossing--bridge::after {

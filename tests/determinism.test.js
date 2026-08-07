@@ -257,6 +257,7 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
     ];
     const materials = new Map();
     const routeWidths = new Map();
+    const roadPatchSizes = new Set();
     const pathPatchSignatures = new Set();
     let roads = 0;
     let paths = 0;
@@ -281,6 +282,10 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                 ));
             if (road !== null) {
                 const visual = SurfaceMap.roadVisualAt(coordinates, road);
+                assert.deepEqual(
+                    visual,
+                    SurfaceMap.roadVisualAt(coordinates, road),
+                );
                 const routeKey = road.kind + ":" + road.routeId;
                 assert.equal(visual.rotationDegrees, road.headingDegrees);
                 assert.equal(
@@ -291,13 +296,21 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                     visual.textureOffsetYInTiles,
                     -coordinates.longitude,
                 );
-                if (routeWidths.has(routeKey)) {
-                    assert.equal(
-                        visual.diameterInTiles,
-                        routeWidths.get(routeKey),
+                if (road.kind === "road") {
+                    assert.ok(
+                        visual.diameterInTiles >= 1.89
+                            && visual.diameterInTiles <= 2.58,
                     );
+                    roadPatchSizes.add(visual.diameterInTiles.toFixed(4));
                 } else {
-                    routeWidths.set(routeKey, visual.diameterInTiles);
+                    if (routeWidths.has(routeKey)) {
+                        assert.equal(
+                            visual.diameterInTiles,
+                            routeWidths.get(routeKey),
+                        );
+                    } else {
+                        routeWidths.set(routeKey, visual.diameterInTiles);
+                    }
                 }
                 materials.set(
                     road.surface,
@@ -382,6 +395,7 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
     assert.ok(milestones > 30 && milestones < roads / 40);
     assert.ok(grass > 0 && grass < (roads + paths) / 5);
     assert.ok(pathPatchSignatures.size > 500);
+    assert.ok(roadPatchSizes.size > 30);
     for (const material of [
         "sand",
         "gravel",

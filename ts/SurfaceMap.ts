@@ -269,6 +269,7 @@ export class SurfaceMap {
             road.routeId,
             road.kind === "road" ? 0x4b72e193 : 0x78c4a2df,
         );
+        const roadPatchScale = 1.1 + values(0x6d26e251) % 31 / 100;
         const grassPlacementSeed = values(0x123da847);
         const grassPresent = grassPlacementSeed % (
             road.kind === "road" ? 7 : 13
@@ -276,7 +277,7 @@ export class SurfaceMap {
 
         return {
             diameterInTiles: road.kind === "road"
-                ? 1.72 + routeWidthSeed % 13 / 100
+                ? (1.72 + routeWidthSeed % 13 / 100) * roadPatchScale
                 : 1.02 + routeWidthSeed % 9 / 100,
             rotationDegrees: road.headingDegrees,
             textureOffsetXInTiles: -coordinates.latitude,
