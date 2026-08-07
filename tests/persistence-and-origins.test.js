@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { Coordinates } from "../js/Coordinates.js";
+import { HighlandMap } from "../js/HighlandMap.js";
 import { Inventory } from "../js/Inventory.js";
 import { ItemType } from "../js/ItemType.js";
 
@@ -94,6 +95,48 @@ test("inventory origins follow coordinate history and consumed items disappear",
     assert.deepEqual(reloaded.getItemOrigins("club"), [
         { latitude: 1, longitude: 1021, areaId: 0 },
     ]);
+    const saved = JSON.parse(localStorage.getItem("gpsgame.inventory"));
+    assert.equal(saved.version, 2);
+    assert.equal("quantities" in saved, false);
+});
+
+test("permanent spells reconstruct only from purchased coordinates", () => {
+    localStorage.clear();
+    let magician = null;
+    for (let latitude = -400; latitude <= 400 && magician === null; latitude++) {
+        for (
+            let longitude = -400;
+            longitude <= 400 && magician === null;
+            longitude++
+        ) {
+            const coordinates = new Coordinates(latitude, longitude);
+            if (HighlandMap.itemAt(coordinates)?.name.startsWith(
+                "magician selling ",
+            )) {
+                magician = coordinates;
+            }
+        }
+    }
+    assert.notEqual(magician, null);
+    const action = HighlandMap.itemAt(magician);
+    const spell = action.prizes().find(
+        change => change.itemType.name.startsWith("spell of "),
+    )?.itemType.name;
+    assert.notEqual(spell, undefined);
+    localStorage.setItem("gpsgame.inventory", JSON.stringify({
+        version: 2,
+        usedCoordinates: {
+            [magician.latitude + "," + magician.longitude + ",3"]: true,
+        },
+    }));
+
+    const inventory = new Inventory();
+    assert.equal(inventory.totalQuantities[spell], 1);
+    assert.deepEqual(inventory.getItemOrigins(spell), [{
+        latitude: magician.latitude,
+        longitude: magician.longitude,
+        areaId: 3,
+    }]);
 });
 
 test("storage failures do not interrupt taking an item", () => {
@@ -129,38 +172,76 @@ test("progress guidance advances from first materials to dungeon battles", () =>
     setItems({});
     assert.equal(
         inventory.getProgressHint(),
-        "Next: find a stick and a root for your first club.",
+        "Find a stick and a root to craft a club.",
     );
     setItems({ stick: 1, root: 1 });
     assert.equal(
         inventory.getProgressHint(),
-        "You have what you need—find a club and craft it now.",
+        "Craft a club now.",
     );
     setItems({ club: 1 });
     assert.equal(
         inventory.getProgressHint(),
-        "Next: find a yarrow plant so you have health for your first fight.",
+        "Find yarrow to increase your starting health in fights.",
     );
     setItems({
         club: 1,
         yarrow: 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find one more yarrow to improve your starting health even further.",
+    );
+    setItems({
+        club: 1,
+        yarrow: 2,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Gather one more yarrow and a hay to make a yarrow poultice.",
+    );
+    setItems({
+        club: 1,
+        yarrow: 2,
+        hay: 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and craft a yarrow poultice to heal yourself during fights.",
+    );
+    setItems({
+        club: 1,
+        yarrow: 1,
+        "yarrow poultice": 1,
         stick: 1,
         hay: 1,
         root: 1,
     });
     assert.equal(
         inventory.getProgressHint(),
-        "Materials ready—find a torch and craft it.",
+        "Get a hay for a binding rope.",
     );
-    setItems({ club: 1, yarrow: 1, torch: 1 });
-    assert.match(inventory.getProgressHint(), /^Next: try fighting a rat/);
+    setItems({
+        club: 1,
+        yarrow: 1,
+        "yarrow poultice": 1,
+        "binding rope": 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and capture a rat to gain 10 coins and another attack.",
+    );
     setItems({
         club: 1,
         "stone axe": 1,
+        "yarrow poultice": 1,
         yarrow: 5,
-        torch: 1,
+        "binding rope": 1,
     });
-    assert.equal(inventory.getProgressHint(), "Next: find and fight a rat.");
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and capture a rat to gain 10 coins and another attack.",
+    );
 
     setItems({
         rat: 1,
@@ -168,12 +249,175 @@ test("progress guidance advances from first materials to dungeon battles", () =>
         "stone axe": 1,
         sword: 1,
         "wooden shield": 1,
+        "yarrow poultice": 1,
         yarrow: 9,
-        torch: 3,
     });
     assert.equal(
         inventory.getProgressHint(),
-        "Ready for the next challenge—find and fight an orc.",
+        "Get 2 hay for a binding rope.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        sword: 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 9,
+        hay: 2,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find 2 binding ropes to capture an orc.",
+    );
+
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find 5 stones and a hay to craft a crucible for smelting iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        stone: 3,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find 2 stones and a hay to craft a crucible for smelting iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        stone: 5,
+        hay: 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and craft a crucible to smelt iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        crucible: 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find 3 iron ore and 3 hay to smelt iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        crucible: 1,
+        "iron ore": 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find 2 more iron ore and 3 hay to smelt iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        crucible: 1,
+        "iron ore": 3,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find 3 hay to smelt iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        crucible: 1,
+        "iron ore": 3,
+        hay: 3,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find a dungeon entrance and descend to find a furnace for smelting iron.",
+    );
+    inventory.getAreaId = () => 1;
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find a furnace and smelt your iron ore into iron.",
+    );
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        crucible: 1,
+        furnace: 1,
+        iron: 9,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Return to the surface, then find and craft a sword to deal more damage.",
+    );
+    inventory.getAreaId = () => 0;
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 5,
+        crucible: 1,
+        furnace: 1,
+        iron: 9,
+        stick: 1,
+        root: 2,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and craft a sword to deal more damage.",
+    );
+
+    setItems({
+        rat: 1,
+        club: 1,
+        "stone axe": 1,
+        sword: 1,
+        "wooden shield": 1,
+        "yarrow poultice": 1,
+        yarrow: 9,
+        "binding rope": 2,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and capture an orc to gain 50 coins and a hide.",
     );
     setItems({
         rat: 1,
@@ -182,10 +426,45 @@ test("progress guidance advances from first materials to dungeon battles", () =>
         "stone axe": 1,
         sword: 1,
         "wooden shield": 1,
+        "yarrow poultice": 1,
         yarrow: 9,
-        torch: 1,
+        "binding rope": 1,
     });
     assert.match(inventory.getProgressHint(), /reinforced shield/);
+
+    setItems({
+        rat: 1,
+        orc: 1,
+        "reinforced shield": 1,
+        "iron-spiked club": 2,
+        "iron hand axe": 2,
+        sword: 1,
+        "yarrow poultice": 1,
+        yarrow: 13,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find a stick, 2 roots and 1 iron for an iron-spiked club. "
+            + "Five upgraded weapons will prepare you to capture a troll.",
+    );
+    setItems({
+        rat: 1,
+        orc: 1,
+        "reinforced shield": 1,
+        "iron-spiked club": 2,
+        "iron hand axe": 2,
+        sword: 1,
+        "yarrow poultice": 1,
+        yarrow: 13,
+        stick: 1,
+        root: 2,
+        iron: 1,
+    });
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and craft an iron-spiked club. "
+            + "Five upgraded weapons will prepare you to capture a troll.",
+    );
 
     setItems({
         rat: 1,
@@ -198,12 +477,13 @@ test("progress guidance advances from first materials to dungeon battles", () =>
         "flanged mace": 1,
         "bearded battle axe": 1,
         "arming sword": 1,
+        "yarrow poultice": 1,
         yarrow: 13,
-        torch: 3,
+        "binding rope": 3,
     });
     assert.equal(
         inventory.getProgressHint(),
-        "Ready for a hard battle—find and fight a troll.",
+        "Find and capture a troll to gain a club, iron, and hides.",
     );
     setItems({
         rat: 1,
@@ -211,17 +491,18 @@ test("progress guidance advances from first materials to dungeon battles", () =>
         troll: 1,
         "reinforced shield": 1,
         "arming sword": 1,
+        "yarrow poultice": 1,
         yarrow: 13,
     });
     assert.equal(
         inventory.getProgressHint(),
-        "Next: find a dungeon entrance and explore underground.",
+        "Find a dungeon entrance and descend to hunt dungeon monsters.",
     );
 
     inventory.getAreaId = () => 1;
     assert.equal(
         inventory.getProgressHint(),
-        "Next: collect grave dust before fighting a dungeon monster.",
+        "Get 2 hay for a binding rope.",
     );
     setItems({
         rat: 1,
@@ -229,29 +510,23 @@ test("progress guidance advances from first materials to dungeon battles", () =>
         troll: 1,
         "reinforced shield": 1,
         "arming sword": 1,
+        "yarrow poultice": 1,
         yarrow: 13,
         "grave dust": 1,
         "bone knife": 1,
+        "binding rope": 1,
     });
-    assert.match(inventory.getProgressHint(), /fight dungeon monsters/);
+    assert.equal(
+        inventory.getProgressHint(),
+        "Find and capture the weakest dungeon monster to gain dungeon materials.",
+    );
 });
 
-test("inventory status puts the next objective before the item list", () => {
+test("inventory status hides item contents while a next objective exists", () => {
     localStorage.clear();
     const inventory = new Inventory();
     inventory.totalQuantities = { stick: 1, root: 1 };
-    const originalDocument = globalThis.document;
-    globalThis.document = {
-        createElement: () => ({ className: "", textContent: "" }),
-    };
-    try {
-        const message = inventory.getText();
-        assert.equal(typeof message, "object");
-        assert.match(
-            message.textContent,
-            /^You have what you need—find a club and craft it now\./,
-        );
-    } finally {
-        globalThis.document = originalDocument;
-    }
+    const message = inventory.getText();
+    assert.equal(message, "Craft a club now.");
+    assert.doesNotMatch(message, /You have|stick|root/);
 });

@@ -25,7 +25,6 @@ function fightTranscript(seed) {
         monster,
         INVENTORY,
         seed,
-        ["sword"],
         {},
         50,
     );
@@ -65,7 +64,7 @@ test("different fight seeds produce deterministic variation", () => {
 test("combat state snapshots cannot mutate the running fight", () => {
     const monster = MonsterDefinition.get("orc");
     assert.notEqual(monster, null);
-    const game = new CardGame(monster, INVENTORY, 456789, [], {}, 30);
+    const game = new CardGame(monster, INVENTORY, 456789, {}, 30);
     const externalState = game.getState();
     const originalHealth = externalState.playerHealth;
     externalState.playerHealth = 0;

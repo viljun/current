@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { CardGame } from "../js/CardGame.js";
+import { defeatTipsForInventory } from "../js/FightView.js";
 import { MonsterDefinition } from "../js/MonsterDefinition.js";
 
 const TRAINING_MONSTER = new MonsterDefinition(
@@ -13,19 +14,18 @@ const TRAINING_MONSTER = new MonsterDefinition(
     5,
 );
 
-function requiredCardGame(itemName, seed = 12345) {
+function singleCardGame(itemName, seed = 12345) {
     return new CardGame(
         TRAINING_MONSTER,
         { [itemName]: 1 },
         seed,
-        [itemName],
         {},
         50,
     );
 }
 
-function playRequiredCard(itemName) {
-    const game = requiredCardGame(itemName);
+function playSingleCard(itemName) {
+    const game = singleCardGame(itemName);
     const card = game.getState().hand.find(value => value.itemName === itemName);
     assert.notEqual(card, undefined);
     const resolution = game.playPlayerCard(card.id);
@@ -38,7 +38,9 @@ test("weapon, potion, and shield cards keep their exact combat values", () => {
     const cardValues = [
         ["wooden shield", 0, 4, 0],
         ["reinforced shield", 0, 6, 0],
+        ["yarrow poultice", 0, 0, 3],
         ["healing potion", 0, 0, 10],
+        ["river feast", 0, 0, 7],
         ["poison potion", 10, 0, 0],
         ["iron-spiked club", 4, 0, 0],
         ["iron hand axe", 5, 0, 0],
@@ -74,7 +76,7 @@ test("weapon, potion, and shield cards keep their exact combat values", () => {
     ];
 
     for (const [itemName, damage, block, healing] of cardValues) {
-        const { resolution } = playRequiredCard(itemName);
+        const { resolution } = playSingleCard(itemName);
         assert.deepEqual(
             {
                 damage: resolution.card.damage,
@@ -87,7 +89,66 @@ test("weapon, potion, and shield cards keep their exact combat values", () => {
     }
 });
 
-test("three player and monster plays complete a round and reset for the next", () => {
+test("permanent spells raise every matching player card value", () => {
+    const game = new CardGame(
+        TRAINING_MONSTER,
+        {
+            club: 1,
+            "wooden shield": 1,
+            "healing potion": 1,
+            "spell of force": 4,
+            "spell of mending": 3,
+            "spell of warding": 2,
+        },
+        445566,
+        {},
+        50,
+        {
+            damage: 4,
+            healing: 3,
+            block: 2,
+        },
+    );
+    const deck = game.getSelectedDeck();
+    assert.equal(deck.find(card => card.itemName === "club")?.damage, 7);
+    assert.equal(
+        deck.find(card => card.itemName === "wooden shield")?.block,
+        6,
+    );
+    assert.equal(
+        deck.find(card => card.itemName === "healing potion")?.healing,
+        13,
+    );
+    assert.equal(
+        deck.some(card => card.itemName.startsWith("spell of ")),
+        false,
+    );
+    assert.deepEqual(game.getState().playerEnchantments, {
+        damage: 4,
+        healing: 3,
+        block: 2,
+    });
+
+    const fistGame = new CardGame(
+        TRAINING_MONSTER,
+        {},
+        778899,
+        {},
+        50,
+        { damage: 2, healing: 5, block: 7 },
+    );
+    assert.equal(
+        fistGame.getState().hand.every(card =>
+            card.itemName === "bare fist"
+            && card.damage === 3
+            && card.healing === 0
+            && card.block === 0
+        ),
+        true,
+    );
+});
+
+test("both sides receive four cards and play two before the next round", () => {
     const passiveMonster = new MonsterDefinition(
         "round tester",
         50,
@@ -96,9 +157,17 @@ test("three player and monster plays complete a round and reset for the next", (
         3,
         5,
     );
-    const game = new CardGame(passiveMonster, {}, 7654321, [], {}, 100);
+    const game = new CardGame(passiveMonster, {}, 7654321, {}, 100);
 
-    for (let play = 1; play <= 3; play++) {
+    assert.equal(game.getState().hand.length, 4);
+    assert.equal(
+        game.getState().hand.every(
+            card => card.title === "Bare Fist" && card.damage === 1,
+        ),
+        true,
+    );
+    assert.equal(game.getState().monsterHandSize, 4);
+    for (let play = 1; play <= 2; play++) {
         const playerState = game.getState();
         assert.equal(playerState.phase, "player");
         const playerResolution = game.playPlayerCard(playerState.hand[0].id);
@@ -107,7 +176,7 @@ test("three player and monster plays complete a round and reset for the next", (
 
         const monsterResolution = game.playMonsterCard();
         assert.notEqual(monsterResolution, null);
-        assert.equal(monsterResolution.roundComplete, play === 3);
+        assert.equal(monsterResolution.roundComplete, play === 2);
     }
 
     assert.equal(game.getState().phase, "dealing");
@@ -117,13 +186,14 @@ test("three player and monster plays complete a round and reset for the next", (
     assert.equal(nextRound.round, 2);
     assert.equal(nextRound.playerPlayedCount, 0);
     assert.equal(nextRound.monsterPlayedCount, 0);
-    assert.equal(nextRound.hand.length, 5);
+    assert.equal(nextRound.hand.length, 4);
+    assert.equal(nextRound.monsterHandSize, 4);
 });
 
 test("shields absorb monster damage before player health", () => {
     let checked = false;
     for (let seed = 1; seed <= 500 && !checked; seed++) {
-        const game = requiredCardGame("wooden shield", seed);
+        const game = singleCardGame("wooden shield", seed);
         const shield = game.getState().hand.find(
             card => card.itemName === "wooden shield",
         );
@@ -153,7 +223,7 @@ test("shields absorb monster damage before player health", () => {
 });
 
 test("invalid card plays and out-of-phase actions do nothing", () => {
-    const game = requiredCardGame("club");
+    const game = singleCardGame("club");
     const initial = game.getState();
     assert.equal(game.playPlayerCard("missing-card"), null);
     assert.equal(game.playMonsterCard(), null);
@@ -162,9 +232,9 @@ test("invalid card plays and out-of-phase actions do nothing", () => {
     assert.deepEqual(game.getState(), initial);
 });
 
-test("a full combat deck selects attack, block, healing, and overall strength", () => {
+test("the combat deck includes every owned item that has a card", () => {
     const inventory = {
-        "dungeon-forged greatblade": 3,
+        "dungeon-forged greatblade": 5,
         "obsidian polearm": 3,
         "royal claymore": 3,
         "dragonbone axe": 3,
@@ -172,7 +242,9 @@ test("a full combat deck selects attack, block, healing, and overall strength", 
         "reinforced shield": 3,
         "wooden shield": 3,
         "healing potion": 3,
+        "yarrow poultice": 2,
         yarrow: 3,
+        hay: 3,
         stick: 3,
         stone: 3,
     };
@@ -180,121 +252,86 @@ test("a full combat deck selects attack, block, healing, and overall strength", 
         TRAINING_MONSTER,
         inventory,
         76543,
-        [],
         {},
         50,
     );
     const deck = game.getSelectedDeck();
+    const expectedCardCount = Object.entries(inventory).reduce(
+        (total, [itemName, quantity]) =>
+            total + (CardGame.itemCardEffects(itemName) === null ? 0 : quantity),
+        0,
+    );
 
-    assert.equal(deck.length, 19);
-    assert.equal(new Set(deck.map(card => card.id)).size, 19);
-    for (const itemName of [
-        "dungeon-forged greatblade",
-        "obsidian polearm",
-        "royal claymore",
-    ]) {
+    assert.equal(deck.length, expectedCardCount);
+    assert.equal(new Set(deck.map(card => card.id)).size, expectedCardCount);
+    for (const [itemName, quantity] of Object.entries(inventory)) {
+        if (["yarrow", "hay", "stick", "stone"].includes(itemName)) {
+            continue;
+        }
         assert.equal(
             deck.filter(card => card.itemName === itemName).length,
-            3,
+            quantity,
             itemName,
         );
     }
-    assert.ok(deck.some(card => card.itemName === "dragonbone axe"));
-    assert.equal(
-        deck.filter(card => card.itemName === "reinforced shield").length,
-        3,
-    );
-    assert.equal(
-        deck.filter(card => card.itemName === "healing potion").length,
-        3,
-    );
+    assert.equal(deck.some(card => card.itemName === "yarrow"), false);
+    assert.equal(deck.some(card => card.itemName === "hay"), false);
     assert.equal(deck.some(card => card.itemName === "stick"), false);
     assert.equal(deck.some(card => card.itemName === "stone"), false);
 });
 
-test("every portable item can become a modest fight card", () => {
+test("portable inventory items without card definitions stay out of the deck", () => {
     const game = new CardGame(
         TRAINING_MONSTER,
         {
             coin: 1,
             hay: 1,
-            hide: 1,
-            "padded hide": 1,
             calendula: 1,
             "grave dust": 1,
-            "ancient nail": 1,
-            "dungeon moss": 1,
-            chest: 1,
             "bone rat": 1,
-            "dungeon dragon": 1,
             "weathered button": 1,
-            "dungeon entrance": 1,
-            "shop entrance": 1,
-            "stairs up": 1,
-            furnace: 1,
-            "armorer's bench": 1,
-            "bone carving": 1,
-            "cat buying stick": 1,
+            stick: 1,
+            torch: 1,
+            rat: 1,
+            yarrow: 1,
+            "yarrow poultice": 1,
         },
         86420,
-        ["grave dust"],
         {},
         50,
     );
-    const cards = new Map(
-        game.getSelectedDeck().map(card => [card.itemName, card]),
+    const itemNames = game.getSelectedDeck().map(card => card.itemName).sort();
+
+    assert.deepEqual(
+        itemNames,
+        ["rat", "yarrow poultice"],
     );
-    const effect = itemName => {
-        const card = cards.get(itemName);
-        assert.notEqual(card, undefined, itemName);
-
-        return [card.damage, card.block, card.healing];
-    };
-
-    assert.deepEqual(effect("coin"), [1, 0, 0]);
-    assert.deepEqual(effect("hay"), [0, 1, 0]);
-    assert.deepEqual(effect("hide"), [0, 2, 0]);
-    assert.deepEqual(effect("padded hide"), [0, 3, 0]);
-    assert.deepEqual(effect("calendula"), [0, 0, 2]);
-    assert.deepEqual(effect("grave dust"), [1, 0, 0]);
-    assert.deepEqual(effect("ancient nail"), [2, 0, 0]);
-    assert.deepEqual(effect("dungeon moss"), [0, 0, 2]);
-    assert.deepEqual(effect("chest"), [0, 3, 0]);
-    assert.deepEqual(effect("bone rat"), [1, 0, 0]);
-    assert.deepEqual(effect("dungeon dragon"), [7, 1, 0]);
-    assert.deepEqual(effect("weathered button"), [1, 0, 0]);
-    assert.equal(
-        game.getState().hand.some(card => card.itemName === "grave dust"),
-        true,
-    );
-
-    for (const itemName of [
-        "dungeon entrance",
-        "shop entrance",
-        "stairs up",
-        "furnace",
-        "armorer's bench",
-        "bone carving",
-        "cat buying stick",
-    ]) {
-        assert.equal(cards.has(itemName), false, itemName);
+    for (const rawMaterial of ["stick", "stone", "root", "iron ore"]) {
+        assert.equal(CardGame.itemCardEffects(rawMaterial), null);
     }
+    assert.equal(CardGame.itemCardEffects("yarrow"), null);
+    assert.equal(CardGame.itemCardEffects("hay"), null);
+    assert.equal(CardGame.itemCardEffects("torch"), null);
+    assert.deepEqual(CardGame.itemCardEffects("yarrow poultice"), {
+        damage: 0,
+        block: 0,
+        healing: 3,
+    });
 });
 
-test("extra weak materials replace passes without removing existing equipment", () => {
+test("adding raw materials does not change the combat deck", () => {
     const baseInventory = {
         club: 1,
         "stone axe": 1,
         sword: 1,
         torch: 2,
         "wooden shield": 1,
-        yarrow: 3,
+        "yarrow poultice": 3,
     };
     const baseGame = new CardGame(
         TRAINING_MONSTER,
         baseInventory,
         24680,
-        ["torch"],
         {},
         20,
     );
@@ -308,7 +345,6 @@ test("extra weak materials replace passes without removing existing equipment", 
             "iron ore": 3,
         },
         24680,
-        ["torch"],
         {},
         20,
     );
@@ -316,18 +352,12 @@ test("extra weak materials replace passes without removing existing equipment", 
     const gatheredDeck = gatheredGame.getSelectedDeck();
     const gatheredIds = new Set(gatheredDeck.map(card => card.id));
 
-    assert.equal(baseDeck.length, 19);
-    assert.equal(gatheredDeck.length, 19);
-    assert.ok(
-        gatheredDeck.filter(card => card.itemName === "pass").length
-            < baseDeck.filter(card => card.itemName === "pass").length,
-    );
-    for (const card of baseDeck.filter(card => card.itemName !== "pass")) {
-        assert.equal(gatheredIds.has(card.id), true, card.id);
-    }
+    assert.equal(baseDeck.length, 7);
+    assert.equal(gatheredDeck.length, 7);
+    assert.deepEqual([...gatheredIds].sort(), baseDeck.map(card => card.id).sort());
 });
 
-test("durable equipment returns in later rounds but potions do not", () => {
+test("every revealed card is discarded after the round and inventory is unchanged", () => {
     const passiveMonster = new MonsterDefinition(
         "durability tester",
         50,
@@ -336,63 +366,34 @@ test("durable equipment returns in later rounds but potions do not", () => {
         3,
         5,
     );
-    const equipmentGame = new CardGame(
+    const inventory = {
+        "wooden shield": 5,
+        "reinforced shield": 3,
+    };
+    const inventoryBefore = structuredClone(inventory);
+    const game = new CardGame(
         passiveMonster,
-        { club: 1 },
+        inventory,
         13579,
-        ["club"],
         {},
         100,
     );
-    let clubPlays = 0;
-    for (let round = 0; round < 12 && clubPlays < 2; round++) {
-        for (let play = 0; play < 3; play++) {
-            const state = equipmentGame.getState();
-            const card = state.hand.find(value => value.itemName === "club")
-                ?? state.hand[0];
-            assert.notEqual(card, undefined);
-            if (card.itemName === "club") {
-                clubPlays++;
-            }
-            equipmentGame.playPlayerCard(card.id);
-            equipmentGame.playMonsterCard();
-        }
-        if (equipmentGame.getState().phase === "dealing") {
-            equipmentGame.dealNextRound();
-        }
+    const firstHandIds = game.getState().hand.map(card => card.id);
+    for (let play = 0; play < 2; play++) {
+        const card = game.getState().hand[0];
+        assert.notEqual(card, undefined);
+        game.playPlayerCard(card.id);
+        game.playMonsterCard();
     }
-    assert.ok(clubPlays >= 2);
+    assert.equal(game.getState().phase, "dealing");
+    game.dealNextRound();
+    const secondHandIds = game.getState().hand.map(card => card.id);
 
-    const potionGame = new CardGame(
-        passiveMonster,
-        { "healing potion": 1 },
-        97531,
-        ["healing potion"],
-        {},
-        100,
+    assert.equal(
+        secondHandIds.some(cardId => firstHandIds.includes(cardId)),
+        false,
     );
-    const potion = potionGame.getState().hand.find(
-        card => card.itemName === "healing potion",
-    );
-    assert.notEqual(potion, undefined);
-    potionGame.playPlayerCard(potion.id);
-    potionGame.playMonsterCard();
-    for (let exchange = 0; exchange < 12; exchange++) {
-        const state = potionGame.getState();
-        if (state.phase === "dealing") {
-            potionGame.dealNextRound();
-            continue;
-        }
-        if (state.phase === "player") {
-            assert.equal(
-                state.hand.some(card => card.itemName === "healing potion"),
-                false,
-            );
-            potionGame.playPlayerCard(state.hand[0].id);
-        } else {
-            potionGame.playMonsterCard();
-        }
-    }
+    assert.deepEqual(inventory, inventoryBefore);
 });
 
 test("player health is exactly the gathered yarrow quantity", () => {
@@ -401,11 +402,113 @@ test("player health is exactly the gathered yarrow quantity", () => {
     assert.equal(CardGame.playerHealthForYarrow(8), 8);
 });
 
+test("defeat advice prioritizes weaknesses and always includes deck guidance", () => {
+    const weakDeckTips = defeatTipsForInventory({
+        club: 5,
+        yarrow: 2,
+    });
+    assert.deepEqual(
+        weakDeckTips.slice(0, 3).map(tip => tip.id),
+        ["deck", "health", "weapons"],
+    );
+    assert.equal(weakDeckTips.length, 11);
+    assert.equal(
+        weakDeckTips.find(tip => tip.id === "deck")?.text,
+        "Avoid filling your deck with low-tier items. "
+            + "A few strong items work better than a pile of weak ones.",
+    );
+    assert.equal(
+        weakDeckTips.find(tip => tip.id === "retry")?.text,
+        "The same choices always lead to the same result. "
+            + "After a defeat, try different cards to find a winning sequence.",
+    );
+    assert.equal(
+        weakDeckTips.find(tip => tip.id === "safe")?.text,
+        "Defeat costs you nothing. You keep every item, so you can retry freely.",
+    );
+    assert.equal(
+        weakDeckTips.find(tip => tip.id === "bare-fist")?.text,
+        "“Bare Fist” appears when you run out of fight items. "
+            + "Craft more useful equipment—your knuckles have done enough.",
+    );
+
+    const preparedTips = defeatTipsForInventory({
+        "dungeon-forged greatblade": 1,
+        "reinforced shield": 1,
+        "healing potion": 1,
+        "spell of force": 1,
+        "spell of mending": 1,
+        "spell of warding": 1,
+        yarrow: 20,
+    });
+    assert.deepEqual(
+        preparedTips.slice(0, 3).map(tip => tip.id),
+        ["bare-fist", "deck", "weapons"],
+    );
+
+    const oneClubTips = defeatTipsForInventory({
+        club: 1,
+        rat: 2,
+        "poison potion": 1,
+        yarrow: 3,
+    });
+    assert.equal(
+        oneClubTips.find(tip => tip.id === "more-clubs")?.text,
+        "Craft more clubs to add more attacks to your deck. "
+            + "One club only swings once per capture.",
+    );
+    assert.equal(
+        defeatTipsForInventory({
+            club: 1,
+            "stone axe": 1,
+            yarrow: 3,
+        }).some(tip => tip.id === "more-clubs"),
+        false,
+    );
+    assert.equal(
+        defeatTipsForInventory({
+            club: 2,
+            yarrow: 3,
+        }).some(tip => tip.id === "more-clubs"),
+        false,
+    );
+
+    const firstRatTips = defeatTipsForInventory({
+        club: 1,
+        yarrow: 3,
+    }, "rat");
+    assert.equal(
+        firstRatTips.find(tip => tip.id === "find-another-monster")?.text,
+        "If this rat is too strong, find another rat. "
+            + "The next one may be less fierce.",
+    );
+    assert.equal(firstRatTips[0]?.id, "find-another-monster");
+    const experiencedRatTips = defeatTipsForInventory({
+        club: 1,
+        rat: 1,
+        yarrow: 3,
+    }, "rat");
+    assert.equal(
+        experiencedRatTips[experiencedRatTips.length - 1]?.id,
+        "find-another-monster",
+    );
+    const firstOrcTips = defeatTipsForInventory({
+        club: 1,
+        yarrow: 3,
+    }, "orc");
+    assert.equal(
+        firstOrcTips.find(tip => tip.id === "find-another-monster")?.text,
+        "If this orc is too strong, find another orc. "
+            + "The next one may be less fierce.",
+    );
+    assert.equal(firstOrcTips[0]?.id, "find-another-monster");
+});
+
 test("high-tier monsters can deterministically receive more than 50 health", () => {
     const dragon = MonsterDefinition.get("dungeon dragon");
     assert.notEqual(dragon, null);
     const healthValues = () => Array.from({ length: 200 }, (_, index) => {
-        const game = new CardGame(dragon, {}, index + 1, [], {}, 100);
+        const game = new CardGame(dragon, {}, index + 1, {}, 100);
 
         return game.getState().monsterMaxHealth;
     });
@@ -428,8 +531,7 @@ function chooseUsefulCard(state) {
 
         return {
             card,
-            score: damage * 8 + healing * 5 + card.block * 4
-                + (card.itemName === "pass" ? -100 : 0),
+            score: damage * 8 + healing * 5 + card.block * 4,
         };
     }).sort((first, second) => second.score - first.score);
 
@@ -445,7 +547,6 @@ function deterministicWinRate(monsterName, inventory, seedCount = 400) {
             monster,
             inventory,
             seed,
-            ["torch"],
             {},
             CardGame.playerHealthForYarrow(inventory.yarrow ?? 0),
         );
@@ -483,11 +584,11 @@ test("surface fights preserve a loss, recovery, and mastery progression", () => 
         yarrow: 5,
     });
     const preparedOrc = deterministicWinRate("orc", {
-        club: 1,
-        "stone axe": 1,
-        sword: 1,
+        club: 2,
+        "stone axe": 2,
+        sword: 2,
         torch: 3,
-        "wooden shield": 1,
+        "wooden shield": 2,
         yarrow: 9,
     });
     const earlyTroll = deterministicWinRate("troll", {
@@ -513,10 +614,10 @@ test("surface fights preserve a loss, recovery, and mastery progression", () => 
     assert.ok(preparedRat >= 0.45 && preparedRat <= 0.80, preparedRat);
     assert.ok(preparedOrc >= 0.45 && preparedOrc <= 0.75, preparedOrc);
     assert.ok(earlyTroll <= 0.20, earlyTroll);
-    assert.ok(preparedTroll >= 0.45 && preparedTroll <= 0.75, preparedTroll);
+    assert.ok(preparedTroll >= 0.50 && preparedTroll <= 0.75, preparedTroll);
 });
 
-test("a short final gathering trip can turn the strongest fight around", () => {
+test("a short final gathering trip still improves the strongest fight", () => {
     const weapons = [
         "executioner's axe",
         "estoc",
@@ -539,7 +640,7 @@ test("a short final gathering trip can turn the strongest fight around", () => {
         "healing potion": 1,
         "poison potion": 1,
         "grave dust": 3,
-        yarrow: 25,
+        yarrow: 22,
     });
     const initialAttempt = deterministicWinRate(
         "dungeon dragon",
@@ -548,13 +649,17 @@ test("a short final gathering trip can turn the strongest fight around", () => {
     );
     const gatheredAttempt = deterministicWinRate(
         "dungeon dragon",
-        { ...lateInventory, yarrow: 30 },
+        { ...lateInventory, yarrow: 25 },
         300,
     );
 
-    assert.ok(initialAttempt <= 0.25, initialAttempt);
     assert.ok(
-        gatheredAttempt >= 0.30 && gatheredAttempt <= 0.70,
+        initialAttempt >= 0.50 && initialAttempt <= 0.70,
+        initialAttempt,
+    );
+    assert.ok(
+        gatheredAttempt >= 0.60 && gatheredAttempt <= 0.80,
         gatheredAttempt,
     );
+    assert.ok(gatheredAttempt >= initialAttempt + 0.05);
 });

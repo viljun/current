@@ -54,12 +54,14 @@
             const map = document.getElementById("map");
             const cat = document.getElementById("cat");
             const message = document.getElementById("messageBox");
+            const encounterCard = document.getElementById("encounterCard");
             const container = document.getElementById("mapContainer");
             if (
                 map === null
                 || map.children.length === 0
                 || cat === null
                 || message === null
+                || encounterCard === null
                 || container === null
             ) {
                 window.setTimeout(measure, 50);
@@ -125,6 +127,20 @@
                     scrollHeight: document.documentElement.scrollHeight,
                 },
             };
+            const itemLink = message.querySelector(".status-item-link");
+            if (itemLink instanceof window.HTMLButtonElement) {
+                itemLink.click();
+                measurement.message.itemToggle = {
+                    opens: encounterCard.hidden === false,
+                    expandedWhenOpen:
+                        itemLink.getAttribute("aria-expanded"),
+                };
+                itemLink.click();
+                measurement.message.itemToggle.closes =
+                    encounterCard.hidden === true;
+                measurement.message.itemToggle.expandedWhenClosed =
+                    itemLink.getAttribute("aria-expanded");
+            }
             const buttonMessage = document.createElement("div");
             buttonMessage.className = "message";
             const button = document.createElement("button");
@@ -139,7 +155,232 @@
             };
             measurement.message.heightWithoutButton =
                 messageHeightWithoutButton;
-            resultElement.textContent = window.btoa(JSON.stringify(measurement));
+
+            const encounterAction = document.createElement("div");
+            encounterAction.className =
+                "message encounter-action encounter-action--fight";
+            const tradeButton = document.createElement("button");
+            tradeButton.className = "button";
+            tradeButton.type = "button";
+            tradeButton.textContent = "Capture";
+            const fightReward = document.createElement("span");
+            fightReward.className = "fight-reward";
+            fightReward.textContent =
+                "a crypt hound. If you succeed, one binding rope is used. "
+                    + "You keep the crypt hound and take its 10 coins.";
+            encounterAction.append(
+                tradeButton,
+                fightReward,
+            );
+            message.replaceChildren(encounterAction);
+            encounterCard.hidden = false;
+            const encounterClose = document.createElement("button");
+            encounterClose.className = "fight-close encounter-card-close";
+            encounterClose.type = "button";
+            encounterClose.setAttribute(
+                "aria-label",
+                "Close encounter details",
+            );
+            const encounterTitle = document.createElement("h2");
+            encounterTitle.className = "encounter-card-title";
+            encounterTitle.textContent = "Crypt hound";
+            const monsterDescription = document.createElement("span");
+            monsterDescription.className = "encounter-card-description";
+            monsterDescription.textContent = [
+                "Dame Floofbert, a magnificently fluffy cat who has never",
+                "forgiven a dishonest turnip, believes haggling is a form",
+                "of opera, keeps every receipt beneath the left paw, and",
+                "offers certified pre-admired swords with a solemn guarantee",
+                "lasting precisely until teatime. Tap this card for the full",
+                "story and all the wonderfully suspicious trading details.",
+            ].join(" ");
+            const itemDescription = document.createElement("div");
+            itemDescription.className =
+                "encounter-card-details item-explanation";
+            const facts = document.createElement("dl");
+            facts.className = "item-explanation-facts";
+            for (const [headingText, sectionText] of [[
+                "Fight",
+                "A successful capture uses a binding rope to bind it. "
+                    + "Capture it to keep the monster and take 10 coins.",
+            ]]) {
+                const heading = document.createElement("dt");
+                heading.className = "item-explanation-heading";
+                heading.textContent = headingText;
+                const text = document.createElement("dd");
+                text.className = "item-explanation-text";
+                text.textContent = sectionText;
+                facts.append(heading, text);
+            }
+            const fieldNote = document.createElement("footer");
+            fieldNote.className = "item-explanation-note";
+            const noteText = document.createElement("q");
+            noteText.textContent = [
+                "Monsters consistently rate useful equipment one star.",
+                "The quartermaster considers the matter settled.",
+            ].join(" ");
+            fieldNote.append(noteText);
+            itemDescription.append(facts, fieldNote);
+            encounterCard.replaceChildren(
+                encounterClose,
+                encounterTitle,
+                monsterDescription,
+                itemDescription,
+            );
+            const descriptionCard = rectangle(encounterCard);
+            measurement.message.encounterState = {
+                barHeight: message.getBoundingClientRect().height,
+                barText: message.textContent.trim(),
+                action: rectangle(tradeButton),
+                descriptionCard,
+                descriptionScrollHeight: encounterCard.scrollHeight,
+                descriptionClientHeight: encounterCard.clientHeight,
+                close: rectangle(encounterClose),
+            };
+
+            const instructionTexts = [
+                "Find a stick and a root to craft a club.",
+                "Find yarrow to increase your starting health in fights.",
+                "Find one more yarrow to improve your starting health even further.",
+                        "Gather one more yarrow and a hay to make a yarrow poultice.",
+                "Find and craft a yarrow poultice to heal yourself during fights.",
+                "Find and capture a rat to gain 10 coins and another attack.",
+                "Find 5 stones and a hay to craft a crucible for smelting iron.",
+                "Find and craft a crucible to smelt iron.",
+                "Find 3 iron ore and 3 hay to smelt iron.",
+                "Find a dungeon entrance and descend to find a furnace for smelting iron.",
+                "Find a furnace and smelt your iron ore into iron.",
+                "Find 12 more yarrow to raise your health before capturing a troll.",
+                "Find a stick, 2 roots and 1 iron for an iron-spiked club. "
+                    + "Five upgraded weapons will prepare you to capture a troll.",
+                "Find and craft an iron-spiked club. "
+                    + "Five upgraded weapons will prepare you to capture a troll.",
+                "Get 2 hay for a binding rope.",
+                "Collect dungeon materials and craft your first dungeon weapon.",
+                "Find and capture the weakest dungeon monster to gain dungeon materials.",
+            ];
+            measurement.message.instructions = instructionTexts.map(text => {
+                const status = document.createElement("div");
+                status.className = "message status-text";
+                status.textContent = text;
+                message.replaceChildren(status);
+
+                return {
+                    text,
+                    clientWidth: status.clientWidth,
+                    scrollWidth: status.scrollWidth,
+                    clientHeight: status.clientHeight,
+                    scrollHeight: status.scrollHeight,
+                    barHeight: message.getBoundingClientRect().height,
+                };
+            });
+            const longStatus = document.createElement("div");
+            longStatus.className = "message status-text";
+            longStatus.textContent = [
+                "This deliberately enormous status message must be visibly",
+                "shortened when it cannot fit inside the fixed status bar,",
+                "even on a broad desktop where an absent ellipsis might hide",
+                "for years behind several inventories, a confused troll,",
+                "and an auditor carrying an unreasonable number of torches.",
+            ].join(" ");
+            message.replaceChildren(longStatus);
+            const longStatusStyle = window.getComputedStyle(longStatus);
+            measurement.message.longStatus = {
+                clientWidth: longStatus.clientWidth,
+                scrollWidth: longStatus.scrollWidth,
+                overflow: longStatusStyle.overflow,
+                textOverflow: longStatusStyle.textOverflow,
+                whiteSpace: longStatusStyle.whiteSpace,
+                clientHeight: longStatus.clientHeight,
+                scrollHeight: longStatus.scrollHeight,
+                barHeight: message.getBoundingClientRect().height,
+            };
+
+            const fightOverlay = document.createElement("div");
+            fightOverlay.className = "fight-overlay";
+            const fightPanel = document.createElement("section");
+            fightPanel.className = "fight-panel";
+            const fightHeader = document.createElement("header");
+            fightHeader.className = "dialog-header";
+            const fightTitle = document.createElement("h1");
+            fightTitle.textContent = "Battle";
+            const fightClose = document.createElement("button");
+            fightClose.className = "fight-close";
+            fightClose.type = "button";
+            fightClose.setAttribute("aria-label", "Retreat");
+            fightHeader.append(fightTitle, fightClose);
+            const fightContent = document.createElement("div");
+            fightContent.className = "dialog-content";
+            const fightFiller = document.createElement("div");
+            fightFiller.style.height = "1200px";
+            fightContent.append(fightFiller);
+            fightPanel.append(fightHeader, fightContent);
+            fightOverlay.append(fightPanel);
+            document.body.append(fightOverlay);
+            const fightPanelStyle = window.getComputedStyle(fightPanel);
+            const fightHeaderBeforeScroll = rectangle(fightHeader);
+            fightContent.scrollTop = 200;
+            const fightDialog = {
+                rectangle: rectangle(fightPanel),
+                borderRadius: fightPanelStyle.borderRadius,
+                overflow: fightPanelStyle.overflow,
+                contentOverflow:
+                    window.getComputedStyle(fightContent).overflow,
+                contentScrollTop: fightContent.scrollTop,
+                headerBeforeScroll: fightHeaderBeforeScroll,
+                headerAfterScroll: rectangle(fightHeader),
+                title: rectangle(fightTitle),
+                close: rectangle(fightClose),
+            };
+            fightOverlay.remove();
+
+            const inventoryDialog = document.createElement("dialog");
+            inventoryDialog.className = "inventory-dialog";
+            const inventoryHeader = document.createElement("header");
+            inventoryHeader.className = "dialog-header";
+            const inventoryTitle = document.createElement("h1");
+            inventoryTitle.textContent = "Inventory";
+            const inventoryClose = document.createElement("button");
+            inventoryClose.className = "fight-close";
+            inventoryClose.type = "button";
+            inventoryClose.setAttribute("aria-label", "Close inventory");
+            inventoryHeader.append(inventoryTitle, inventoryClose);
+            const inventoryContent = document.createElement("div");
+            inventoryContent.className = "dialog-content";
+            const inventoryFiller = document.createElement("div");
+            inventoryFiller.style.height = "1200px";
+            inventoryContent.append(inventoryFiller);
+            inventoryDialog.append(inventoryHeader, inventoryContent);
+            document.body.append(inventoryDialog);
+            inventoryDialog.showModal();
+            const inventoryDialogStyle =
+                window.getComputedStyle(inventoryDialog);
+            const inventoryHeaderBeforeScroll = rectangle(inventoryHeader);
+            inventoryContent.scrollTop = 200;
+            const inventoryDialogMeasurement = {
+                rectangle: rectangle(inventoryDialog),
+                borderRadius: inventoryDialogStyle.borderRadius,
+                overflow: inventoryDialogStyle.overflow,
+                contentOverflow:
+                    window.getComputedStyle(inventoryContent).overflow,
+                contentScrollTop: inventoryContent.scrollTop,
+                headerBeforeScroll: inventoryHeaderBeforeScroll,
+                headerAfterScroll: rectangle(inventoryHeader),
+                title: rectangle(inventoryTitle),
+                close: rectangle(inventoryClose),
+            };
+            inventoryDialog.close();
+            inventoryDialog.remove();
+            measurement.dialogs = {
+                fight: fightDialog,
+                inventory: inventoryDialogMeasurement,
+            };
+
+            resultElement.textContent = window.btoa(
+                window.unescape(
+                    window.encodeURIComponent(JSON.stringify(measurement)),
+                ),
+            );
         };
 
         frame.src = "../game.html";

@@ -7,7 +7,6 @@ export interface CardDefinition {
     damage: number;
     block: number;
     healing: number;
-    reusable: boolean;
     origin: ItemOrigin | null;
 }
 export interface ShieldCard {
@@ -32,6 +31,12 @@ export interface CardGameState {
     round: number;
     playerPlayedCount: number;
     monsterPlayedCount: number;
+    playerEnchantments: PlayerEnchantments;
+}
+export interface PlayerEnchantments {
+    damage: number;
+    healing: number;
+    block: number;
 }
 export interface CombatEffect {
     type: "damage" | "healing" | "block" | "wait" | "defeated";
@@ -56,29 +61,28 @@ export interface CardPlayResolution {
 }
 export declare class CardGame {
     private static readonly CARDS_PER_ROUND;
-    private static readonly ATTACK_CARD_LIMIT;
-    private static readonly BLOCK_CARD_LIMIT;
-    private static readonly HEALING_CARD_LIMIT;
-    private static readonly OVERALL_CARD_LIMIT;
-    private static readonly REUSABLE_ITEMS;
-    private static readonly PORTABLE_CARD_EFFECTS;
+    private static readonly HAND_SIZE;
     private static readonly ITEM_QUALITY;
     private static readonly CARD_TYPES;
     private readonly monster;
     private readonly fightSeed;
     private readonly seedState;
-    private readonly handSize;
     private readonly selectedDeck;
     private drawPile;
-    private reusablePlayedCards;
-    private passCardIndex;
+    private bareFistCardIndex;
     private monsterHand;
     private state;
-    constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, requiredItemNames: string[], itemOrigins: Record<string, ItemOrigin[]>, playerHealth: number);
+    private readonly playerEnchantments;
+    constructor(monster: MonsterDefinition, inventory: Record<string, number>, seed: number, itemOrigins: Record<string, ItemOrigin[]>, playerHealth: number, playerEnchantments?: PlayerEnchantments);
     private generateMonsterHealth;
     getState(): CardGameState;
     getSelectedDeck(): CardDefinition[];
     static playerHealthForYarrow(yarrowQuantity: number): number;
+    static itemCardEffects(itemName: string): {
+        damage: number;
+        block: number;
+        healing: number;
+    } | null;
     playPlayerCard(cardId: string): CardPlayResolution | null;
     playMonsterCard(): CardPlayResolution | null;
     dealNextRound(): void;
@@ -102,12 +106,9 @@ export declare class CardGame {
     private useAlternativeChoice;
     private totalShield;
     private buildDeck;
-    private portableCardType;
-    private selectBalancedDeck;
-    private totalCardValue;
     private drawCards;
-    private createPassCard;
-    private ensureRequiredCards;
+    private createBareFistCard;
+    private enchant;
     private shuffle;
     private nextSequenceFraction;
 }

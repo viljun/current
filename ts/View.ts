@@ -1,12 +1,35 @@
 export class View {
     static getQuantityText(text: string, quantity: number) {
+        const massNoun = [
+            "bones",
+            "dungeon moss",
+            "grave dust",
+            "iron",
+            "iron ore",
+            "spider silk",
+        ].includes(text);
+        const invariantPlural = massNoun || ["hay", "yarrow"].includes(text);
         if (quantity === 1) {
+            if (massNoun) {
+                return "some " + text;
+            }
             const article = /^[aeiou]/i.test(text) ? "an" : "a";
 
             return article + " " + text;
         }
 
-        const plural = ["hay", "iron"].includes(text) ? text : text + "s";
+        let plural = text;
+        if (!invariantPlural) {
+            if (text.endsWith("knife")) {
+                plural = text.slice(0, -5) + "knives";
+            } else if (/[^aeiou]y$/i.test(text)) {
+                plural = text.slice(0, -1) + "ies";
+            } else if (/(?:s|x|z|ch|sh)$/i.test(text)) {
+                plural = text + "es";
+            } else {
+                plural = text + "s";
+            }
+        }
 
         return quantity + " " + plural;
     }
@@ -23,14 +46,24 @@ export class View {
         return texts.join(", ") + lastWord;
     }
 
-    static appendMessage(messageBox: HTMLDivElement, message: string | HTMLDivElement) {
-        messageBox.append(message);
-        const br = document.createElement("br");
-        messageBox.append(br);
+    static appendMessage(
+        messageBox: HTMLDivElement,
+        message: string | HTMLDivElement,
+    ) {
+        if (typeof message !== "string") {
+            messageBox.append(message);
+
+            return;
+        }
+        const status = document.createElement("div");
+        status.className = "message status-text";
+        status.textContent = message;
+        status.title = message;
+        messageBox.append(status);
     }
 
     static setMessage(messageBox: HTMLDivElement, message: string | HTMLDivElement) {
-        messageBox.innerHTML = "";
+        messageBox.replaceChildren();
         View.appendMessage(messageBox, message);
     }
 }

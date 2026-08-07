@@ -4,11 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#26351f">
+    <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="mapContainer">
         <div id="messageBox"></div>
+        <aside
+            id="encounterCard"
+            class="encounter-card"
+            aria-label="Encounter details"
+            hidden
+        ></aside>
         <label id="exploreControl">
             <input id="exploreSwitch" type="checkbox">
             <span>Explore</span>
@@ -19,7 +26,7 @@
         </label>
         <button id="inventoryControl" type="button">0 items</button>
         <button id="restartControl" type="button">Restart</button>
-        <div id="gpsStatus" role="status" aria-live="polite">Finding location…</div>
+        <div id="gpsStatus" role="status" aria-live="polite">Finding location.</div>
         <div id="map"></div>
     </div>
 

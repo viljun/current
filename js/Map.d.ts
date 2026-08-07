@@ -8,6 +8,7 @@ export interface MapState {
     exploreMode: boolean;
 }
 export declare class Map {
+    private static readonly PROGRESS_ITEM_NAMES;
     slidingAnimationInProgress: boolean;
     interactionLocked: boolean;
     private catFacingX;
@@ -26,10 +27,21 @@ export declare class Map {
     show({ previousCoordinates, }: {
         previousCoordinates?: Coordinates | null;
     }): void;
+    static progressItemReferences(text: string): {
+        start: number;
+        length: number;
+        itemName: string;
+    }[];
+    private progressStatusElement;
     private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
     isWallAt(coordinates: Coordinates, areaId?: number): boolean;
     private static coordinatesKey;
+    private decorateDungeonSoftTerrainCell;
+    private decorateRiverCell;
+    private decorateRoadCell;
+    private decorateRoadGrass;
+    private static positiveModulo;
     private static shopOutsideDecoration;
     private static decorationSeed;
     setInteractionLocked(locked: boolean): void;

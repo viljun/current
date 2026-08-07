@@ -1,7 +1,9 @@
 import { Coordinates } from "./Coordinates.js";
+import { HIGHLAND_AREA } from "./Area.js";
 import { Effects } from "./Effects.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
+import { View } from "./View.js";
 export function calculateMapLayout(viewportWidth, viewportHeight, tileSize, safetyMargin) {
     const oddSizeAtLeast = (visibleSize) => {
         const minimum = Math.max(1, Math.ceil(visibleSize) + safetyMargin);
@@ -61,7 +63,7 @@ export class GameController {
             this.setGpsStatus("Location is not supported by this device.", "error");
             return;
         }
-        this.setGpsStatus("Finding location…", "waiting");
+        this.setGpsStatus("Finding location.", "waiting");
         navigator.geolocation.watchPosition(location => this.acceptGpsLocation(location), error => this.showGpsError(error), {
             enableHighAccuracy: true,
             maximumAge: 5000,
@@ -148,12 +150,18 @@ export class GameController {
             return;
         }
         const previousCoordinates = this.state.coordinates;
+        if (this.inventory.getAreaId() === HIGHLAND_AREA
+            && this.map.isWallAt(coordinates)) {
+            this.map.show({});
+            View.setMessage(this.messageBox, "The mountain face is impassable. Find another way around.");
+            return;
+        }
         if (this.inventory.getAreaId() !== 0 && this.map.isWallAt(coordinates)) {
             this.state.coordinates = coordinates;
             if (this.state.exploreMode) {
                 this.saveExploreCoordinates();
             }
-            Effects.showAreaCollapse(this.mapElement, coordinates.getSeed());
+            Effects.showAreaExplosion(this.mapElement, coordinates.getSeed());
             this.inventory.exitArea();
             this.state.selectedCoordinates = this.state.exploreMode ? coordinates : null;
             this.map.show({});
@@ -217,7 +225,7 @@ export class GameController {
     }
     showCurrentGpsStatus() {
         if (this.latestGpsAccuracy === null) {
-            this.setGpsStatus("Finding location…", "waiting");
+            this.setGpsStatus("Finding location.", "waiting");
             return;
         }
         this.setGpsStatus("\u00b1" + Math.round(this.latestGpsAccuracy) + " m");

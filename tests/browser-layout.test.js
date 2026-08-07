@@ -159,12 +159,165 @@ test(
                 layout.message.buttonState.buttonHeight >= 44,
                 viewport.name + " top-bar button is too small to tap",
             );
+            assert.deepEqual(layout.message.itemToggle, {
+                opens: true,
+                expandedWhenOpen: "true",
+                closes: true,
+                expandedWhenClosed: "false",
+            });
+            assert.ok(
+                layout.message.encounterState.barHeight
+                    >= layout.message.heightWithoutButton,
+                viewport.name + " encounter status became too short",
+            );
+            assert.equal(
+                layout.message.encounterState.barText,
+                "Capturea crypt hound. If you succeed, one binding rope is used. "
+                    + "You keep the crypt hound and take its 10 coins.",
+            );
+            assert.ok(
+                layout.message.encounterState.action.right <= viewport.width,
+                viewport.name + " encounter action is outside the status bar",
+            );
+            const descriptionCard =
+                layout.message.encounterState.descriptionCard;
+            assert.ok(
+                descriptionCard.top >= layout.message.rectangle.bottom,
+                viewport.name + " encounter card overlaps the status bar",
+            );
+            assert.ok(descriptionCard.left >= 0);
+            assert.ok(descriptionCard.right <= viewport.width);
+            assert.ok(descriptionCard.bottom <= viewport.height);
+            assert.ok(
+                layout.message.encounterState.descriptionScrollHeight
+                    <= layout.message.encounterState.descriptionClientHeight + 1,
+                viewport.name
+                    + " full encounter description is still clipped: "
+                    + layout.message.encounterState.descriptionScrollHeight
+                    + "/"
+                    + layout.message.encounterState.descriptionClientHeight,
+            );
+            assert.ok(
+                layout.message.encounterState.close.width >= 44
+                    && layout.message.encounterState.close.height >= 44,
+                viewport.name + " encounter close button is too small",
+            );
+            assert.ok(
+                layout.message.encounterState.close.right
+                    <= descriptionCard.right,
+            );
+            assert.ok(
+                layout.message.encounterState.close.top
+                    >= descriptionCard.top,
+            );
+            for (const instruction of layout.message.instructions) {
+                assert.ok(
+                    instruction.scrollWidth <= instruction.clientWidth + 1,
+                    viewport.name + " instruction overflows horizontally: "
+                        + instruction.text,
+                );
+                assert.ok(
+                    instruction.scrollHeight <= instruction.clientHeight + 1,
+                    viewport.name + " instruction is vertically clipped: "
+                        + instruction.text,
+                );
+                assert.ok(
+                    instruction.barHeight
+                        >= layout.message.heightWithoutButton,
+                    viewport.name + " instruction bar is too short: "
+                        + instruction.text,
+                );
+            }
+            assert.ok(
+                layout.message.longStatus.scrollWidth
+                    <= layout.message.longStatus.clientWidth + 1,
+                viewport.name + " long status overflows horizontally",
+            );
+            assert.ok(
+                layout.message.longStatus.scrollHeight
+                    <= layout.message.longStatus.clientHeight + 1,
+                viewport.name + " long status is vertically clipped",
+            );
+            assert.equal(layout.message.longStatus.overflow, "visible");
+            assert.equal(layout.message.longStatus.textOverflow, "clip");
+            assert.equal(layout.message.longStatus.whiteSpace, "normal");
+            if (viewport.mobile) {
+                assert.ok(
+                    layout.message.longStatus.barHeight
+                        > layout.message.heightWithoutButton,
+                    viewport.name + " long status did not grow the status bar",
+                );
+            }
             assert.ok(
                 layout.message.fontSize >= (viewport.mobile ? 16 : 16),
             );
             assert.ok(
                 layout.gps.fontSize >= (viewport.mobile ? 15 : 14),
             );
+
+            for (const [name, dialog] of Object.entries(layout.dialogs)) {
+                assert.equal(dialog.overflow, "hidden", name);
+                assert.equal(dialog.contentOverflow, "auto", name);
+                assert.ok(
+                    dialog.contentScrollTop > 0,
+                    viewport.name + " " + name + " content does not scroll",
+                );
+                near(
+                    dialog.headerAfterScroll.top,
+                    dialog.headerBeforeScroll.top,
+                    0.5,
+                    viewport.name + " " + name + " header moved while scrolling",
+                );
+                near(
+                    dialog.title.centerX,
+                    dialog.rectangle.centerX,
+                    1,
+                    viewport.name + " " + name + " title is not centered",
+                );
+                assert.ok(
+                    dialog.close.width >= 44 && dialog.close.height >= 44,
+                    viewport.name + " " + name + " close button is too small",
+                );
+                assert.ok(dialog.close.right <= dialog.rectangle.right);
+                assert.ok(dialog.close.top >= dialog.rectangle.top);
+                if (viewport.mobile) {
+                    near(
+                        dialog.rectangle.width,
+                        viewport.width,
+                        1,
+                        viewport.name + " " + name + " dialog width",
+                    );
+                    near(
+                        dialog.rectangle.height,
+                        viewport.height,
+                        1,
+                        viewport.name + " " + name + " dialog height",
+                    );
+                    near(
+                        dialog.rectangle.left,
+                        0,
+                        1,
+                        viewport.name + " " + name + " dialog left edge",
+                    );
+                    near(
+                        dialog.rectangle.top,
+                        0,
+                        1,
+                        viewport.name + " " + name + " dialog top edge",
+                    );
+                    assert.equal(dialog.borderRadius, "0px");
+                } else {
+                    assert.ok(
+                        dialog.rectangle.width
+                            >= Math.min(1024, viewport.width - 32) - 1,
+                        viewport.name + " " + name
+                            + " dialog did not use the wider desktop space: "
+                            + dialog.rectangle.width,
+                    );
+                    assert.ok(dialog.rectangle.width <= 1024 + 1);
+                    assert.notEqual(dialog.borderRadius, "0px");
+                }
+            }
 
             for (const control of layout.controls) {
                 assert.ok(control.rectangle.left >= 0);

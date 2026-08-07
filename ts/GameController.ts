@@ -1,8 +1,10 @@
 import { Coordinates } from "./Coordinates.js";
+import { HIGHLAND_AREA } from "./Area.js";
 import { Effects } from "./Effects.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
 import type { MapState } from "./Map.js";
+import { View } from "./View.js";
 
 interface SmoothedLocation {
     latitude: number;
@@ -115,7 +117,7 @@ export class GameController {
             return;
         }
 
-        this.setGpsStatus("Finding location…", "waiting");
+        this.setGpsStatus("Finding location.", "waiting");
         navigator.geolocation.watchPosition(
             location => this.acceptGpsLocation(location),
             error => this.showGpsError(error),
@@ -229,12 +231,23 @@ export class GameController {
         }
 
         const previousCoordinates = this.state.coordinates;
+        if (this.inventory.getAreaId() === HIGHLAND_AREA
+            && this.map.isWallAt(coordinates)
+        ) {
+            this.map.show({});
+            View.setMessage(
+                this.messageBox,
+                "The mountain face is impassable. Find another way around.",
+            );
+
+            return;
+        }
         if (this.inventory.getAreaId() !== 0 && this.map.isWallAt(coordinates)) {
             this.state.coordinates = coordinates;
             if (this.state.exploreMode) {
                 this.saveExploreCoordinates();
             }
-            Effects.showAreaCollapse(this.mapElement, coordinates.getSeed());
+            Effects.showAreaExplosion(this.mapElement, coordinates.getSeed());
             this.inventory.exitArea();
             this.state.selectedCoordinates = this.state.exploreMode ? coordinates : null;
             this.map.show({});
@@ -311,7 +324,7 @@ export class GameController {
 
     private showCurrentGpsStatus(): void {
         if (this.latestGpsAccuracy === null) {
-            this.setGpsStatus("Finding location…", "waiting");
+            this.setGpsStatus("Finding location.", "waiting");
 
             return;
         }

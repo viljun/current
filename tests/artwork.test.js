@@ -18,6 +18,13 @@ const DUNGEON_MONSTERS = [
     "ogre jailer", "basilisk", "minotaur", "vampire", "lich",
     "bone colossus", "abyssal knight", "dungeon dragon",
 ];
+const RIVER_FISH = [
+    "river trout",
+    "silver perch",
+    "northern pike",
+    "common carp",
+    "river eel",
+];
 
 function imageSignature(source) {
     const path = IMAGES_DIRECTORY + source;
@@ -46,6 +53,15 @@ test("all dungeon monsters use distinct, existing image content", () => {
     assert.equal(new Set(sources).size, sources.length);
     const signatures = sources.map(imageSignature);
     assert.equal(new Set(signatures).size, signatures.length);
+});
+
+test("all river fish use distinct, existing image content", () => {
+    const sources = RIVER_FISH.map(name =>
+        Image.getWithItemTypeName(name, 42, 12345).src
+    );
+    assert.equal(new Set(sources).size, RIVER_FISH.length);
+    const signatures = sources.map(imageSignature);
+    assert.equal(new Set(signatures).size, RIVER_FISH.length);
 });
 
 test("all vendor cats use distinct, existing image content", () => {

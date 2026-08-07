@@ -1,14 +1,18 @@
 import { Coordinates } from "./Coordinates.js";
+import { DungeonMap } from "./DungeonMap.js";
+import { HighlandMap } from "./HighlandMap.js";
+import { ItemExplanation } from "./ItemExplanation.js";
 import { ItemType }    from "./ItemType.js";
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { OriginArtwork } from "./OriginArtwork.js";
 import { ShopMap } from "./ShopMap.js";
+import { SurfaceMap } from "./SurfaceMap.js";
 import { View }        from './View.js';
 
 interface InventorySaveData {
     version: number;
-    quantities: Record<string, number>;
     usedCoordinates: Record<string, boolean>;
+    quantities?: Record<string, number>;
 }
 
 export interface ItemActionResult {
@@ -25,7 +29,7 @@ export interface ItemOrigin {
 
 export class Inventory {
     private static readonly STORAGE_KEY = "gpsgame.inventory";
-    private static readonly SAVE_VERSION = 1;
+    private static readonly SAVE_VERSION = 2;
     private static readonly REMOVED_ITEM_NAMES = [
         "body shop",
         "nature shop",
@@ -43,6 +47,18 @@ export class Inventory {
         "two-handed battle axe",
         "poleaxe",
         "masterwork greatsword",
+    ];
+    private static readonly TROLL_CRAFT_WEAPONS = [
+        "iron-spiked club",
+        "iron hand axe",
+        "arming sword",
+    ];
+    private static readonly TROLL_WEAPON_RAW_MATERIALS = [
+        "stick",
+        "stone",
+        "root",
+        "iron",
+        "hide",
     ];
     private static readonly DUNGEON_WEAPONS = [
         "bone knife",
@@ -65,6 +81,16 @@ export class Inventory {
         "royal claymore",
         "obsidian polearm",
         "dungeon-forged greatblade",
+    ];
+    private static readonly DUNGEON_MONSTERS = [
+        "bone rat", "cave bat", "giant spider", "plague beetle",
+        "crypt hound", "skeletal guard", "dungeon scavenger",
+        "goblin cutthroat", "tomb robber", "cave crawler", "ghoul",
+        "wight", "cultist", "armored skeleton", "brood spider",
+        "cave troll", "dungeon orc", "plague bearer", "stone sentinel",
+        "crypt knight", "banshee", "necromancer", "ogre jailer",
+        "basilisk", "minotaur", "vampire", "lich", "bone colossus",
+        "abyssal knight", "dungeon dragon",
     ];
     private static readonly STRONG_WEAPONS = [
         "sword",
@@ -108,22 +134,8 @@ export class Inventory {
     }
 
     // Returns text that describes inventory contents.
-    getText() {
-        const entries = this.entries();
-        if (entries.length === 0) {
-            return this.getProgressHint();
-        }
-
-        const items = entries.map(([name, quantity]) =>
-            View.getQuantityText(name, quantity),
-        );
-
-        const div = document.createElement("div");
-        div.className = "message inventory-status";
-        div.textContent = this.getProgressHint()
-            + " You have " + View.arrayToText(items) + ".";
-
-        return div;
+    getText(): string {
+        return this.getProgressHint();
     }
 
     getProgressHint(): string {
@@ -138,81 +150,134 @@ export class Inventory {
         if (!hasAnyWeapon) {
             return this.craftingHint(
                 "club",
-                "your first club",
-                "You have what you need—find a club and craft it now.",
+                "Craft a club now.",
             );
         }
         if (!this.has("yarrow")) {
-            return "Next: find a yarrow plant so you have health for your first fight.";
+            return "Find yarrow to increase your starting health in fights.";
+        }
+        if (this.quantity("yarrow") < 2 && !this.has("yarrow poultice")) {
+            return "Find one more yarrow to improve your starting health even further.";
+        }
+        if (!this.has("yarrow poultice") && !this.has("hay")) {
+            return "Gather one more yarrow and a hay to make a yarrow poultice.";
+        }
+        if (!this.has("yarrow poultice")) {
+            return "Find and craft a yarrow poultice to heal yourself during fights.";
         }
         const hasImprovedWeapon = this.has("stone axe")
             || this.has("iron-spiked club")
             || this.has("iron hand axe")
             || Inventory.STRONG_WEAPONS.some(itemName => this.has(itemName));
         if (!this.has("rat")) {
-            if (!this.has("torch")) {
-                return this.craftingHint(
-                    "torch",
-                    "a torch",
-                    "Materials ready—find a torch and craft it.",
-                );
+            if (!this.has("binding rope")) {
+                return this.bindingRopeHayHint()
+                    ?? "Find and craft a binding rope to capture a rat.";
             }
             if (!hasImprovedWeapon) {
-                return "Next: try fighting a rat. If you lose, gather more yarrow and craft a stone axe.";
+                return "Find and capture a rat to gain 10 coins and another attack.";
             }
             if (this.quantity("yarrow") < 5) {
-                return "Next: gather "
-                    + View.getQuantityText(
-                        "yarrow",
-                        5 - this.quantity("yarrow"),
-                    )
-                    + " before trying the rat again.";
+                return "Find "
+                    + (5 - this.quantity("yarrow"))
+                    + " more yarrow to raise your health before capturing a rat.";
             }
 
-            return "Next: find and fight a rat.";
+            return "Find and capture a rat to gain 10 coins and another attack.";
         }
         if (!hasImprovedWeapon) {
             return this.craftingHint(
                 "stone axe",
-                "a stone axe",
-                "Materials ready—find a stone axe and craft it.",
+                "Find and craft a stone axe to deal more damage.",
             );
         }
         if (!this.has("wooden shield") && !this.has("reinforced shield")) {
             return this.craftingHint(
                 "wooden shield",
-                "a wooden shield",
-                "Materials ready—find a wooden shield and craft it.",
+                "Find and craft a wooden shield to block incoming damage.",
             );
         }
         if (!Inventory.STRONG_WEAPONS.some(itemName => this.has(itemName))) {
+            if (!this.has("crucible")) {
+                const missingCrucibleMaterials = [
+                    {
+                        itemName: "stone",
+                        quantity: Math.max(0, 5 - this.quantity("stone")),
+                    },
+                    {
+                        itemName: "hay",
+                        quantity: Math.max(0, 1 - this.quantity("hay")),
+                    },
+                ].filter(change => change.quantity > 0);
+                if (missingCrucibleMaterials.length > 0) {
+                    return "Find " + View.arrayToText(
+                        missingCrucibleMaterials.map(change =>
+                            View.getQuantityText(
+                                change.itemName,
+                                change.quantity,
+                            )
+                        ),
+                    ) + " to craft a crucible for smelting iron.";
+                }
+
+                return "Find and craft a crucible to smelt iron.";
+            }
+            if (!this.has("furnace")) {
+                const missingFurnaceMaterials = [
+                    {
+                        itemName: "iron ore",
+                        current: this.quantity("iron ore"),
+                    },
+                    {
+                        itemName: "hay",
+                        current: this.quantity("hay"),
+                    },
+                ].map(material => ({
+                    ...material,
+                    missing: Math.max(0, 3 - material.current),
+                })).filter(material => material.missing > 0);
+                if (missingFurnaceMaterials.length > 0) {
+                    return "Find " + View.arrayToText(
+                        missingFurnaceMaterials.map(material =>
+                            material.missing
+                            + (material.current > 0 ? " more " : " ")
+                            + material.itemName
+                        ),
+                    ) + " to smelt iron.";
+                }
+                if (this.getAreaId() !== 1) {
+                    return "Find a dungeon entrance and descend to find a furnace for smelting iron.";
+                }
+
+                return "Find a furnace and smelt your iron ore into iron.";
+            }
+            if (this.getAreaId() === 1) {
+                return "Return to the surface, then find and craft a sword to deal more damage.";
+            }
+
             return this.craftingHint(
                 "sword",
-                "a sword; find iron in a shop or dungeon",
-                "Materials ready—find a sword and craft it.",
+                "Find and craft a sword to deal more damage.",
             );
         }
         if (!this.has("orc")) {
             if (this.quantity("yarrow") < 9) {
-                return "Next: gather "
-                    + View.getQuantityText(
-                        "yarrow",
-                        9 - this.quantity("yarrow"),
-                    )
-                    + " before challenging an orc.";
+                return "Find "
+                    + (9 - this.quantity("yarrow"))
+                    + " more yarrow to raise your health before capturing an orc.";
             }
-            if (this.quantity("torch") < 3) {
-                return "Next: carry 3 torches before challenging an orc.";
+            if (this.quantity("binding rope") < 2) {
+                return this.bindingRopeHayHint()
+                    ?? "Find 2 binding ropes to capture an orc.";
             }
 
-            return "Ready for the next challenge—find and fight an orc.";
+            return "Find and capture an orc to gain 50 coins and a hide.";
         }
         if (!this.has("troll")) {
             if (!this.has("reinforced shield")) {
                 return this.craftingHint(
                     "reinforced shield",
-                    "a reinforced shield",
-                    "Materials ready—find a reinforced shield and craft it.",
+                    "Find and craft a reinforced shield.",
                 );
             }
             const trollWeaponCount = [
@@ -225,39 +290,149 @@ export class Inventory {
                 0,
             );
             if (trollWeaponCount < 5) {
-                return "Next: craft more upgraded weapons for a troll ("
-                    + trollWeaponCount + " of 5 ready).";
+                return this.trollWeaponHint(trollWeaponCount);
             }
             if (this.quantity("yarrow") < 13) {
-                return "Next: gather "
-                    + View.getQuantityText(
-                        "yarrow",
-                        13 - this.quantity("yarrow"),
-                    )
-                    + " before challenging a troll.";
+                return "Find "
+                    + (13 - this.quantity("yarrow"))
+                    + " more yarrow to raise your health before capturing a troll.";
             }
-            if (this.quantity("torch") < 3) {
-                return "Next: carry 3 torches before challenging a troll.";
+            if (this.quantity("binding rope") < 3) {
+                return this.bindingRopeHayHint()
+                    ?? "Carry 3 binding ropes before capturing a troll.";
             }
 
-            return "Ready for a hard battle—find and fight a troll.";
+            return "Find and capture a troll to gain a club, iron, and hides.";
         }
-        if (this.getAreaId() !== 1) {
-            return "Next: find a dungeon entrance and explore underground.";
+        const hasDungeonMonster = Inventory.DUNGEON_MONSTERS.some(
+            itemName => this.has(itemName),
+        );
+        if (!hasDungeonMonster && this.getAreaId() !== 1) {
+            return "Find a dungeon entrance and descend to hunt dungeon monsters.";
         }
-        if (!this.has("grave dust")) {
-            return "Next: collect grave dust before fighting a dungeon monster.";
+        if (!hasDungeonMonster && !this.has("binding rope")) {
+            return this.bindingRopeHayHint()
+                ?? "Find and craft a binding rope before capturing dungeon monsters.";
         }
-        if (!Inventory.DUNGEON_WEAPONS.some(itemName => this.has(itemName))) {
-            return "Next: collect dungeon materials and craft your first dungeon weapon.";
+        if (!hasDungeonMonster
+            && !Inventory.DUNGEON_WEAPONS.some(itemName => this.has(itemName))
+        ) {
+            return "Collect dungeon materials and craft your first dungeon weapon.";
+        }
+        if (!hasDungeonMonster) {
+            return "Find and capture the weakest dungeon monster to gain dungeon materials.";
+        }
+        if (this.getAreaId() === 1) {
+            return "Return to the surface, then find a highland gate to enter the rugged realm.";
+        }
+        if (this.getAreaId() !== 3) {
+            return "Find a highland gate and enter the rugged realm.";
+        }
+        const spellCount = [
+            "spell of force",
+            "spell of mending",
+            "spell of warding",
+        ].filter(itemName => this.has(itemName)).length;
+        if (spellCount === 0) {
+            return "Find an enormous castle and search its passages for a magician who sells permanent spells.";
+        }
+        if (spellCount < 3) {
+            return "Search another castle for a different permanent spell.";
         }
 
-        return "Next: fight dungeon monsters from weakest upward and use their rewards for stronger weapons.";
+        return "Explore the highlands and strengthen your permanent spells.";
+    }
+
+    private bindingRopeHayHint(): string|null {
+        const missingHay = Math.max(0, 2 - this.quantity("hay"));
+        if (missingHay === 0) {
+            return null;
+        }
+
+        return "Get "
+            + (missingHay === 1 ? "a hay" : missingHay + " hay")
+            + " for a binding rope.";
+    }
+
+    private trollWeaponHint(currentWeaponCount: number): string {
+        let remaining = 5 - currentWeaponCount;
+        const targets: { itemName: string; quantity: number }[] = [];
+        for (const itemName of Inventory.TROLL_CRAFT_WEAPONS) {
+            const quantity = Math.min(
+                remaining,
+                Math.max(0, 3 - this.quantity(itemName)),
+            );
+            if (quantity > 0) {
+                targets.push({ itemName, quantity });
+                remaining -= quantity;
+            }
+            if (remaining === 0) {
+                break;
+            }
+        }
+
+        const available = { ...this.totalQuantities };
+        const missing: Record<string, number> = {};
+        const rawMaterials = new Set(
+            Inventory.TROLL_WEAPON_RAW_MATERIALS,
+        );
+        const requireItem = (itemName: string, quantity: number): void => {
+            const used = Math.min(available[itemName] ?? 0, quantity);
+            available[itemName] = (available[itemName] ?? 0) - used;
+            const required = quantity - used;
+            if (required === 0) {
+                return;
+            }
+            const ingredients = new ItemType(itemName).prizes()
+                .filter(change => change.quantity < 0);
+            if (rawMaterials.has(itemName) || ingredients.length === 0) {
+                missing[itemName] = (missing[itemName] ?? 0) + required;
+
+                return;
+            }
+            for (const ingredient of ingredients) {
+                requireItem(
+                    ingredient.itemType.name,
+                    -ingredient.quantity * required,
+                );
+            }
+        };
+        for (const target of targets) {
+            for (
+                const ingredient of new ItemType(target.itemName).prizes()
+                    .filter(change => change.quantity < 0)
+            ) {
+                requireItem(
+                    ingredient.itemType.name,
+                    -ingredient.quantity * target.quantity,
+                );
+            }
+        }
+
+        const targetText = View.arrayToText(targets.map(target =>
+            View.getQuantityText(target.itemName, target.quantity)
+        ));
+        const missingText = Inventory.TROLL_WEAPON_RAW_MATERIALS
+            .filter(itemName => (missing[itemName] ?? 0) > 0)
+            .map(itemName => {
+                const quantity = missing[itemName] ?? 0;
+
+                return itemName === "iron" && quantity === 1
+                    ? "1 iron"
+                    : View.getQuantityText(itemName, quantity);
+            });
+        const reason =
+            " Five upgraded weapons will prepare you to capture a troll.";
+        if (missingText.length > 0) {
+            return "Find " + View.arrayToText(missingText)
+                + " for " + targetText + "." + reason;
+        }
+
+        return "Find and craft " + targetText + "." + reason;
     }
 
     private craftingHint(
         actionName: string,
-        goal: string,
         readyText: string,
     ): string {
         const missing = new ItemType(actionName).prizes()
@@ -277,7 +452,8 @@ export class Inventory {
             View.getQuantityText(change.itemName, change.quantity)
         );
 
-        return "Next: find " + View.arrayToText(missingText) + " for " + goal + ".";
+        return "Find " + View.arrayToText(missingText)
+            + " to craft " + View.getQuantityText(actionName, 1) + ".";
     }
 
     private has(itemName: string): boolean {
@@ -301,6 +477,9 @@ export class Inventory {
         closeButton.className = "fight-close";
         closeButton.setAttribute("aria-label", "Close inventory");
         closeButton.onclick = () => dialog.close();
+        const header = document.createElement("header");
+        header.className = "dialog-header";
+        header.append(title, closeButton);
         const list = document.createElement("div");
         list.className = "inventory-list";
 
@@ -312,18 +491,49 @@ export class Inventory {
                 longitude: 0,
                 areaId: this.getAreaId(),
             };
-            item.append(OriginArtwork.create(
+            const header = document.createElement("header");
+            header.className = "inventory-entry-header";
+            const artwork = OriginArtwork.create(
                 name,
                 origin,
                 "inventory-entry-art",
-            ));
-            const label = document.createElement("strong");
-            label.textContent = View.getQuantityText(name, quantity);
-            item.append(label);
+            );
+            OriginArtwork.containSubject(
+                artwork,
+                "inventory-entry-art-subject-frame",
+            );
+            const identity = document.createElement("div");
+            identity.className = "inventory-entry-identity";
+            const label = document.createElement("h2");
+            label.className = "inventory-entry-name";
+            label.textContent = ItemExplanation.displayName(name);
+            const category = document.createElement("span");
+            category.className = "inventory-entry-category";
+            category.textContent = ItemExplanation.categoryFor(name);
+            identity.append(label, category);
+            const quantityBadge = document.createElement("span");
+            quantityBadge.className = "inventory-entry-quantity";
+            quantityBadge.textContent = "×" + quantity;
+            quantityBadge.setAttribute(
+                "aria-label",
+                "Quantity " + quantity,
+            );
+            header.append(artwork, identity, quantityBadge);
+            const explanation = ItemExplanation.element(
+                name,
+                origin.latitude,
+                origin.longitude,
+                origin.areaId,
+            );
+            explanation.classList.add("inventory-entry-description");
+            item.append(header, explanation);
             list.append(item);
         }
 
-        dialog.append(closeButton, title, list);
+        const content = document.createElement("div");
+        content.className = "dialog-content";
+        content.append(list);
+        dialog.append(header, content);
         dialog.addEventListener("close", () => dialog.remove(), { once: true });
         document.body.append(dialog);
         dialog.showModal();
@@ -348,11 +558,8 @@ export class Inventory {
 
     // Adds item in the given coordinates to inventory.
     takeItem(coordinates: Coordinates): ItemActionResult|null {
-        let seed = coordinates.getSeed();
         const areaId = this.getAreaId();
-        let itemType = areaId === 2 && ShopMap.isOutside(coordinates)
-            ? ItemType.getShopOutsideWithSeed(seed)
-            : ItemType.getWithSeed(seed, areaId);
+        let itemType = this.itemAtCoordinates(coordinates, areaId);
         if (itemType === null) {
             console.log("There's no item at " + this.coordinatesToString(coordinates));
 
@@ -371,10 +578,7 @@ export class Inventory {
         }
 
         this.usedCoordinates[coordinatesKey] = true;
-        const key = itemType.name;
-        this.quantities[key] ??= 0;
-        this.quantities[key]  += 1;
-        this.updateTotalQuantities();
+        this.reconstructQuantities();
         this.save();
         for (const listener of this.changeListeners) {
             listener();
@@ -403,35 +607,9 @@ export class Inventory {
                 return;
             }
 
-            this.quantities = { ...saveData.quantities };
-            let saveNeedsCleanup = false;
-            if (Object.prototype.hasOwnProperty.call(this.quantities, "heart")) {
-                const legacyHearts = this.quantities["heart"] ?? 0;
-                if (legacyHearts > 0) {
-                    this.quantities["yarrow"] =
-                        (this.quantities["yarrow"] ?? 0) + legacyHearts;
-                }
-                delete this.quantities["heart"];
-                saveNeedsCleanup = true;
-            }
-            if (Object.prototype.hasOwnProperty.call(this.quantities, "iron")) {
-                const legacySmelts = this.quantities["iron"] ?? 0;
-                if (legacySmelts > 0) {
-                    this.quantities["furnace"] =
-                        (this.quantities["furnace"] ?? 0) + legacySmelts;
-                }
-                delete this.quantities["iron"];
-                saveNeedsCleanup = true;
-            }
-            for (const name of Inventory.REMOVED_ITEM_NAMES) {
-                if (Object.prototype.hasOwnProperty.call(this.quantities, name)) {
-                    delete this.quantities[name];
-                    saveNeedsCleanup = true;
-                }
-            }
             this.usedCoordinates = { ...saveData.usedCoordinates };
-            this.updateTotalQuantities();
-            if (saveNeedsCleanup) {
+            this.reconstructQuantities();
+            if (saveData.version !== Inventory.SAVE_VERSION) {
                 this.save();
             }
         } catch (error) {
@@ -442,7 +620,6 @@ export class Inventory {
     private save(): void {
         const saveData: InventorySaveData = {
             version: Inventory.SAVE_VERSION,
-            quantities: this.quantities,
             usedCoordinates: this.usedCoordinates,
         };
 
@@ -459,14 +636,16 @@ export class Inventory {
         }
 
         const value = saveData as Record<string, unknown>;
-        if (value.version !== Inventory.SAVE_VERSION
-            || !this.isQuantityRecord(value.quantities)
-            || !this.isUsedCoordinatesRecord(value.usedCoordinates)
-        ) {
+        if (!this.isUsedCoordinatesRecord(value.usedCoordinates)) {
             return false;
         }
 
-        return true;
+        if (value.version === Inventory.SAVE_VERSION) {
+            return true;
+        }
+
+        return value.version === 1
+            && this.isQuantityRecord(value.quantities);
     }
 
     private isQuantityRecord(value: unknown): value is Record<string, number> {
@@ -497,14 +676,14 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = origin.areaId === 2 && ShopMap.isOutside(coordinates)
-                ? ItemType.getShopOutsideWithSeed(coordinates.getSeed())
-                : ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
+            const action = this.itemAtCoordinates(coordinates, origin.areaId);
             if (action === null) {
                 continue;
             }
 
-            this.addOrigins(origins, action.name, 1, origin);
+            if (!ItemType.isTransientAction(action.name)) {
+                this.addOrigins(origins, action.name, 1, origin);
+            }
             for (const change of action.prizes()) {
                 if (change.quantity > 0) {
                     this.addOrigins(origins, change.itemType.name, change.quantity, origin);
@@ -558,11 +737,14 @@ export class Inventory {
         this.totalQuantities = {};
         for (const [quantitiesKey, value] of Object.entries(this.quantities)) {
             // Copy value from general this.
-            if (!this.totalQuantities.hasOwnProperty(quantitiesKey)) {
-                this.totalQuantities[quantitiesKey] = 0;
+            if (!ItemType.isTransientAction(quantitiesKey)) {
+                if (!this.totalQuantities.hasOwnProperty(quantitiesKey)) {
+                    this.totalQuantities[quantitiesKey] = 0;
+                }
+                this.totalQuantities[quantitiesKey] ??= 0;
+                this.totalQuantities[quantitiesKey] +=
+                    this.quantities[quantitiesKey] ?? 0;
             }
-            this.totalQuantities[quantitiesKey] ??= 0;
-            this.totalQuantities[quantitiesKey] += this.quantities[quantitiesKey] ?? 0;
 
             // Add prizes.
             const itemType = new ItemType(quantitiesKey);
@@ -572,6 +754,29 @@ export class Inventory {
                 this.totalQuantities[itemTypeName] += prize.quantity * (this.quantities[quantitiesKey] ?? 0);
             }
         }
+    }
+
+    private reconstructQuantities(): void {
+        this.quantities = {};
+        for (const key of Object.keys(this.usedCoordinates)) {
+            const origin = this.parseOrigin(key);
+            if (origin === null) {
+                continue;
+            }
+            const coordinates = new Coordinates(
+                origin.latitude,
+                origin.longitude,
+            );
+            const action = this.itemAtCoordinates(coordinates, origin.areaId);
+            if (action === null
+                || Inventory.REMOVED_ITEM_NAMES.includes(action.name)
+            ) {
+                continue;
+            }
+            this.quantities[action.name] ??= 0;
+            this.quantities[action.name]!++;
+        }
+        this.updateTotalQuantities();
     }
 
     getAreaId(): number {
@@ -587,6 +792,8 @@ export class Inventory {
                 areaId = 1;
             } else if (action === "shop entrance") {
                 areaId = 2;
+            } else if (action === "highland gate") {
+                areaId = 3;
             }
         }
 
@@ -600,24 +807,40 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = origin.areaId === 2 && ShopMap.isOutside(coordinates)
-                ? ItemType.getShopOutsideWithSeed(coordinates.getSeed())
-                : ItemType.getWithSeed(coordinates.getSeed(), origin.areaId);
+            const action = this.itemAtCoordinates(coordinates, origin.areaId);
             if (action !== null && [
                 "dungeon entrance",
+                "highland gate",
                 "shop entrance",
                 "stairs up",
             ].includes(action.name)) {
                 delete this.usedCoordinates[key];
-                if ((this.quantities[action.name] ?? 0) > 0) {
-                    this.quantities[action.name]!--;
-                }
             }
         }
-        this.updateTotalQuantities();
+        this.reconstructQuantities();
         this.save();
         for (const listener of this.changeListeners) {
             listener();
         }
+    }
+
+    private itemAtCoordinates(
+        coordinates: Coordinates,
+        areaId: number,
+    ): ItemType|null {
+        if (areaId === 1) {
+            return DungeonMap.itemAt(coordinates);
+        }
+        if (areaId === 2 && ShopMap.isOutside(coordinates)) {
+            return ItemType.getShopOutsideWithSeed(coordinates.getSeed());
+        }
+        if (areaId === 3) {
+            return HighlandMap.itemAt(coordinates);
+        }
+        if (areaId === 0) {
+            return SurfaceMap.itemAt(coordinates);
+        }
+
+        return ItemType.getWithSeed(coordinates.getSeed(), areaId);
     }
 }

@@ -32,54 +32,64 @@ export class Effects {
         }
     }
     // Decorative only: collision has already exited the area when this starts.
-    static showAreaCollapse(map, seed) {
+    static showAreaExplosion(map, seed) {
         var _a;
         try {
+            const host = map.parentElement;
+            if (host === null) {
+                return;
+            }
+            (_a = host.querySelector(".area-explosion-effect")) === null || _a === void 0 ? void 0 : _a.remove();
+            map.classList.remove("area-explosion-map-burst");
             const overlay = document.createElement("div");
-            overlay.className = "area-collapse-effect";
-            overlay.style.gridTemplateColumns = getComputedStyle(map).gridTemplateColumns;
-            Array.from(map.children).forEach((cell, index) => {
-                const fragment = cell.cloneNode(true);
-                const signed = ((Math.abs(seed + index * 7919) % 201) - 100) / 100;
-                fragment.style.setProperty("--collapse-x", (signed * 55) + "px");
-                fragment.style.setProperty("--collapse-rotate", (((seed + index * 37) % 31) - 15) + "deg");
-                overlay.append(fragment);
-            });
-            (_a = map.parentElement) === null || _a === void 0 ? void 0 : _a.append(overlay);
-            window.setTimeout(() => overlay.remove(), 1250);
+            overlay.className = "area-explosion-effect";
+            overlay.setAttribute("aria-hidden", "true");
+            const direction = Effects.areaExplosionSeed(seed, 0, 0x1b873593) % 2 === 0 ? -1 : 1;
+            const turn = 1.4 + Effects.areaExplosionSeed(seed, 0, 0x85ebca6b) % 111 / 100;
+            overlay.style.setProperty("--collapse-turn", direction * turn + "deg");
+            overlay.style.setProperty("--collapse-counter-turn", direction * -7 + "deg");
+            map.style.setProperty("--collapse-turn", direction * turn + "deg");
+            map.style.setProperty("--collapse-kick-x", direction * 1.2 + "vmin");
+            map.style.setProperty("--collapse-kick-turn", direction * -0.8 + "deg");
+            for (const className of [
+                "area-explosion-flash",
+                "area-explosion-shockwave",
+                "area-explosion-dust",
+            ]) {
+                const layer = document.createElement("span");
+                layer.className = className;
+                overlay.append(layer);
+            }
+            host.append(overlay);
+            // Restarting this one compositor animation is far cheaper than
+            // cloning and animating every map cell.
+            void map.offsetWidth;
+            map.classList.add("area-explosion-map-burst");
+            window.setTimeout(() => {
+                if (!overlay.isConnected) {
+                    return;
+                }
+                map.classList.remove("area-explosion-map-burst");
+                map.style.removeProperty("--collapse-turn");
+                map.style.removeProperty("--collapse-kick-x");
+                map.style.removeProperty("--collapse-kick-turn");
+                overlay.remove();
+            }, 680);
         }
         catch (error) {
-            console.warn("Unable to show area collapse.", error);
+            console.warn("Unable to show area explosion.", error);
         }
     }
-    // Decorative only: the fight continues without waiting for this animation.
-    static showFightRound(board, remainingRounds) {
-        try {
-            const text = document.createElement("div");
-            text.className = "fight-round-effect";
-            text.textContent = String(remainingRounds);
-            text.setAttribute("aria-hidden", "true");
-            board.append(text);
-            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-            const duration = reducedMotion ? 850 : 2200;
-            const animation = text.animate([
-                { transform: "translate(-50%, -50%) scale(.08)", opacity: 0 },
-                { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: .35 },
-                { transform: "translate(-50%, -50%) scale(2.1)", opacity: .9, offset: .62 },
-                { transform: "translate(-50%, -50%) scale(5)", opacity: 0 },
-            ], {
-                duration,
-                easing: "cubic-bezier(.2,.75,.2,1)",
-                fill: "forwards",
-            });
-            const remove = () => text.remove();
-            animation.addEventListener("finish", remove, { once: true });
-            animation.addEventListener("cancel", remove, { once: true });
-            window.setTimeout(remove, duration + 150);
-        }
-        catch (error) {
-            console.warn("Unable to show round effect.", error);
-        }
+    static areaExplosionSeed(actionSeed, index, salt) {
+        let value = (actionSeed >>> 0)
+            ^ Math.imul(index + 1, 0x9e3779b1)
+            ^ salt;
+        value ^= value >>> 16;
+        value = Math.imul(value, 0x7feb352d);
+        value ^= value >>> 15;
+        value = Math.imul(value, 0x846ca68b);
+        value ^= value >>> 16;
+        return value >>> 0;
     }
     static showFightOutcome(board, outcome) {
         try {
@@ -90,13 +100,52 @@ export class Effects {
             text.setAttribute("role", "status");
             board.append(text);
             const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-            const duration = reducedMotion ? 2000 : 4000;
-            const animation = text.animate([
-                { transform: "translate(-50%, -50%) scale(.35)", opacity: 0 },
-                { transform: "translate(-50%, -50%) scale(1.12)", opacity: 1, offset: .3 },
-                { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: .78 },
-                { transform: "translate(-50%, -50%) scale(.92)", opacity: 0 },
-            ], {
+            const defeated = outcome === "Defeated";
+            const duration = reducedMotion
+                ? defeated ? 3000 : 2000
+                : defeated ? 5500 : 4000;
+            const keyframes = defeated
+                ? [
+                    {
+                        transform: "translate(-50%, -50%) scale(.3)",
+                        opacity: 0,
+                    },
+                    {
+                        transform: "translate(-50%, -50%) scale(1.45)",
+                        opacity: 1,
+                        offset: .28,
+                    },
+                    {
+                        transform: "translate(-50%, -50%) scale(1.25)",
+                        opacity: 1,
+                        offset: .82,
+                    },
+                    {
+                        transform: "translate(-50%, -50%) scale(1.12)",
+                        opacity: 0,
+                    },
+                ]
+                : [
+                    {
+                        transform: "translate(-50%, -50%) scale(.35)",
+                        opacity: 0,
+                    },
+                    {
+                        transform: "translate(-50%, -50%) scale(1.12)",
+                        opacity: 1,
+                        offset: .3,
+                    },
+                    {
+                        transform: "translate(-50%, -50%) scale(1)",
+                        opacity: 1,
+                        offset: .78,
+                    },
+                    {
+                        transform: "translate(-50%, -50%) scale(.92)",
+                        opacity: 0,
+                    },
+                ];
+            const animation = text.animate(keyframes, {
                 duration,
                 easing: "cubic-bezier(.2,.75,.2,1)",
                 fill: "forwards",
@@ -197,42 +246,100 @@ export class Effects {
         }
     }
     // Deals the rendered hand from the visible deck without blocking the battle.
-    static dealFightCards(deckElement, cardElements) {
+    static dealFightCards(cardElements, owner, round) {
         try {
+            cardElements.forEach((card, index) => {
+                const x = Effects.fightCardVariation(owner, round, index, "landing-x", 2.5);
+                const y = Effects.fightCardVariation(owner, round, index, "landing-y", 3);
+                const angle = Effects.fightCardVariation(owner, round, index, "landing-angle", 2.4);
+                card.style.translate = x.toFixed(2) + "px " + y.toFixed(2) + "px";
+                card.style.rotate = angle.toFixed(2) + "deg";
+                card.dataset.dealAngle = angle.toFixed(2);
+            });
             if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                return;
+            }
+            if (cardElements.length === 0) {
                 return;
             }
             cardElements.forEach(card => card.style.opacity = "0");
             window.requestAnimationFrame(() => {
-                var _a;
-                const firstCard = (_a = cardElements[0]) === null || _a === void 0 ? void 0 : _a.getBoundingClientRect();
-                if (firstCard !== undefined) {
-                    deckElement.style.width = firstCard.width + "px";
-                    deckElement.style.height = firstCard.height + "px";
-                }
-                const deck = deckElement.getBoundingClientRect();
-                deckElement.style.opacity = "1";
-                const entrance = deckElement.animate([
-                    { transform: "translateX(130%) scale(.55) rotate(16deg)", opacity: 0 },
-                    { transform: "translateX(0) scale(1.06) rotate(0deg)", opacity: 1, offset: .58 },
-                    { transform: "translateX(-7px) scale(1) rotate(-7deg)", opacity: 1, offset: .72 },
-                    { transform: "translateX(6px) scale(1) rotate(6deg)", opacity: 1, offset: .86 },
-                    { transform: "translateX(0) scale(1) rotate(0deg)", opacity: 1 },
+                var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+                const table = (_a = cardElements[0]) === null || _a === void 0 ? void 0 : _a.closest(".fight-table");
+                const targets = cardElements.map(card => card.getBoundingClientRect());
+                const handCenterX = targets.reduce((total, target) => total + target.left + target.width / 2, 0) / targets.length;
+                const handCenterY = targets.reduce((total, target) => total + target.top + target.height / 2, 0) / targets.length;
+                const deckWidth = (_e = (_c = (_b = cardElements[0]) === null || _b === void 0 ? void 0 : _b.offsetWidth) !== null && _c !== void 0 ? _c : (_d = targets[0]) === null || _d === void 0 ? void 0 : _d.width) !== null && _e !== void 0 ? _e : 0;
+                const deckHeight = (_j = (_g = (_f = cardElements[0]) === null || _f === void 0 ? void 0 : _f.offsetHeight) !== null && _g !== void 0 ? _g : (_h = targets[0]) === null || _h === void 0 ? void 0 : _h.height) !== null && _j !== void 0 ? _j : 0;
+                const chair = (_k = table === null || table === void 0 ? void 0 : table.closest(".fight-board")) === null || _k === void 0 ? void 0 : _k.querySelector(".fight-chair--" + owner);
+                const chairBounds = chair === null || chair === void 0 ? void 0 : chair.getBoundingClientRect();
+                const edgePadding = 12;
+                const sideGap = Math.max(8, Math.min(20, window.innerWidth * 0.02));
+                const minimumCenterX = edgePadding + deckWidth / 2;
+                const maximumCenterX = window.innerWidth
+                    - edgePadding - deckWidth / 2;
+                const preferredCenterX = chairBounds
+                    ? owner === "monster"
+                        ? chairBounds.left - sideGap - deckWidth / 2
+                        : chairBounds.right + sideGap + deckWidth / 2
+                    : handCenterX;
+                const deckCenterX = Math.max(minimumCenterX, Math.min(maximumCenterX, preferredCenterX));
+                const preferredCenterY = chairBounds
+                    ? chairBounds.top + chairBounds.height / 2
+                    : handCenterY;
+                const deckCenterY = Math.max(edgePadding + deckHeight / 2, Math.min(window.innerHeight - edgePadding - deckHeight / 2, preferredCenterY));
+                const deck = document.createElement("div");
+                deck.className = "effect-fight-deck effect-fight-deck--" + owner;
+                deck.setAttribute("aria-hidden", "true");
+                deck.style.left = deckCenterX - deckWidth / 2 + "px";
+                deck.style.top = deckCenterY - deckHeight / 2 + "px";
+                deck.style.width = deckWidth + "px";
+                deck.style.height = deckHeight + "px";
+                const host = (_l = table === null || table === void 0 ? void 0 : table.closest(".fight-overlay")) !== null && _l !== void 0 ? _l : document.body;
+                host.append(deck);
+                const deckAngle = Effects.fightCardVariation(owner, round, 0, "deck-angle", 4);
+                const flyInDuration = 240;
+                const dealerCenterX = window.innerWidth / 2;
+                const dealerCenterY = owner === "monster"
+                    ? -deckHeight / 2 - edgePadding
+                    : window.innerHeight + deckHeight / 2 + edgePadding;
+                const incomingX = dealerCenterX - deckCenterX;
+                const incomingY = dealerCenterY - deckCenterY;
+                const flyIn = deck.animate([
+                    {
+                        transform: "translate(" + incomingX + "px, "
+                            + incomingY + "px) rotate(" + -deckAngle * 2
+                            + "deg) scale(.78)",
+                        opacity: 0,
+                    },
+                    {
+                        transform: "translateY(0) rotate(" + deckAngle
+                            + "deg) scale(1)",
+                        opacity: 1,
+                    },
                 ], {
-                    duration: 520,
-                    easing: "cubic-bezier(.2,.8,.2,1)",
+                    duration: flyInDuration,
+                    easing: "cubic-bezier(.18,.82,.25,1)",
                     fill: "forwards",
                 });
+                const dealDelay = 65;
+                const dealDuration = 330;
                 cardElements.forEach((card, index) => {
-                    const target = card.getBoundingClientRect();
-                    const x = deck.left + deck.width / 2 - (target.left + target.width / 2);
-                    const y = deck.top + deck.height / 2 - (target.top + target.height / 2);
+                    var _a;
+                    const target = (_a = targets[index]) !== null && _a !== void 0 ? _a : card.getBoundingClientRect();
+                    const x = deckCenterX - (target.left + target.width / 2);
+                    const y = deckCenterY - (target.top + target.height / 2);
+                    const rotation = owner === "monster" ? -10 : 10;
                     const animation = card.animate([
-                        { transform: "translate(" + x + "px, " + y + "px) rotate(12deg) scale(.35)", opacity: 0 },
+                        {
+                            transform: "translate(" + x + "px, " + y
+                                + "px) rotate(" + rotation + "deg) scale(.82)",
+                            opacity: 1,
+                        },
                         { transform: "translate(0, 0) rotate(0deg) scale(1)", opacity: 1 },
                     ], {
-                        delay: 360 + index * 90,
-                        duration: 430,
+                        delay: flyInDuration + index * dealDelay,
+                        duration: dealDuration,
                         easing: "cubic-bezier(.2,.8,.2,1)",
                         fill: "forwards",
                     });
@@ -241,29 +348,36 @@ export class Effects {
                         animation.cancel();
                     };
                     animation.addEventListener("finish", finish, { once: true });
-                    window.setTimeout(finish, 1050 + index * 90);
+                    window.setTimeout(finish, flyInDuration + dealDuration + 140
+                        + index * dealDelay);
                 });
-                const lastCardDelay = Math.max(0, cardElements.length - 1) * 90;
-                const exitDelay = 790 + lastCardDelay;
+                const finalDealTime = flyInDuration + dealDuration
+                    + Math.max(0, cardElements.length - 1) * dealDelay;
                 window.setTimeout(() => {
-                    entrance.cancel();
-                    const exit = deckElement.animate([
-                        { transform: "translateX(0) scale(1) rotate(0deg)", opacity: 1 },
-                        { transform: "translateX(135%) scale(.45) rotate(18deg)", opacity: 0 },
+                    flyIn.cancel();
+                    const flyOut = deck.animate([
+                        {
+                            transform: "translate(0, 0) rotate(" + deckAngle
+                                + "deg) scale(1)",
+                            opacity: 1,
+                        },
+                        {
+                            transform: "translate(" + incomingX + "px, "
+                                + incomingY + "px) rotate("
+                                + (deckAngle + (owner === "monster" ? -18 : 18))
+                                + "deg) scale(.82)",
+                            opacity: 0,
+                        },
                     ], {
-                        duration: 340,
-                        easing: "cubic-bezier(.55,.05,.8,.25)",
+                        duration: 280,
+                        easing: "cubic-bezier(.55,.05,.82,.3)",
                         fill: "forwards",
                     });
-                    const hide = () => {
-                        deckElement.style.opacity = "";
-                        deckElement.style.width = "";
-                        deckElement.style.height = "";
-                        exit.cancel();
-                    };
-                    exit.addEventListener("finish", hide, { once: true });
-                    window.setTimeout(hide, 430);
-                }, exitDelay);
+                    const remove = () => deck.remove();
+                    flyOut.addEventListener("finish", remove, { once: true });
+                    flyOut.addEventListener("cancel", remove, { once: true });
+                    window.setTimeout(remove, 420);
+                }, finalDealTime);
             });
         }
         catch (error) {
@@ -277,47 +391,59 @@ export class Effects {
                 return;
             }
             cardElements.forEach((card, index) => {
-                var _a;
                 const bounds = card.getBoundingClientRect();
-                const startingOpacity = getComputedStyle(card).opacity;
+                const computed = getComputedStyle(card);
+                const startingOpacity = computed.opacity;
+                const startingRotation = computed.rotate === "none"
+                    ? 0
+                    : Number.parseFloat(computed.rotate) || 0;
+                const width = card.offsetWidth || bounds.width;
+                const height = card.offsetHeight || bounds.height;
+                const centerX = bounds.left + bounds.width / 2;
+                const centerY = bounds.top + bounds.height / 2;
                 const clone = card.cloneNode(true);
                 clone.classList.add("effect-fight-card");
-                clone.style.left = bounds.left + "px";
-                clone.style.top = bounds.top + "px";
-                clone.style.width = bounds.width + "px";
-                clone.style.height = bounds.height + "px";
-                clone.style.font = getComputedStyle(card).font;
-                clone.style.textAlign = getComputedStyle(card).textAlign;
+                clone.style.position = "fixed";
+                clone.style.left = centerX - width / 2 + "px";
+                clone.style.top = centerY - height / 2 + "px";
+                clone.style.width = width + "px";
+                clone.style.height = height + "px";
+                clone.style.font = computed.font;
+                clone.style.textAlign = computed.textAlign;
+                clone.style.translate = "none";
+                clone.style.rotate = "none";
+                clone.style.transform = "rotate(" + startingRotation + "deg)";
+                clone.style.opacity = startingOpacity;
                 clone.setAttribute("aria-hidden", "true");
-                const host = (_a = card.closest(".fight-overlay")) !== null && _a !== void 0 ? _a : document.body;
-                host.append(clone);
+                document.body.append(clone);
                 const direction = index % 2 === 0 ? -1 : 1;
                 const turns = 0.45 + (index % 5) * 0.4;
                 const rotation = direction * turns * 360;
                 const animation = clone.animate([
                     {
-                        transform: "translate(0, 0) rotate(0deg)",
+                        transform: "translate(0, 0) rotate("
+                            + startingRotation + "deg)",
                         opacity: startingOpacity,
                     },
                     {
                         transform: "translate("
                             + direction * (window.innerWidth + bounds.width)
                             + "px, " + (3 + index % 4) + "rem) rotate("
-                            + rotation + "deg)",
+                            + (startingRotation + rotation) + "deg)",
                         opacity: 0,
                     },
                 ], {
-                    delay: 380 + index * 45,
+                    delay: index * 45,
                     duration: 650,
                     easing: "cubic-bezier(.55,.05,.8,.25)",
                     fill: "forwards",
                 });
                 animation.addEventListener("finish", () => clone.remove(), { once: true });
                 animation.addEventListener("cancel", () => clone.remove(), { once: true });
-                window.setTimeout(() => clone.remove(), 1300);
+                window.setTimeout(() => clone.remove(), 950);
             });
             const lastDelay = Math.max(0, cardElements.length - 1) * 45;
-            await Effects.pause(1050 + lastDelay);
+            await Effects.pause(670 + lastDelay);
         }
         catch (error) {
             console.warn("Unable to sweep fight cards.", error);
@@ -348,6 +474,17 @@ export class Effects {
             x: sourceBounds ? sourceBounds.left + sourceBounds.width / 2 : window.innerWidth / 2,
             y: sourceBounds ? sourceBounds.top + sourceBounds.height / 2 : window.innerHeight / 2,
         };
+        const totalAnimationCount = visibleChanges.reduce((total, [, quantity]) => total + Math.min(quantity, Effects.MAX_ITEM_ANIMATIONS_PER_TYPE), 0);
+        const originSpread = totalAnimationCount > 1
+            ? {
+                x: sourceBounds
+                    ? Math.min(36, Math.max(10, sourceBounds.width * .36))
+                    : 22,
+                y: sourceBounds
+                    ? Math.min(36, Math.max(10, sourceBounds.height * .36))
+                    : 22,
+            }
+            : { x: 0, y: 0 };
         const inventoryBounds = (_b = document.getElementById("inventoryControl")) === null || _b === void 0 ? void 0 : _b.getBoundingClientRect();
         const target = {
             x: inventoryBounds
@@ -360,30 +497,38 @@ export class Effects {
         visibleChanges.forEach(([name, quantity], index) => {
             const animationCount = Math.min(quantity, Effects.MAX_ITEM_ANIMATIONS_PER_TYPE);
             for (let itemIndex = 0; itemIndex < animationCount; itemIndex++) {
-                Effects.floatItem(name, origin, itemIndex, index, type === "rare", actionSeed, target);
+                Effects.floatItem(name, origin, originSpread, itemIndex, index, type === "rare", actionSeed, target);
             }
         });
     }
-    static floatItem(itemName, origin, itemIndex, typeIndex, rare, actionSeed, target) {
+    static floatItem(itemName, origin, originSpread, itemIndex, typeIndex, rare, actionSeed, target) {
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const seed = Effects.flightSeed(actionSeed, itemName, itemIndex, typeIndex);
+        const startOffset = Effects.itemFlightStartOffset(actionSeed, itemName, itemIndex, typeIndex, originSpread.x, originSpread.y);
+        const start = {
+            x: origin.x + startOffset.x,
+            y: origin.y + startOffset.y,
+        };
         const item = document.createElement("img");
         item.className = "effect-item" + (rare ? " effect-item--rare" : "");
         item.src = "images/" + GameImage.getWithItemTypeName(itemName, 54, seed).src;
         item.alt = "";
-        item.style.left = origin.x + "px";
-        item.style.top = origin.y + "px";
+        item.style.left = start.x + "px";
+        item.style.top = start.y + "px";
         item.setAttribute("aria-hidden", "true");
         document.body.append(item);
-        const x = target.x - origin.x;
-        const y = target.y - origin.y;
+        const x = target.x - start.x;
+        const y = target.y - start.y;
         const distance = Math.max(1, Math.hypot(x, y));
         const perpendicularX = -y / distance;
         const perpendicularY = x / distance;
         const bend = reducedMotion
             ? 0
-            : ((seed % 201) - 100) / 100 * Math.min(220, 70 + distance * .22);
-        const lift = reducedMotion ? 0 : 35 + ((seed >>> 8) % 76);
+            : ((seed % 201) - 100) / 100
+                * Math.min(220, 70 + distance * .22) * .5;
+        const lift = reducedMotion
+            ? 0
+            : (35 + ((seed >>> 8) % 76)) * .5;
         const rotation = reducedMotion ? 0 : -140 + seed % 281;
         const delay = reducedMotion ? itemIndex * 4 : itemIndex * 12 + seed % 17;
         const duration = reducedMotion ? 380 : 850 + seed % 351;
@@ -423,6 +568,25 @@ export class Effects {
         animation.addEventListener("cancel", remove, { once: true });
         window.setTimeout(remove, delay + duration + 150);
     }
+    static itemFlightStartOffset(actionSeed, itemName, itemIndex, typeIndex, spreadX, spreadY) {
+        const angleSeed = Effects.flightStreamSeed(actionSeed, itemName, itemIndex, typeIndex, 0x6d2b79f5);
+        const radiusSeed = Effects.flightStreamSeed(actionSeed, itemName, itemIndex, typeIndex, 0x1b873593);
+        const angle = angleSeed / 4294967296 * Math.PI * 2;
+        const radius = Math.sqrt(radiusSeed / 4294967296);
+        return {
+            x: Math.cos(angle) * Math.max(0, spreadX) * radius,
+            y: Math.sin(angle) * Math.max(0, spreadY) * radius,
+        };
+    }
+    static flightStreamSeed(actionSeed, itemName, itemIndex, typeIndex, salt) {
+        let seed = Effects.flightSeed(actionSeed, itemName, itemIndex, typeIndex) ^ salt;
+        seed ^= seed >>> 16;
+        seed = Math.imul(seed, 0x7feb352d);
+        seed ^= seed >>> 15;
+        seed = Math.imul(seed, 0x846ca68b);
+        seed ^= seed >>> 16;
+        return seed >>> 0;
+    }
     static flightSeed(actionSeed, itemName, itemIndex, typeIndex) {
         let seed = actionSeed ^ Effects.stringSeed(itemName);
         seed ^= Math.imul(itemIndex + 1, 0x9e3779b1);
@@ -438,6 +602,29 @@ export class Effects {
             seed = (seed * 31 + value.charCodeAt(index)) >>> 0;
         }
         return seed;
+    }
+    static fightCardVariation(owner, round, index, stream, amplitude) {
+        let seed = Effects.stringSeed([
+            "fight-card-placement",
+            stream,
+            owner,
+            round,
+            index,
+        ].join(":"));
+        seed ^= seed >>> 16;
+        seed = Math.imul(seed, 0x7feb352d);
+        seed ^= seed >>> 15;
+        seed = Math.imul(seed, 0x846ca68b);
+        seed ^= seed >>> 16;
+        const normalized = (seed >>> 0) / 4294967295;
+        return (normalized * 2 - 1) * amplitude;
+    }
+    static monsterReadableAngle(cardId) {
+        const directionSeed = Effects.stringSeed("monster-reveal-direction:" + cardId);
+        const magnitudeSeed = Effects.stringSeed("monster-reveal-magnitude:" + cardId);
+        const direction = (directionSeed & 1) === 0 ? -1 : 1;
+        const magnitude = 2.5 + (magnitudeSeed % 201) / 100;
+        return 180 + direction * magnitude;
     }
     static async animateBlockingCard(sourceElement, card, monsterCard) {
         sourceElement.classList.add("fight-card--blocking");
@@ -472,8 +659,21 @@ export class Effects {
         movement.cancel();
     }
     static async flipMonsterCard(cardElement, card) {
+        var _a;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const halfDuration = reducedMotion ? 90 : 260;
+        const landingAngle = Number((_a = cardElement.dataset.dealAngle) !== null && _a !== void 0 ? _a : "0");
+        const readableAngle = Effects.monsterReadableAngle(card.id);
+        const turnDuration = halfDuration * 2;
+        const turn = cardElement.animate([
+            { rotate: landingAngle + "deg" },
+            { rotate: readableAngle + "deg" },
+        ], {
+            duration: turnDuration,
+            easing: "cubic-bezier(.2,.75,.25,1)",
+            fill: "forwards",
+        });
+        const turnFinished = Effects.animationFinished(turn, turnDuration);
         const hideBack = cardElement.animate([
             { transform: "rotateY(0deg)" },
             { transform: "rotateY(90deg)" },
@@ -484,7 +684,8 @@ export class Effects {
         });
         await Effects.animationFinished(hideBack, halfDuration);
         cardElement.className = "fight-card fight-monster-card";
-        cardElement.replaceChildren(...Effects.cardContents(card));
+        cardElement.title = card.title;
+        cardElement.replaceChildren(...Effects.cardContents(card, true));
         const showFront = cardElement.animate([
             { transform: "rotateY(-90deg)" },
             { transform: "rotateY(0deg)" },
@@ -493,9 +694,14 @@ export class Effects {
             easing: "ease-out",
             fill: "forwards",
         });
-        await Effects.animationFinished(showFront, halfDuration);
+        await Promise.all([
+            Effects.animationFinished(showFront, halfDuration),
+            turnFinished,
+        ]);
         hideBack.cancel();
         showFront.cancel();
+        cardElement.style.rotate = readableAngle + "deg";
+        turn.cancel();
     }
     static async animateShieldHits(effect, shieldArea, sourceCard) {
         var _a;
@@ -562,7 +768,7 @@ export class Effects {
         const x = target.x - (bounds.left + bounds.width / 2);
         const y = target.y - (bounds.top + bounds.height / 2);
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const duration = reducedMotion ? 180 : 650;
+        const duration = reducedMotion ? 100 : 340;
         const seedText = ((_a = sourceCard === null || sourceCard === void 0 ? void 0 : sourceCard.dataset.cardId) !== null && _a !== void 0 ? _a : "card")
             + ":" + ((_d = (_c = (_b = impactBadge === null || impactBadge === void 0 ? void 0 : impactBadge.closest("[data-shield-id]")) === null || _b === void 0 ? void 0 : _b.dataset.shieldId) !== null && _c !== void 0 ? _c : impactBadge === null || impactBadge === void 0 ? void 0 : impactBadge.className) !== null && _d !== void 0 ? _d : "target")
             + ":" + type + ":" + amount;
@@ -575,30 +781,40 @@ export class Effects {
             ? 0
             : direction * Math.min(145, 38 + distance * .3)
                 * (.72 + ((seed >>> 8) % 57) / 100);
-        const swing = reducedMotion
-            ? 0
-            : -direction * (14 + ((seed >>> 16) % 39));
         const rotation = reducedMotion ? 0 : direction * (18 + seed % 39);
-        const progressPoints = reducedMotion
-            ? [0, 1]
-            : [0, .1, .22, .36, .5, .64, .76, .86, .94, 1];
+        const control1 = {
+            x: x * .18 + perpendicularX * bend,
+            y: y * .18 + perpendicularY * bend,
+        };
+        const control2 = {
+            x: x * .82 + perpendicularX * bend * .72,
+            y: y * .82 + perpendicularY * bend * .72,
+        };
+        const pointCount = reducedMotion ? 2 : 49;
+        const progressPoints = Array.from({ length: pointCount }, (_, index) => index / (pointCount - 1));
         const flight = progressPoints.map(progress => {
-            const curve = Math.sin(Math.PI * progress) * bend
-                + Math.sin(2 * Math.PI * progress) * swing;
-            const translateX = x * progress + perpendicularX * curve;
-            const translateY = y * progress + perpendicularY * curve;
+            const remaining = 1 - progress;
+            const translateX = 3 * remaining * remaining * progress * control1.x
+                + 3 * remaining * progress * progress * control2.x
+                + progress * progress * progress * x;
+            const translateY = 3 * remaining * remaining * progress * control1.y
+                + 3 * remaining * progress * progress * control2.y
+                + progress * progress * progress * y;
             const scale = 1 + 1.55 * progress;
+            const opacity = progress < .82
+                ? 1
+                : Math.max(0, 1 - (progress - .82) / .18);
             return {
                 transform: "translate(" + translateX + "px, "
                     + translateY + "px) scale(" + scale + ") rotate("
                     + rotation * progress + "deg)",
-                opacity: progress === 1 ? 0 : 1,
+                opacity,
                 offset: progress,
             };
         });
         const animation = badge.animate(flight, {
             duration,
-            easing: reducedMotion ? "linear" : "cubic-bezier(.16,.82,.25,1)",
+            easing: "linear",
             fill: "forwards",
         });
         await Effects.animationFinished(animation, duration);
@@ -763,7 +979,9 @@ export class Effects {
     }
     static createCardArtwork(card) {
         if (card.origin !== null) {
-            return OriginArtwork.create(card.itemName, card.origin, "fight-card-art");
+            const artwork = OriginArtwork.create(card.itemName, card.origin, "fight-card-art");
+            OriginArtwork.containSubject(artwork, "fight-card-art-subject-frame");
+            return artwork;
         }
         const artwork = document.createElement("div");
         artwork.className = "fight-card-art fight-card-art--empty";
@@ -782,12 +1000,22 @@ export class Effects {
         icon.setAttribute("aria-label", amount + " " + label);
         container.append(icon);
     }
-    static cardContents(card) {
-        return [
+    static cardContents(card, monsterCard = false) {
+        const name = Effects.textElement("strong", card.title);
+        name.className = "fight-card-name";
+        name.title = card.title;
+        const contents = [
             Effects.createCardArtwork(card),
-            Effects.textElement("strong", card.title),
+            name,
             Effects.createCardEffectIcons(card),
         ];
+        if (!monsterCard) {
+            return contents;
+        }
+        const face = document.createElement("div");
+        face.className = "fight-monster-card-face";
+        face.append(...contents);
+        return [face];
     }
     static textElement(tag, content) {
         const element = document.createElement(tag);
@@ -874,8 +1102,10 @@ Effects.CRAFT_ITEMS = new Set([
     "armorer's bench",
     "arming sword",
     "bearded battle axe",
+    "binding rope",
     "club",
     "crucible",
+    "campfire",
     "flanged mace",
     "furnace",
     "iron hand axe",
@@ -924,10 +1154,12 @@ Effects.CRAFT_ITEMS = new Set([
     "nail reforging",
     "tile knapping",
     "moss brewing",
+    "mushroom mixing",
 ]);
 Effects.RARE_ITEMS = new Set([
     "chest",
     "dungeon entrance",
+    "highland gate",
     "shop entrance",
     "treasure",
 ]);

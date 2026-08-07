@@ -3,11 +3,26 @@ export const ITEM_TAKING_RANGE = 1;
 
 import { Coordinates }    from "./Coordinates.js";
 import { DungeonMap }     from "./DungeonMap.js";
+import { HighlandMap }    from "./HighlandMap.js";
+import { EncounterCard }  from "./EncounterCard.js";
+import { EncounterText }  from "./EncounterText.js";
 import { ShopMap }        from "./ShopMap.js";
-import { DUNGEON_AREA, SHOP_AREA, SURFACE_AREA } from "./Area.js";
+import {
+    SurfaceMap,
+    type SurfaceRiverCell,
+    type SurfaceRoadCell,
+    type SurfaceRoadVisual,
+} from "./SurfaceMap.js";
+import {
+    DUNGEON_AREA,
+    HIGHLAND_AREA,
+    SHOP_AREA,
+    SURFACE_AREA,
+} from "./Area.js";
 import { FightMonsterButton } from "./FightMonsterButton.js";
 import { Image }          from "./Image.js";
 import { Inventory }      from "./Inventory.js";
+import { ItemExplanation } from "./ItemExplanation.js";
 import { ItemTaking }     from "./ItemTaking.js";
 import { ItemType }       from "./ItemType.js";
 import { TakeItemButton } from "./TakeItemButton.js";
@@ -20,6 +35,35 @@ export interface MapState {
 }
 
 export class Map {
+    private static readonly PROGRESS_ITEM_NAMES = [
+        "yarrow poultice",
+        "reinforced shield",
+        "wooden shield",
+        "iron-spiked club",
+        "iron hand axe",
+        "arming sword",
+        "binding rope",
+        "dungeon entrance",
+        "highland gate",
+        "stone axe",
+        "iron ore",
+        "crucible",
+        "furnace",
+        "coin",
+        "hide",
+        "sword",
+        "club",
+        "yarrow",
+        "stone",
+        "stick",
+        "root",
+        "hay",
+        "iron",
+        "rat",
+        "orc",
+        "troll",
+    ] as const;
+
     slidingAnimationInProgress: boolean = false;
     interactionLocked: boolean = false;
     private catFacingX = 1;
@@ -94,13 +138,17 @@ export class Map {
             style = "background-image: url(images/seamless-sand-light-beach-square-texture-39125213.jpg);";
         } else if (areaId === SHOP_AREA) {
             style = "background-image: url(images/dirt2.png);";
+        } else if (areaId === HIGHLAND_AREA) {
+            style = "background-color:#263126;"
+                + "background-image:url(images/highland-jungle-floor-medieval-photoreal-v1.png);";
         } else {
             style = "background-image: url(images/dirt2.png);";
         }
         this.map.setAttribute("style", style);
 
         // Inventory is the default whenever the selected location has no action.
-        View.setMessage(this.messageBox, this.inventory.getText());
+        EncounterCard.clear();
+        View.setMessage(this.messageBox, this.progressStatusElement());
 
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
@@ -110,6 +158,25 @@ export class Map {
                     this.state.coordinates.longitude + (y - (this.rows + 1) / 2)
                 );
                 const seed = cell_coordinates.getSeed();
+                const surfaceRiver = areaId === SURFACE_AREA
+                    ? SurfaceMap.riverAt(cell_coordinates)
+                    : null;
+                const surfaceRoad = areaId === SURFACE_AREA
+                    ? SurfaceMap.roadAt(cell_coordinates)
+                    : null;
+                const surfaceItem = areaId === SURFACE_AREA
+                    ? SurfaceMap.itemAt(cell_coordinates)
+                    : null;
+                const surfaceMilestone = areaId === SURFACE_AREA
+                    ? SurfaceMap.milestoneAt(cell_coordinates)
+                    : false;
+                const surfaceCrossing = areaId === SURFACE_AREA
+                    ? SurfaceMap.crossingAt(
+                        cell_coordinates,
+                        surfaceRoad,
+                        surfaceRiver,
+                    )
+                    : null;
 
                 let div = this.getCellElement(x, y, cell_coordinates);
 
@@ -126,11 +193,54 @@ export class Map {
                     ] = hasWall;
                 }
                 if (areaId === DUNGEON_AREA) {
+                    const feature = DungeonMap.featureAt(cell_coordinates);
+                    if (feature !== null) {
+                        div.classList.add(
+                            "dungeon-feature",
+                            "dungeon-feature--"
+                                + feature.kind.replace(/ /g, "-"),
+                        );
+                        div.dataset.dungeonArea =
+                            DungeonMap.featureTitleAt(cell_coordinates) ?? "";
+                    }
                     if (hasWall) {
                         div.append(Image.getWithItemTypeName("road", this.tile_size, seed).element());
                         div.append(Image.getWithItemTypeName("dungeon wall", this.tile_size, seed).element());
                     } else {
-                        div.append(Image.getWithItemTypeName("dungeon floor", this.tile_size, seed).element());
+                        const terrain = DungeonMap.terrainAt(cell_coordinates);
+                        if (
+                            terrain === "dungeon moonwell water"
+                            || terrain === "dungeon wet floor"
+                            || terrain === "dungeon chapel floor"
+                            || terrain === "dungeon web floor"
+                        ) {
+                            this.decorateDungeonSoftTerrainCell(
+                                div,
+                                cell_coordinates,
+                                terrain,
+                            );
+                        } else {
+                            div.append(Image.getWithItemTypeName(
+                                terrain,
+                                this.tile_size,
+                                seed,
+                            ).element());
+                        }
+                        const decoration = DungeonMap.decorationAt(
+                            cell_coordinates,
+                        );
+                        if (decoration !== null) {
+                            const decorationElement =
+                                Image.getWithItemTypeName(
+                                    decoration,
+                                    this.tile_size,
+                                    seed,
+                                ).element();
+                            decorationElement.classList.add(
+                                "dungeon-decoration",
+                            );
+                            div.append(decorationElement);
+                        }
                     }
                 } else if (areaId === SHOP_AREA) {
                     const outside = ShopMap.isOutside(cell_coordinates);
@@ -173,31 +283,120 @@ export class Map {
                             }
                         }
                     }
+                } else if (areaId === HIGHLAND_AREA) {
+                    const castle = HighlandMap.castleAt(cell_coordinates);
+                    if (castle !== null) {
+                        div.classList.add("highland-castle");
+                        div.dataset.highlandArea =
+                            HighlandMap.castleTitleAt(cell_coordinates) ?? "";
+                    }
+                    div.append(Image.getWithItemTypeName(
+                        HighlandMap.terrainAt(cell_coordinates),
+                        this.tile_size,
+                        seed,
+                    ).element());
+                    const decoration = HighlandMap.decorationAt(
+                        cell_coordinates,
+                    );
+                    if (decoration !== null) {
+                        const decorationElement = Image.getWithItemTypeName(
+                            decoration,
+                            this.tile_size,
+                            seed,
+                        ).element();
+                        decorationElement.classList.add(
+                            "highland-decoration",
+                        );
+                        div.append(decorationElement);
+                    }
                 } else {
-                    // Sand.
-                    div.append(Image.getWithItemTypeName('sand', this.tile_size, seed).element());
-
-                    // // Grass.
-                    div.append(Image.getWithItemTypeName('grass', this.tile_size, seed).element());
-
-                    // Tree.
-                    if (!(seed % 21)) {
-                        div.append(Image.getWithItemTypeName('tree', this.tile_size, seed).element());
+                    if (surfaceRiver !== null) {
+                        this.decorateRiverCell(
+                            div,
+                            cell_coordinates,
+                            surfaceRiver,
+                        );
                     }
-
-                    // Rock formation.
-                    if (!(seed % 177)) {
-                        div.append(Image.getWithItemTypeName("rock formation", this.tile_size, seed).element());
+                    let roadVisual: SurfaceRoadVisual|null = null;
+                    if (surfaceRoad !== null) {
+                        roadVisual = this.decorateRoadCell(
+                            div,
+                            cell_coordinates,
+                            surfaceRoad,
+                        );
                     }
+                    if (surfaceRiver === null && surfaceRoad === null) {
+                        // Sand.
+                        div.append(Image.getWithItemTypeName('sand', this.tile_size, seed).element());
 
-                    // Big rock.
-                    if (!(seed % 997)) {
-                        div.append(Image.getWithItemTypeName("big rock", this.tile_size, seed).element());
+                        // Grass.
+                        div.append(Image.getWithItemTypeName('grass', this.tile_size, seed).element());
+
+                        if (
+                            surfaceItem?.name !== "campfire"
+                            && !surfaceMilestone
+                        ) {
+                            // Tree.
+                            if (!(seed % 21)) {
+                                div.append(Image.getWithItemTypeName('tree', this.tile_size, seed).element());
+                            }
+
+                            // Rock formation.
+                            if (!(seed % 177)) {
+                                div.append(Image.getWithItemTypeName("rock formation", this.tile_size, seed).element());
+                            }
+
+                            // Big rock.
+                            if (!(seed % 997)) {
+                                div.append(Image.getWithItemTypeName("big rock", this.tile_size, seed).element());
+                            }
+
+                            // Cloud.
+                            if (!(seed % 99)) {
+                                div.append(Image.getWithItemTypeName("cloud", this.tile_size, seed).element());
+                            }
+                        }
+                    } else if (roadVisual !== null) {
+                        this.decorateRoadGrass(
+                            div,
+                            seed,
+                            roadVisual,
+                        );
+                        if (!(seed % 99)) {
+                            div.append(Image.getWithItemTypeName(
+                                "cloud",
+                                this.tile_size,
+                                seed,
+                            ).element());
+                        }
                     }
-
-                    // Cloud.
-                    if (!(seed % 99)) {
-                        div.append(Image.getWithItemTypeName("cloud", this.tile_size, seed).element());
+                    if (surfaceCrossing !== null) {
+                        div.classList.add(
+                            "surface-road-crossing",
+                            "surface-road-crossing--"
+                                + surfaceCrossing.kind,
+                        );
+                        if (surfaceCrossing.bridgeAnchor) {
+                            const bridge = Image.getWithItemTypeName(
+                                "surface road bridge",
+                                this.tile_size,
+                                seed,
+                            ).element();
+                            bridge.classList.add("surface-road-bridge");
+                            bridge.style.transform = "rotate("
+                                + surfaceCrossing.rotationDegrees
+                                + "deg)";
+                            div.append(bridge);
+                        }
+                    }
+                    if (surfaceMilestone) {
+                        const milestone = Image.getWithItemTypeName(
+                            "surface road milestone",
+                            this.tile_size,
+                            seed,
+                        ).element();
+                        milestone.classList.add("surface-road-milestone");
+                        div.append(milestone);
                     }
                 }
 
@@ -206,9 +405,35 @@ export class Map {
                     && ShopMap.isOutside(cell_coordinates);
                 let itemType = hasWall
                     ? null
+                    : areaId === SURFACE_AREA
+                        ? surfaceItem
                     : shopOutside
                         ? ItemType.getShopOutsideWithSeed(seed)
-                        : ItemType.getWithSeed(seed, areaId);
+                        : areaId === DUNGEON_AREA
+                            ? DungeonMap.itemAt(cell_coordinates)
+                            : areaId === HIGHLAND_AREA
+                                ? HighlandMap.itemAt(cell_coordinates)
+                            : ItemType.getWithSeed(seed, areaId);
+                if (areaId === DUNGEON_AREA
+                    && itemType !== null
+                    && dungeonMap !== null
+                    && !dungeonMap.allowsItemAt(
+                        x + dungeonMapExtraSize,
+                        y + dungeonMapExtraSize,
+                        itemType,
+                    )
+                ) {
+                    itemType = null;
+                }
+                if (areaId === HIGHLAND_AREA
+                    && itemType !== null
+                    && !HighlandMap.allowsItemAt(
+                        cell_coordinates,
+                        itemType,
+                    )
+                ) {
+                    itemType = null;
+                }
                 if (areaId === SHOP_AREA
                     && itemType?.name.startsWith("cat ")
                     && (
@@ -273,9 +498,50 @@ export class Map {
                                 ).element();
                             View.setMessage(this.messageBox, actionButton);
                         } else {
+                            const isEncounter = itemType.isMonster()
+                                || itemType.name.startsWith("cat ")
+                                || itemType.name.startsWith(
+                                    "magician selling ",
+                                );
+                            const identity = isEncounter
+                                ? EncounterText.for(
+                                    itemType.name,
+                                    selected_coordinates.latitude,
+                                    selected_coordinates.longitude,
+                                )
+                                : null;
+                            if (identity !== null) {
+                                EncounterCard.show(
+                                    identity.description,
+                                    itemType.isMonster()
+                                        ? ItemExplanation.element(
+                                            itemType.name,
+                                            selected_coordinates.latitude,
+                                            selected_coordinates.longitude,
+                                            areaId,
+                                        )
+                                        : "",
+                                    itemType.isMonster()
+                                        ? ItemExplanation.displayName(itemType.name)
+                                        : "",
+                                );
+                            }
+                            const action = itemType.name.startsWith("cat ")
+                                || itemType.name.startsWith(
+                                    "magician selling ",
+                                )
+                                    ? "trade"
+                                    : "take this " + itemType.name;
                             View.setMessage(
                                 this.messageBox,
-                                "Walk closer to take this " + itemType.name + ".",
+                                itemType.isMonster()
+                                    ? "Walk closer to capture "
+                                        + View.getQuantityText(itemType.name, 1)
+                                        + "."
+                                    : (identity === null
+                                        ? ""
+                                        : identity.name + " — ")
+                                        + "Walk closer to " + action + ".",
                             );
                         }
                     }
@@ -299,6 +565,105 @@ export class Map {
         if (previousCoordinates !== null) {
             this.slide({ previous_coordinates: previousCoordinates, tile_size: this.tile_size });
         }
+    }
+
+    static progressItemReferences(
+        text: string,
+    ): { start: number; length: number; itemName: string }[] {
+        const candidates: {
+            start: number;
+            length: number;
+            itemName: string;
+        }[] = [];
+        const lowerText = text.toLowerCase();
+        for (const itemName of Map.PROGRESS_ITEM_NAMES) {
+            const plural = View.getQuantityText(itemName, 2).replace(
+                /^2\s+/,
+                "",
+            );
+            const labels = Array.from(new Set([itemName, plural]));
+            for (const label of labels) {
+                let searchFrom = 0;
+                while (searchFrom < lowerText.length) {
+                    const start = lowerText.indexOf(label, searchFrom);
+                    if (start < 0) {
+                        break;
+                    }
+                    const before = lowerText[start - 1] ?? "";
+                    const after = lowerText[start + label.length] ?? "";
+                    if (
+                        !/[a-z]/.test(before)
+                        && !/[a-z]/.test(after)
+                    ) {
+                        candidates.push({
+                            start,
+                            length: label.length,
+                            itemName,
+                        });
+                    }
+                    searchFrom = start + label.length;
+                }
+            }
+        }
+        candidates.sort((first, second) =>
+            first.start - second.start
+                || second.length - first.length
+                || (first.itemName < second.itemName ? -1 : 1)
+        );
+        const references: typeof candidates = [];
+        for (const candidate of candidates) {
+            const previous = references[references.length - 1];
+            if (
+                previous === undefined
+                || candidate.start >= previous.start + previous.length
+            ) {
+                references.push(candidate);
+            }
+        }
+
+        return references;
+    }
+
+    private progressStatusElement(): HTMLDivElement {
+        const text = this.inventory.getText();
+        const status = document.createElement("div");
+        status.className = "message status-text";
+        status.title = text;
+        const references = Map.progressItemReferences(text);
+        let position = 0;
+        for (const reference of references) {
+            status.append(document.createTextNode(
+                text.slice(position, reference.start),
+            ));
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "status-item-link";
+            button.setAttribute("aria-controls", EncounterCard.ID);
+            button.setAttribute("aria-expanded", "false");
+            button.textContent = text.slice(
+                reference.start,
+                reference.start + reference.length,
+            );
+            button.setAttribute(
+                "aria-label",
+                "View details for "
+                    + ItemExplanation.displayName(reference.itemName),
+            );
+            button.onclick = () => EncounterCard.showItem(
+                reference.itemName,
+                {
+                    latitude: this.state.coordinates.latitude,
+                    longitude: this.state.coordinates.longitude,
+                    areaId: this.inventory.getAreaId(),
+                },
+                button,
+            );
+            status.append(button);
+            position = reference.start + reference.length;
+        }
+        status.append(document.createTextNode(text.slice(position)));
+
+        return status;
     }
 
     private animateCatVisual(cat: HTMLImageElement, image: Image): void {
@@ -349,12 +714,159 @@ export class Map {
         if (areaId === SHOP_AREA) {
             return ShopMap.hasWallAt(coordinates);
         }
+        if (areaId === HIGHLAND_AREA) {
+            return HighlandMap.hasWallAt(coordinates);
+        }
 
         return false;
     }
 
     private static coordinatesKey(coordinates: Coordinates): string {
         return coordinates.latitude + "," + coordinates.longitude;
+    }
+
+    private decorateDungeonSoftTerrainCell(
+        div: HTMLDivElement,
+        coordinates: Coordinates,
+        terrain:
+            | "dungeon moonwell water"
+            | "dungeon wet floor"
+            | "dungeon chapel floor"
+            | "dungeon web floor",
+    ): void {
+        const variants: Readonly<Record<typeof terrain, string>> = {
+            "dungeon moonwell water": "deep",
+            "dungeon wet floor": "shallow",
+            "dungeon chapel floor": "chapel-soil",
+            "dungeon web floor": "spider-soil",
+        };
+        const patch = document.createElement("span");
+        patch.className = "dungeon-soft-terrain-patch "
+            + "dungeon-soft-terrain-patch--" + variants[terrain];
+        const textureCells = terrain === "dungeon chapel floor"
+            || terrain === "dungeon web floor"
+            ? 8
+            : 10;
+        const textureSize = this.tile_size * textureCells;
+        const diameter = this.tile_size * 3;
+        const inset = (diameter - this.tile_size) / 2;
+        patch.style.width = diameter + "px";
+        patch.style.height = diameter + "px";
+        patch.style.marginLeft = -inset + "px";
+        patch.style.marginTop = -inset + "px";
+        patch.style.backgroundSize =
+            textureSize + "px " + textureSize + "px";
+        patch.style.backgroundPosition =
+            (
+                -Map.positiveModulo(
+                    coordinates.latitude,
+                    textureCells,
+                ) * this.tile_size + inset
+            ) + "px "
+            + (
+                -Map.positiveModulo(
+                    coordinates.longitude,
+                    textureCells,
+                ) * this.tile_size + inset
+            ) + "px";
+        patch.setAttribute("aria-hidden", "true");
+        div.append(patch);
+    }
+
+    private decorateRiverCell(
+        div: HTMLDivElement,
+        coordinates: Coordinates,
+        river: SurfaceRiverCell,
+    ): void {
+        div.classList.add(
+            "surface-river",
+            "surface-river--" + river.channel,
+        );
+        div.dataset.riverSystem = String(river.systemId);
+        const visual = SurfaceMap.riverVisualAt(coordinates, river);
+        const diameter = visual.diameterInTiles * this.tile_size;
+        const inset = (diameter - this.tile_size) / 2;
+        const textureSize = this.tile_size * 8;
+        div.style.setProperty("--surface-river-size", diameter + "px");
+        div.style.setProperty(
+            "--surface-river-rotation",
+            visual.rotationDegrees + "deg",
+        );
+        div.style.setProperty(
+            "--surface-river-texture-size",
+            textureSize + "px",
+        );
+        div.style.setProperty(
+            "--surface-river-texture-position",
+            visual.textureOffsetXInTiles * this.tile_size + inset + "px "
+                + (visual.textureOffsetYInTiles * this.tile_size + inset)
+                + "px",
+        );
+    }
+
+    private decorateRoadCell(
+        div: HTMLDivElement,
+        coordinates: Coordinates,
+        road: SurfaceRoadCell,
+    ): SurfaceRoadVisual {
+        div.classList.add(
+            "surface-road",
+            "surface-road--" + road.kind,
+            "surface-road-surface--" + road.surface,
+        );
+        div.dataset.roadRoute = String(road.routeId);
+        const visual = SurfaceMap.roadVisualAt(coordinates, road);
+        const diameter = visual.diameterInTiles * this.tile_size;
+        const inset = (diameter - this.tile_size) / 2;
+        const textureSize = this.tile_size * 8;
+        div.style.setProperty("--surface-road-size", diameter + "px");
+        div.style.setProperty(
+            "--surface-road-rotation",
+            visual.rotationDegrees + "deg",
+        );
+        div.style.setProperty(
+            "--surface-road-texture-size",
+            textureSize + "px",
+        );
+        div.style.setProperty(
+            "--surface-road-texture-position",
+            visual.textureOffsetXInTiles * this.tile_size + inset + "px "
+                + (visual.textureOffsetYInTiles * this.tile_size + inset)
+                + "px",
+        );
+
+        return visual;
+    }
+
+    private decorateRoadGrass(
+        div: HTMLDivElement,
+        seed: number,
+        visual: SurfaceRoadVisual,
+    ): void {
+        if (visual.grassOpacity <= 0) {
+            return;
+        }
+        const grass = Image.getWithItemTypeName(
+            "surface road grass",
+            this.tile_size,
+            seed,
+        ).element();
+        const dimension = visual.grassSizeInTiles * this.tile_size;
+        const margin = -(dimension - this.tile_size) / 2;
+        grass.classList.add("surface-road-grass");
+        grass.style.width = dimension + "px";
+        grass.style.height = dimension + "px";
+        grass.style.marginLeft = margin + "px";
+        grass.style.marginTop = margin + "px";
+        grass.style.opacity = String(visual.grassOpacity);
+        grass.style.transform = "rotate("
+            + visual.grassRotationDegrees
+            + "deg)";
+        div.append(grass);
+    }
+
+    private static positiveModulo(value: number, divisor: number): number {
+        return ((value % divisor) + divisor) % divisor;
     }
 
     private static shopOutsideDecoration(seed: number): string|null {

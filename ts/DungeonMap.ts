@@ -3,7 +3,42 @@ import { Coordinates as GameCoordinates } from "./Coordinates.js";
 import { DUNGEON_AREA } from "./Area.js";
 import { ItemType } from "./ItemType.js";
 
+export type DungeonFeatureKind =
+    | "moonwell"
+    | "sand vault"
+    | "gloamcap grove"
+    | "boneyard"
+    | "whispering bazaar"
+    | "ember forge"
+    | "black candle chapel"
+    | "spider nursery"
+    | "rootbound garden"
+    | "crystal hall";
+
+export interface DungeonFeature {
+    kind: DungeonFeatureKind;
+    centerLatitude: number;
+    centerLongitude: number;
+    radiusX: number;
+    radiusY: number;
+    rotated: boolean;
+    seed: number;
+}
+
 export class DungeonMap {
+    private static readonly FEATURE_CHUNK_SIZE = 24;
+    private static readonly FEATURE_KINDS: readonly DungeonFeatureKind[] = [
+        "moonwell",
+        "sand vault",
+        "gloamcap grove",
+        "boneyard",
+        "whispering bazaar",
+        "ember forge",
+        "black candle chapel",
+        "spider nursery",
+        "rootbound garden",
+        "crystal hall",
+    ];
     width:       number;
     height:      number;
     coordinates: Coordinates;
@@ -43,6 +78,10 @@ export class DungeonMap {
         // Removes checkerboard patterns.
         new_map = this.removeCheckerboardPatters(new_map);
 
+        // Carve large landmark rooms after smoothing so their silhouettes and
+        // corridor connections stay intact.
+        new_map = this.carveFeatureRooms(new_map);
+
         this.map = new_map;
     }
 
@@ -60,6 +99,9 @@ export class DungeonMap {
                 }
             }
         }
+        if (DungeonMap.isFeatureFloorAt(coordinates)) {
+            return false;
+        }
         let x = (220 + coordinates.latitude) / 8;
         let y = (220 + coordinates.longitude) / 8;
         x += Math.cos(x / 9) * Math.sin(y / 7);
@@ -68,6 +110,182 @@ export class DungeonMap {
         y *= Math.sin(Math.sin(x / 13) * Math.sin(y / 11));
 
         return Math.sin(x * .3 * y) + Math.cos(y * .3 * x) > .1;
+    }
+
+    static featureAt(coordinates: Coordinates): DungeonFeature|null {
+        const features = DungeonMap.nearbyFeatures(coordinates)
+            .filter(feature => DungeonMap.isInsideRoom(feature, coordinates))
+            .sort((first, second) => {
+                const distanceDifference =
+                    DungeonMap.featureDistance(first, coordinates)
+                    - DungeonMap.featureDistance(second, coordinates);
+                if (distanceDifference !== 0) {
+                    return distanceDifference;
+                }
+
+                return first.seed - second.seed;
+            });
+
+        return features[0] ?? null;
+    }
+
+    static featureTitleAt(coordinates: Coordinates): string|null {
+        const feature = DungeonMap.featureAt(coordinates);
+        if (feature === null) {
+            return null;
+        }
+        const titles: Readonly<Record<DungeonFeatureKind, string>> = {
+            moonwell: "Moonwell Grotto",
+            "sand vault": "Sunken Sand Vault",
+            "gloamcap grove": "Gloamcap Grove",
+            boneyard: "King's Boneyard",
+            "whispering bazaar": "Whispering Bazaar",
+            "ember forge": "Ember Forge",
+            "black candle chapel": "Black Candle Chapel",
+            "spider nursery": "Spider Nursery",
+            "rootbound garden": "Rootbound Garden",
+            "crystal hall": "Echoing Crystal Hall",
+        };
+
+        return titles[feature.kind];
+    }
+
+    static terrainAt(coordinates: Coordinates): string {
+        const feature = DungeonMap.featureAt(coordinates);
+        if (feature === null) {
+            return "dungeon floor";
+        }
+        const local = DungeonMap.localCoordinates(feature, coordinates);
+        if (feature.kind === "moonwell") {
+            const lakeDistance = Math.pow(
+                local.x / Math.max(1, feature.radiusX - 2),
+                2,
+            ) + Math.pow(
+                local.y / Math.max(1, feature.radiusY - 2),
+                2,
+            );
+
+            return lakeDistance <= .62
+                ? "dungeon moonwell water"
+                : "dungeon wet floor";
+        }
+        const terrain: Readonly<Record<
+            Exclude<DungeonFeatureKind, "moonwell">,
+            string
+        >> = {
+            "sand vault": "dungeon sand floor",
+            "gloamcap grove": "dungeon fungal floor",
+            boneyard: "dungeon bone floor",
+            "whispering bazaar": "dungeon bazaar floor",
+            "ember forge": "dungeon forge floor",
+            "black candle chapel": "dungeon chapel floor",
+            "spider nursery": "dungeon web floor",
+            "rootbound garden": "dungeon moss floor",
+            "crystal hall": "dungeon crystal floor",
+        };
+
+        return terrain[feature.kind];
+    }
+
+    static decorationAt(coordinates: Coordinates): string|null {
+        const feature = DungeonMap.featureAt(coordinates);
+        if (feature === null) {
+            return null;
+        }
+        const local = DungeonMap.localCoordinates(feature, coordinates);
+        const seed = DungeonMap.cellSeed(feature, coordinates, 0x51ed270b);
+        if (feature.kind === "moonwell") {
+            const lakeDistance = Math.pow(
+                local.x / Math.max(1, feature.radiusX - 2),
+                2,
+            ) + Math.pow(
+                local.y / Math.max(1, feature.radiusY - 2),
+                2,
+            );
+
+            return lakeDistance > .62 && seed % 257 === 0
+                ? "dungeon mineral cluster"
+                : null;
+        }
+        if (feature.kind === "sand vault") {
+            return seed % 17 === 0 ? "dungeon boneyard scatter" : null;
+        }
+        if (feature.kind === "gloamcap grove") {
+            return seed % 5 === 0 ? "dungeon mushroom cluster" : null;
+        }
+        if (feature.kind === "boneyard") {
+            return seed % 6 === 0 ? "dungeon boneyard scatter" : null;
+        }
+        if (feature.kind === "whispering bazaar") {
+            if ((local.x === -3 && local.y === -2)
+                || (local.x === 3 && local.y === 2)
+            ) {
+                return "shop table";
+            }
+
+            return null;
+        }
+        if (feature.kind === "ember forge") {
+            return seed % 11 === 0 ? "dungeon mineral cluster" : null;
+        }
+        if (feature.kind === "black candle chapel") {
+            return seed % 71 === 0 ? "dungeon candle shrine" : null;
+        }
+        if (feature.kind === "spider nursery") {
+            return seed % 7 === 0 ? "dungeon web tangle" : null;
+        }
+        if (feature.kind === "rootbound garden") {
+            return seed % 4 === 0 ? "dungeon root tangle" : null;
+        }
+
+        return seed % 6 === 0 ? "dungeon mineral cluster" : null;
+    }
+
+    static itemAt(coordinates: Coordinates): ItemType|null {
+        const baseItem = ItemType.getWithSeed(
+            coordinates.getSeed(),
+            DUNGEON_AREA,
+        );
+        if (baseItem?.name === "stairs up") {
+            return baseItem;
+        }
+        const feature = DungeonMap.featureAt(coordinates);
+        if (feature === null) {
+            return baseItem;
+        }
+        const specialItem = DungeonMap.featureItemAt(feature, coordinates);
+        if (specialItem !== null) {
+            return specialItem;
+        }
+        if (feature.kind === "moonwell"
+            && DungeonMap.terrainAt(coordinates) === "dungeon moonwell water"
+        ) {
+            return null;
+        }
+
+        return baseItem;
+    }
+
+    allowsItemAt(col: number, row: number, itemType: ItemType): boolean {
+        if (itemType.name === "stairs up") {
+            return true;
+        }
+        if (this.map[row]?.[col] ?? false) {
+            return false;
+        }
+
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                if (x === 0 && y === 0) {
+                    continue;
+                }
+                if (this.map[row + y]?.[col + x] ?? false) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private generate(): boolean[][] {
@@ -92,6 +310,338 @@ export class DungeonMap {
         }
 
         return dungeon_map;
+    }
+
+    private carveFeatureRooms(dungeonMap: boolean[][]): boolean[][] {
+        for (let col = 0; col <= this.width; col++) {
+            for (let row = 0; row <= this.height; row++) {
+                const coordinates = new GameCoordinates(
+                    this.coordinates.latitude + col,
+                    this.coordinates.longitude + row,
+                );
+                if (!DungeonMap.isFeatureFloorAt(coordinates)) {
+                    continue;
+                }
+                const dungeonRow = dungeonMap[row] ?? [];
+                dungeonRow[col] = false;
+                dungeonMap[row] = dungeonRow;
+            }
+        }
+
+        return dungeonMap;
+    }
+
+    private static featureItemAt(
+        feature: DungeonFeature,
+        coordinates: Coordinates,
+    ): ItemType|null {
+        const local = DungeonMap.localCoordinates(feature, coordinates);
+        const seed = DungeonMap.cellSeed(feature, coordinates, 0x68bc21eb);
+        const center = local.x === 0 && local.y === 0;
+        if (feature.kind === "moonwell") {
+            return local.x === feature.radiusX - 2 && local.y === 0
+                ? new ItemType("chest")
+                : null;
+        }
+        if (feature.kind === "sand vault") {
+            if (center) {
+                return new ItemType("chest");
+            }
+            if (seed % 13 === 0) {
+                return new ItemType("broken tile");
+            }
+            if (seed % 23 === 0) {
+                return new ItemType("ancient nail");
+            }
+
+            return null;
+        }
+        if (feature.kind === "gloamcap grove") {
+            if (center) {
+                return new ItemType("mushroom mixing");
+            }
+
+            return seed % 11 === 0
+                ? new ItemType("gloamcap mushroom")
+                : null;
+        }
+        if (feature.kind === "boneyard") {
+            if (center || seed % 19 === 0) {
+                return new ItemType(
+                    seed % 2 === 0 ? "skeletal guard" : "armored skeleton",
+                );
+            }
+
+            return seed % 9 === 0 ? new ItemType("bones") : null;
+        }
+        if (feature.kind === "whispering bazaar") {
+            if (center) {
+                return new ItemType("cat selling yarrow");
+            }
+            if (local.x === -3 && local.y === 0) {
+                return new ItemType("cat buying treasure");
+            }
+
+            return null;
+        }
+        if (feature.kind === "ember forge") {
+            if (center) {
+                return new ItemType("furnace");
+            }
+
+            return seed % 17 === 0 ? new ItemType("iron ore") : null;
+        }
+        if (feature.kind === "black candle chapel") {
+            if (center || seed % 29 === 0) {
+                return new ItemType("cultist");
+            }
+
+            return seed % 131 === 0 ? new ItemType("black candle") : null;
+        }
+        if (feature.kind === "spider nursery") {
+            if (center || seed % 23 === 0) {
+                return new ItemType(
+                    seed % 2 === 0 ? "giant spider" : "brood spider",
+                );
+            }
+
+            return seed % 9 === 0 ? new ItemType("spider silk") : null;
+        }
+        if (feature.kind === "rootbound garden") {
+            if (center) {
+                return new ItemType("moss brewing");
+            }
+            if (seed % 11 === 0) {
+                return new ItemType("dungeon moss");
+            }
+
+            return seed % 29 === 0 ? new ItemType("yarrow") : null;
+        }
+        if (center || seed % 31 === 0) {
+            return new ItemType("stone sentinel");
+        }
+        if (seed % 13 === 0) {
+            return new ItemType("iron ore");
+        }
+
+        return seed % 29 === 0 ? new ItemType("ancient nail") : null;
+    }
+
+    private static isFeatureFloorAt(coordinates: Coordinates): boolean {
+        return DungeonMap.nearbyFeatures(coordinates).some(feature => {
+            if (DungeonMap.isInsideRoom(feature, coordinates)) {
+                return true;
+            }
+            const local = DungeonMap.localCoordinates(feature, coordinates);
+            const horizontal = Math.abs(local.y) <= 1
+                && Math.abs(local.x) <= feature.radiusX + 6;
+            const vertical = Math.abs(local.x) <= 1
+                && Math.abs(local.y) <= feature.radiusY + 6;
+            const connectorMode = feature.seed % 3;
+
+            return connectorMode === 0
+                ? horizontal
+                : connectorMode === 1
+                    ? vertical
+                    : horizontal || vertical;
+        });
+    }
+
+    private static nearbyFeatures(
+        coordinates: Coordinates,
+    ): DungeonFeature[] {
+        const chunkLatitude = Math.floor(
+            coordinates.latitude / DungeonMap.FEATURE_CHUNK_SIZE,
+        );
+        const chunkLongitude = Math.floor(
+            coordinates.longitude / DungeonMap.FEATURE_CHUNK_SIZE,
+        );
+        const features: DungeonFeature[] = [];
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                const feature = DungeonMap.featureForChunk(
+                    chunkLatitude + x,
+                    chunkLongitude + y,
+                );
+                if (feature !== null) {
+                    features.push(feature);
+                }
+            }
+        }
+
+        return features;
+    }
+
+    private static featureForChunk(
+        chunkLatitude: number,
+        chunkLongitude: number,
+    ): DungeonFeature|null {
+        const presenceSeed = DungeonMap.hash(
+            chunkLatitude,
+            chunkLongitude,
+            0x243f6a88,
+        );
+        if (presenceSeed % 5 === 0) {
+            return null;
+        }
+        const kindSeed = DungeonMap.hash(
+            chunkLatitude,
+            chunkLongitude,
+            0x85a308d3,
+        );
+        const kind = DungeonMap.FEATURE_KINDS[
+            kindSeed % DungeonMap.FEATURE_KINDS.length
+        ];
+        if (kind === undefined) {
+            return null;
+        }
+        const centerXSeed = DungeonMap.hash(
+            chunkLatitude,
+            chunkLongitude,
+            0x13198a2e,
+        );
+        const centerYSeed = DungeonMap.hash(
+            chunkLatitude,
+            chunkLongitude,
+            0x03707344,
+        );
+        const sizeSeed = DungeonMap.hash(
+            chunkLatitude,
+            chunkLongitude,
+            0xa4093822,
+        );
+        const dimensions: Readonly<Record<
+            DungeonFeatureKind,
+            readonly [number, number]
+        >> = {
+            moonwell: [9, 7],
+            "sand vault": [10, 6],
+            "gloamcap grove": [7, 7],
+            boneyard: [10, 5],
+            "whispering bazaar": [7, 5],
+            "ember forge": [8, 5],
+            "black candle chapel": [7, 7],
+            "spider nursery": [8, 5],
+            "rootbound garden": [9, 7],
+            "crystal hall": [7, 6],
+        };
+        const [baseRadiusX, baseRadiusY] = dimensions[kind];
+
+        return {
+            kind,
+            centerLatitude:
+                chunkLatitude * DungeonMap.FEATURE_CHUNK_SIZE
+                + 5 + centerXSeed % 15,
+            centerLongitude:
+                chunkLongitude * DungeonMap.FEATURE_CHUNK_SIZE
+                + 5 + centerYSeed % 15,
+            radiusX: baseRadiusX + sizeSeed % 3,
+            radiusY: baseRadiusY + (sizeSeed >>> 8) % 3,
+            rotated: (sizeSeed & 1) === 1,
+            seed: DungeonMap.hash(
+                chunkLatitude,
+                chunkLongitude,
+                0x299f31d0,
+            ),
+        };
+    }
+
+    private static isInsideRoom(
+        feature: DungeonFeature,
+        coordinates: Coordinates,
+    ): boolean {
+        const local = DungeonMap.localCoordinates(feature, coordinates);
+        const absoluteX = Math.abs(local.x);
+        const absoluteY = Math.abs(local.y);
+        const normalizedX = absoluteX / feature.radiusX;
+        const normalizedY = absoluteY / feature.radiusY;
+        if (feature.kind === "sand vault"
+            || feature.kind === "crystal hall"
+        ) {
+            return normalizedX + normalizedY <= 1.08;
+        }
+        if (feature.kind === "boneyard") {
+            const capRadius = feature.radiusY;
+            const straightLength = Math.max(0, feature.radiusX - capRadius);
+            const capDistance = Math.hypot(
+                Math.max(0, absoluteX - straightLength),
+                absoluteY,
+            );
+
+            return capDistance <= capRadius;
+        }
+        if (feature.kind === "whispering bazaar") {
+            return Math.max(normalizedX, normalizedY)
+                + Math.min(normalizedX, normalizedY) * .35 <= 1.15;
+        }
+        if (feature.kind === "ember forge") {
+            return absoluteX <= feature.radiusX
+                && absoluteY <= feature.radiusY;
+        }
+        if (feature.kind === "black candle chapel") {
+            return (
+                absoluteX <= 2 && absoluteY <= feature.radiusY
+            ) || (
+                absoluteY <= 2 && absoluteX <= feature.radiusX
+            );
+        }
+        const irregularity = feature.kind === "gloamcap grove"
+            || feature.kind === "rootbound garden"
+            || feature.kind === "spider nursery"
+            ? Math.sin(
+                (coordinates.latitude + feature.seed % 17) * .83,
+            ) * Math.cos(
+                (coordinates.longitude - feature.seed % 23) * .71,
+            ) * .12
+            : 0;
+
+        return normalizedX * normalizedX
+            + normalizedY * normalizedY <= 1 + irregularity;
+    }
+
+    private static featureDistance(
+        feature: DungeonFeature,
+        coordinates: Coordinates,
+    ): number {
+        const local = DungeonMap.localCoordinates(feature, coordinates);
+
+        return Math.pow(local.x / feature.radiusX, 2)
+            + Math.pow(local.y / feature.radiusY, 2);
+    }
+
+    private static localCoordinates(
+        feature: DungeonFeature,
+        coordinates: Coordinates,
+    ): { x: number; y: number } {
+        const x = coordinates.latitude - feature.centerLatitude;
+        const y = coordinates.longitude - feature.centerLongitude;
+
+        return feature.rotated ? { x: y, y: -x } : { x, y };
+    }
+
+    private static cellSeed(
+        feature: DungeonFeature,
+        coordinates: Coordinates,
+        salt: number,
+    ): number {
+        return DungeonMap.hash(
+            coordinates.latitude ^ feature.seed,
+            coordinates.longitude + feature.seed,
+            salt,
+        );
+    }
+
+    private static hash(x: number, y: number, salt: number): number {
+        let value = Math.imul(x | 0, 0x1f123bb5)
+            ^ Math.imul(y | 0, 0x5f356495)
+            ^ salt;
+        value ^= value >>> 16;
+        value = Math.imul(value, 0x7feb352d);
+        value ^= value >>> 15;
+        value = Math.imul(value, 0x846ca68b);
+        value ^= value >>> 16;
+
+        return value >>> 0;
     }
 
     private isNearStairs(coordinates: Coordinates): boolean {

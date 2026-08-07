@@ -1,6 +1,5 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
 import type { ItemOrigin } from "./Inventory.js";
-import { ItemType } from "./ItemType.js";
 
 export interface CardDefinition {
     id: string;
@@ -9,7 +8,6 @@ export interface CardDefinition {
     damage: number;
     block: number;
     healing: number;
-    reusable: boolean;
     origin: ItemOrigin|null;
 }
 
@@ -37,6 +35,13 @@ export interface CardGameState {
     round: number;
     playerPlayedCount: number;
     monsterPlayedCount: number;
+    playerEnchantments: PlayerEnchantments;
+}
+
+export interface PlayerEnchantments {
+    damage: number;
+    healing: number;
+    block: number;
 }
 
 export interface CombatEffect {
@@ -64,87 +69,15 @@ export interface CardPlayResolution {
 }
 
 export class CardGame {
-    private static readonly CARDS_PER_ROUND = 3;
-    private static readonly ATTACK_CARD_LIMIT = 10;
-    private static readonly BLOCK_CARD_LIMIT = 3;
-    private static readonly HEALING_CARD_LIMIT = 3;
-    private static readonly OVERALL_CARD_LIMIT = 3;
-    private static readonly REUSABLE_ITEMS = new Set([
-        "wooden shield",
-        "reinforced shield",
-        "club",
-        "stone axe",
-        "sword",
-        "iron-spiked club",
-        "iron hand axe",
-        "flanged mace",
-        "bearded battle axe",
-        "arming sword",
-        "war hammer",
-        "longsword",
-        "two-handed battle axe",
-        "poleaxe",
-        "masterwork greatsword",
-        "poisoned masterwork greatsword",
-        "bone knife",
-        "spiked cudgel",
-        "iron dagger",
-        "falchion",
-        "morning star",
-        "war pick",
-        "heavy crossbow",
-        "zweihander",
-        "halberd",
-        "executioner's axe",
-        "estoc",
-        "bec de corbin",
-        "gothic mace",
-        "runed longsword",
-        "blacksteel glaive",
-        "relic warhammer",
-        "dragonbone axe",
-        "royal claymore",
-        "obsidian polearm",
-        "dungeon-forged greatblade",
-    ]);
-    private static readonly PORTABLE_CARD_EFFECTS:
-        Readonly<Record<string, readonly [number, number, number]>> = {
-        coin: [1, 0, 0],
-        hay: [0, 1, 0],
-        hide: [0, 2, 0],
-        iron: [2, 1, 0],
-        "padded hide": [0, 3, 0],
-        crucible: [1, 2, 0],
-        chest: [0, 3, 0],
-        treasure: [2, 1, 0],
-        calendula: [0, 0, 2],
-        chamomile: [0, 0, 2],
-        lavender: [0, 0, 2],
-        "red poppy": [0, 0, 2],
-        cornflower: [0, 0, 2],
-        bones: [1, 0, 0],
-        "cracked skull": [2, 0, 0],
-        "rusted chain": [0, 2, 0],
-        "grave dust": [1, 0, 0],
-        "bat wing": [0, 0, 1],
-        "spider silk": [0, 1, 0],
-        "black candle": [0, 0, 1],
-        "ancient nail": [2, 0, 0],
-        "broken tile": [2, 0, 0],
-        "dungeon moss": [0, 0, 2],
-    };
+    private static readonly CARDS_PER_ROUND = 2;
+    private static readonly HAND_SIZE = 4;
     private static readonly ITEM_QUALITY: Record<string, number> = {
-        pass: 0,
+        "bare fist": 1,
         "wooden shield": 4,
         "reinforced shield": 6,
-        stick: 1,
-        root: 1,
-        stone: 1.5,
         rat: 1.5,
-        torch: 2,
-        "iron ore": 2,
         club: 3,
-        yarrow: 3,
+        "yarrow poultice": 3,
         orc: 3.5,
         "stone axe": 4,
         sword: 5,
@@ -152,16 +85,11 @@ export class CardGame {
     };
     private static readonly CARD_TYPES: Record<
         string,
-        Omit<CardDefinition, "id"|"origin"|"reusable">
+        Omit<CardDefinition, "id"|"origin">
     > = {
-        pass:       { itemName: "pass",       title: "Pass",      damage: 0, block: 0, healing: 0 },
+        "bare fist": { itemName: "bare fist", title: "Bare Fist", damage: 1, block: 0, healing: 0 },
         "wooden shield": { itemName: "wooden shield", title: "Wooden shield", damage: 0, block: 4, healing: 0 },
         "reinforced shield": { itemName: "reinforced shield", title: "Reinforced shield", damage: 0, block: 6, healing: 0 },
-        stick:      { itemName: "stick",      title: "Stick",     damage: 1, block: 0, healing: 0 },
-        stone:      { itemName: "stone",      title: "Stone",     damage: 1, block: 0, healing: 0 },
-        root:       { itemName: "root",       title: "Root",      damage: 0, block: 0, healing: 1 },
-        torch:      { itemName: "torch",      title: "Torch",     damage: 2, block: 1, healing: 0 },
-        "iron ore": { itemName: "iron ore",   title: "Iron ore",  damage: 1, block: 1, healing: 0 },
         club:       { itemName: "club",       title: "Club",      damage: 3, block: 0, healing: 0 },
         "stone axe": { itemName: "stone axe", title: "Stone axe", damage: 4, block: 0, healing: 0 },
         sword:      { itemName: "sword",      title: "Sword",     damage: 6, block: 0, healing: 0 },
@@ -176,6 +104,7 @@ export class CardGame {
         poleaxe: { itemName: "poleaxe", title: "Poleaxe", damage: 12, block: 0, healing: 0 },
         "masterwork greatsword": { itemName: "masterwork greatsword", title: "Masterwork greatsword", damage: 14, block: 0, healing: 0 },
         "healing potion": { itemName: "healing potion", title: "Healing potion", damage: 0, block: 0, healing: 10 },
+        "river feast": { itemName: "river feast", title: "River feast", damage: 0, block: 0, healing: 7 },
         "poison potion": { itemName: "poison potion", title: "Poison potion", damage: 10, block: 0, healing: 0 },
         "poisoned masterwork greatsword": { itemName: "poisoned masterwork greatsword", title: "Poisoned masterwork greatsword", damage: 18, block: 0, healing: 0 },
         "bone knife": { itemName: "bone knife", title: "Bone knife", damage: 3, block: 0, healing: 0 },
@@ -198,7 +127,7 @@ export class CardGame {
         "royal claymore": { itemName: "royal claymore", title: "Royal claymore", damage: 20, block: 0, healing: 0 },
         "obsidian polearm": { itemName: "obsidian polearm", title: "Obsidian polearm", damage: 21, block: 0, healing: 0 },
         "dungeon-forged greatblade": { itemName: "dungeon-forged greatblade", title: "Dungeon-forged greatblade", damage: 22, block: 0, healing: 0 },
-        yarrow:     { itemName: "yarrow",     title: "Yarrow",    damage: 0, block: 0, healing: 3 },
+        "yarrow poultice": { itemName: "yarrow poultice", title: "Yarrow poultice", damage: 0, block: 0, healing: 3 },
         rat:        { itemName: "rat",        title: "Rat",       damage: 2, block: 0, healing: 0 },
         orc:        { itemName: "orc",        title: "Orc",       damage: 4, block: 2, healing: 0 },
         troll:      { itemName: "troll",      title: "Troll",     damage: 7, block: 2, healing: 0 },
@@ -207,30 +136,36 @@ export class CardGame {
     private readonly monster: MonsterDefinition;
     private readonly fightSeed: number;
     private readonly seedState: { value: number };
-    private readonly handSize: number;
     private readonly selectedDeck: CardDefinition[];
     private drawPile: CardDefinition[];
-    private reusablePlayedCards: CardDefinition[] = [];
-    private passCardIndex = 0;
+    private bareFistCardIndex = 0;
     private monsterHand: CardDefinition[] = [];
     private state: CardGameState;
+    private readonly playerEnchantments: PlayerEnchantments;
 
     constructor(
         monster: MonsterDefinition,
         inventory: Record<string, number>,
         seed: number,
-        requiredItemNames: string[],
         itemOrigins: Record<string, ItemOrigin[]>,
         playerHealth: number,
+        playerEnchantments: PlayerEnchantments = {
+            damage: 0,
+            healing: 0,
+            block: 0,
+        },
     ) {
         this.monster = monster;
         this.fightSeed = seed || 1;
         this.seedState = { value: this.fightSeed };
-        this.handSize = monster.handSize;
+        this.playerEnchantments = {
+            damage: Math.max(0, Math.floor(playerEnchantments.damage)),
+            healing: Math.max(0, Math.floor(playerEnchantments.healing)),
+            block: Math.max(0, Math.floor(playerEnchantments.block)),
+        };
         this.selectedDeck = this.buildDeck(
             inventory,
             itemOrigins,
-            requiredItemNames,
         );
         this.drawPile = this.selectedDeck.map(card => ({ ...card }));
         this.shuffle(this.drawPile);
@@ -249,9 +184,9 @@ export class CardGame {
             round: 1,
             playerPlayedCount: 0,
             monsterPlayedCount: 0,
+            playerEnchantments: { ...this.playerEnchantments },
         };
-        this.drawCards(this.handSize);
-        this.ensureRequiredCards(requiredItemNames);
+        this.drawCards(CardGame.HAND_SIZE);
         this.dealMonsterCards();
     }
 
@@ -293,6 +228,7 @@ export class CardGame {
             playerShields: this.state.playerShields.map(shield => ({ ...shield })),
             monsterShields: this.state.monsterShields.map(shield => ({ ...shield })),
             hand: this.state.hand.map(card => ({ ...card })),
+            playerEnchantments: { ...this.state.playerEnchantments },
         };
     }
 
@@ -302,6 +238,21 @@ export class CardGame {
 
     static playerHealthForYarrow(yarrowQuantity: number): number {
         return Math.max(0, Math.floor(yarrowQuantity));
+    }
+
+    static itemCardEffects(
+        itemName: string,
+    ): { damage: number; block: number; healing: number }|null {
+        const known = CardGame.CARD_TYPES[itemName];
+        if (known !== undefined) {
+            return {
+                damage: known.damage,
+                block: known.block,
+                healing: known.healing,
+            };
+        }
+
+        return null;
     }
 
     playPlayerCard(cardId: string): CardPlayResolution|null {
@@ -314,9 +265,6 @@ export class CardGame {
             return null;
         }
         this.state.hand.splice(cardIndex, 1);
-        if (card.reusable) {
-            this.reusablePlayedCards.push(card);
-        }
         this.state.playerPlayedCount++;
         const resolution = this.resolveCard("player", card);
         if (this.state.status === "playing") {
@@ -357,19 +305,13 @@ export class CardGame {
         if (this.state.status !== "playing" || this.state.phase !== "dealing") {
             return;
         }
-        this.drawPile.push(
-            ...this.state.hand.filter(card => card.itemName !== "pass"),
-            ...this.reusablePlayedCards,
-        );
-        this.reusablePlayedCards = [];
-        this.shuffle(this.drawPile);
         this.state.hand = [];
         this.state.playerShields = [];
         this.state.monsterShields = [];
         this.state.playerPlayedCount = 0;
         this.state.monsterPlayedCount = 0;
         this.state.round++;
-        this.drawCards(this.handSize);
+        this.drawCards(CardGame.HAND_SIZE);
         this.dealMonsterCards();
         this.state.phase = "player";
     }
@@ -536,10 +478,7 @@ export class CardGame {
 
     private dealMonsterCards(): void {
         this.monsterHand = [];
-        const cardRange = this.monster.maximumCards - this.monster.minimumCards + 1;
-        const cardCount = this.monster.minimumCards
-            + this.monsterCardHash("card-count") % cardRange;
-        for (let index = 0; index < cardCount; index++) {
+        for (let index = 0; index < CardGame.HAND_SIZE; index++) {
             const itemName = this.monsterCardItem(index);
             this.monsterHand.push(this.monsterCard(itemName, index));
         }
@@ -573,16 +512,16 @@ export class CardGame {
             roll -= choice.weight;
         }
 
-        return "pass";
+        return "bare fist";
     }
 
     private monsterCard(itemName: string, index: number): CardDefinition {
-        const cardType = CardGame.CARD_TYPES[itemName] ?? CardGame.CARD_TYPES.pass!;
+        const cardType = CardGame.CARD_TYPES[itemName]
+            ?? CardGame.CARD_TYPES["bare fist"]!;
         return {
             id: "monster-" + this.state.round + "-" + index,
             ...cardType,
-            reusable: false,
-            origin: itemName === "pass"
+            origin: itemName === "bare fist"
                 ? null
                 : this.monsterCardOrigin(itemName, index),
         };
@@ -700,203 +639,60 @@ export class CardGame {
     private buildDeck(
         inventory: Record<string, number>,
         itemOrigins: Record<string, ItemOrigin[]>,
-        requiredItemNames: string[],
     ): CardDefinition[] {
         const cards: CardDefinition[] = [];
         const inventoryEntries = Object.entries(inventory).sort(
             ([first], [second]) => first < second ? -1 : first > second ? 1 : 0,
         );
         for (const [itemName, quantity] of inventoryEntries) {
-            const cardType = CardGame.CARD_TYPES[itemName]
-                ?? this.portableCardType(itemName);
+            const cardType = CardGame.CARD_TYPES[itemName];
             if (cardType === undefined || quantity <= 0) {
                 continue;
             }
-            const copies = Math.min(Math.floor(quantity), 3);
+            const copies = Math.floor(quantity);
             for (let copy = 0; copy < copies; copy++) {
                 cards.push({
-                    ...cardType,
+                    ...this.enchant(cardType),
                     id: itemName + "-" + copy,
-                    reusable: CardGame.REUSABLE_ITEMS.has(itemName),
                     origin: itemOrigins[itemName]?.[copy] ?? null,
                 });
             }
         }
 
-        return this.selectBalancedDeck(cards, requiredItemNames);
-    }
-
-    private portableCardType(
-        itemName: string,
-    ): Omit<CardDefinition, "id"|"origin"|"reusable">|undefined {
-        if (!new ItemType(itemName).isPortableFightItem()) {
-            return undefined;
-        }
-        const monster = MonsterDefinition.get(itemName);
-        const effects = monster === null
-            ? CardGame.PORTABLE_CARD_EFFECTS[itemName] ?? [1, 0, 0]
-            : [
-                Math.max(1, Math.min(7, Math.round(monster.cardStrength))),
-                monster.cardStrength >= 3 ? 1 : 0,
-                0,
-            ] as const;
-
-        return {
-            itemName,
-            title: itemName.charAt(0).toUpperCase() + itemName.slice(1),
-            damage: effects[0],
-            block: effects[1],
-            healing: effects[2],
-        };
-    }
-
-    private selectBalancedDeck(
-        cards: CardDefinition[],
-        requiredItemNames: string[],
-    ): CardDefinition[] {
-        const selected: CardDefinition[] = [];
-        const selectedIds = new Set<string>();
-        const roleCounts = {
-            attack: 0,
-            block: 0,
-            healing: 0,
-            overall: 0,
-        };
-        type Role = keyof typeof roleCounts;
-        const addCard = (card: CardDefinition, role: Role): void => {
-            if (selectedIds.has(card.id)) {
-                return;
-            }
-            selected.push(card);
-            selectedIds.add(card.id);
-            roleCounts[role]++;
-        };
-        const takeBest = (
-            candidates: CardDefinition[],
-            role: Role,
-            limit: number,
-            score: (card: CardDefinition) => number,
-        ): void => {
-            const sorted = [...candidates].sort(
-                (first, second) =>
-                    score(second) - score(first)
-                    || this.totalCardValue(second) - this.totalCardValue(first)
-                    || (first.id < second.id ? -1 : first.id > second.id ? 1 : 0),
-            );
-            for (const card of sorted) {
-                if (roleCounts[role] >= limit) {
-                    break;
-                }
-                addCard(card, role);
-            }
-        };
-
-        const requiredNames = [...new Set(requiredItemNames)].sort();
-        for (const itemName of requiredNames) {
-            const card = cards.find(candidate => candidate.itemName === itemName);
-            if (card === undefined) {
-                continue;
-            }
-            const role: Role = card.damage > 0
-                ? "attack"
-                : card.block > 0
-                    ? "block"
-                    : card.healing > 0
-                        ? "healing"
-                        : "overall";
-            addCard(card, role);
-        }
-
-        takeBest(
-            cards.filter(card => card.damage > 0),
-            "attack",
-            CardGame.ATTACK_CARD_LIMIT,
-            card => card.damage,
-        );
-        takeBest(
-            cards.filter(card => card.block > 0),
-            "block",
-            CardGame.BLOCK_CARD_LIMIT,
-            card => card.block,
-        );
-        takeBest(
-            cards.filter(card => card.healing > 0),
-            "healing",
-            CardGame.HEALING_CARD_LIMIT,
-            card => card.healing,
-        );
-        takeBest(
-            cards,
-            "overall",
-            CardGame.OVERALL_CARD_LIMIT,
-            card => this.totalCardValue(card),
-        );
-
-        const targetSize = CardGame.ATTACK_CARD_LIMIT
-            + CardGame.BLOCK_CARD_LIMIT
-            + CardGame.HEALING_CARD_LIMIT
-            + CardGame.OVERALL_CARD_LIMIT;
-        const remaining = cards
-            .filter(card => !selectedIds.has(card.id))
-            .sort(
-                (first, second) =>
-                    this.totalCardValue(second) - this.totalCardValue(first)
-                    || (first.id < second.id ? -1 : first.id > second.id ? 1 : 0),
-            );
-        for (const card of remaining) {
-            if (selected.length >= targetSize) {
-                break;
-            }
-            selected.push(card);
-        }
-        while (selected.length < targetSize) {
-            selected.push(this.createPassCard());
-        }
-
-        return selected;
-    }
-
-    private totalCardValue(card: CardDefinition): number {
-        return card.damage + card.block + card.healing;
+        return cards;
     }
 
     private drawCards(quantity: number): void {
         while (this.state.hand.length < quantity) {
             this.state.hand.push(
-                this.drawPile.pop() ?? this.createPassCard(),
+                this.drawPile.pop() ?? this.createBareFistCard(),
             );
         }
     }
 
-    private createPassCard(): CardDefinition {
+    private createBareFistCard(): CardDefinition {
         return {
-            id: "pass-" + this.passCardIndex++,
-            ...CardGame.CARD_TYPES.pass!,
-            reusable: false,
+            id: "bare-fist-" + this.bareFistCardIndex++,
+            ...this.enchant(CardGame.CARD_TYPES["bare fist"]!),
             origin: null,
         };
     }
 
-    private ensureRequiredCards(requiredItemNames: string[]): void {
-        for (const itemName of requiredItemNames) {
-            if (this.state.hand.some(card => card.itemName === itemName)) {
-                continue;
-            }
-            const index = this.drawPile.findIndex(card => card.itemName === itemName);
-            if (index < 0) {
-                continue;
-            }
-            const requiredCard = this.drawPile.splice(index, 1)[0];
-            const replacedCard = this.state.hand.pop();
-            if (requiredCard !== undefined) {
-                this.state.hand.push(requiredCard);
-            }
-            if (replacedCard !== undefined) {
-                if (replacedCard.itemName !== "pass") {
-                    this.drawPile.push(replacedCard);
-                }
-            }
-        }
+    private enchant(
+        card: Omit<CardDefinition, "id"|"origin">,
+    ): Omit<CardDefinition, "id"|"origin"> {
+        return {
+            ...card,
+            damage: card.damage > 0
+                ? card.damage + this.playerEnchantments.damage
+                : 0,
+            healing: card.healing > 0
+                ? card.healing + this.playerEnchantments.healing
+                : 0,
+            block: card.block > 0
+                ? card.block + this.playerEnchantments.block
+                : 0,
+        };
     }
 
     private shuffle(cards: CardDefinition[]): void {

@@ -13,6 +13,7 @@ export class ItemTakingSummary {
     getTakeButtonText() {
         var _a;
         const craftable = [
+            "binding rope",
             "crucible",
             "padded hide",
             "wooden shield",
@@ -27,6 +28,7 @@ export class ItemTakingSummary {
             "two-handed battle axe",
             "poleaxe",
             "masterwork greatsword",
+            "yarrow poultice",
             "healing potion",
             "poison potion",
             "poisoned masterwork greatsword",
@@ -60,54 +62,92 @@ export class ItemTakingSummary {
             "nail reforging",
             "tile knapping",
             "moss brewing",
+            "mushroom mixing",
+            "campfire",
         ].includes(this.itemType.name);
         const merchant = this.itemType.name.startsWith("cat buying ")
-            || this.itemType.name.startsWith("cat selling ");
+            || this.itemType.name.startsWith("cat selling ")
+            || this.itemType.name.startsWith("magician selling ");
         let buttonText = merchant
-            ? "Trade with cat"
+            ? this.itemType.name.startsWith("magician selling ")
+                ? "Buy spell"
+                : "Trade"
             : this.itemType.name === "furnace"
                 ? "Smelt iron"
-                : this.itemType.name === "armorer's bench"
-                    ? "Use armorer's bench"
-                    : craftable
-                        ? "Craft " + this.itemType.name
-                        : "Take " + this.itemType.name;
+                : this.itemType.name === "mushroom mixing"
+                    ? "Mix mushrooms"
+                    : this.itemType.name === "campfire"
+                        ? "Cook river feast"
+                        : this.itemType.name === "armorer's bench"
+                            ? "Use armorer's bench"
+                            : ItemType.isRiverFish(this.itemType.name)
+                                ? "Catch " + this.itemType.name
+                                : craftable
+                                    ? "Craft " + this.itemType.name
+                                    : "Take " + this.itemType.name;
         let additionalText = "";
-        // Expenses.
-        if (this.expenses.length > 0) {
-            const itemTexts = [];
-            for (const value of this.expenses) {
-                itemTexts.push(View.getQuantityText(value.itemType.name, -value.quantity));
-            }
-            additionalText += " with " + View.arrayToText(itemTexts);
+        const catMerchant = this.itemType.name.startsWith("cat buying ")
+            || this.itemType.name.startsWith("cat selling ");
+        if (catMerchant
+            && this.expenses.length > 0
+            && this.prizes.length > 0) {
+            const expenseTexts = this.expenses.map(value => View.getQuantityText(value.itemType.name, -value.quantity));
+            const prizeTexts = this.prizes.map(value => View.getQuantityText(value.itemType.name, value.quantity));
+            additionalText = " " + View.arrayToText(expenseTexts)
+                + " for " + View.arrayToText(prizeTexts) + ".";
         }
-        // Reusable requirements.
-        if (this.requirements.length > 0) {
-            const itemTexts = [];
-            for (const value of this.requirements) {
-                itemTexts.push(View.getQuantityText(value.itemType.name, value.quantity));
+        else {
+            // Expenses.
+            if (this.expenses.length > 0) {
+                const itemTexts = [];
+                for (const value of this.expenses) {
+                    itemTexts.push(View.getQuantityText(value.itemType.name, -value.quantity));
+                }
+                additionalText += " with " + View.arrayToText(itemTexts);
             }
-            additionalText += " using " + View.arrayToText(itemTexts);
-        }
-        // Prizes.
-        if (this.prizes.length > 0) {
-            const itemTexts = [];
-            for (const value of this.prizes) {
-                itemTexts.push(View.getQuantityText(value.itemType.name, value.quantity));
+            // Reusable requirements.
+            if (this.requirements.length > 0) {
+                const itemTexts = [];
+                for (const value of this.requirements) {
+                    itemTexts.push(View.getQuantityText(value.itemType.name, value.quantity));
+                }
+                additionalText += " using " + View.arrayToText(itemTexts);
             }
-            additionalText += " to get " + View.arrayToText(itemTexts);
-        }
-        if (additionalText.length > 0) {
-            additionalText += ".";
+            // Prizes.
+            if (this.prizes.length > 0) {
+                const itemTexts = [];
+                for (const value of this.prizes) {
+                    itemTexts.push(View.getQuantityText(value.itemType.name, value.quantity));
+                }
+                additionalText += " to get " + View.arrayToText(itemTexts);
+            }
+            if (additionalText.length > 0) {
+                additionalText += ".";
+            }
         }
         // Missing items.
         if (this.missing.length > 0) {
             if (this.areSameChanges(this.expenses, this.missing)) {
+                const purpose = merchant
+                    ? "complete this trade"
+                    : this.itemType.name === "furnace"
+                        ? "smelt iron"
+                        : this.itemType.name === "mushroom mixing"
+                            ? "mix mushrooms"
+                            : this.itemType.name === "campfire"
+                                ? "cook a river feast"
+                                : this.itemType.name === "armorer's bench"
+                                    ? "use the armorer's bench"
+                                    : ItemType.isRiverFish(this.itemType.name)
+                                        ? "catch " + View.getQuantityText(this.itemType.name, 1)
+                                        : craftable
+                                            ? "craft " + View.getQuantityText(this.itemType.name, 1)
+                                            : "take " + View.getQuantityText(this.itemType.name, 1);
                 if (this.expenses.length === 1 && ((_a = this.expenses[0]) === null || _a === void 0 ? void 0 : _a.quantity) === -1) {
-                    additionalText += " Find it somewhere.";
+                    additionalText += " Find it to " + purpose + ".";
                 }
                 else {
-                    additionalText += " Find them somewhere.";
+                    additionalText += " Find them to " + purpose + ".";
                 }
             }
             else {
@@ -118,7 +158,46 @@ export class ItemTakingSummary {
                 additionalText += " You still need " + View.arrayToText(itemTexts) + '.';
             }
         }
+        if (ItemType.isRiverFish(this.itemType.name)
+            && this.missing.some(change => change.itemType.name === "worm")) {
+            additionalText = " A worm is required as bait.";
+        }
         return { buttonText: buttonText, additionalText: additionalText };
+    }
+    getFightStatusText() {
+        if (this.missing.length > 0) {
+            const missing = this.missing.map(change => View.getQuantityText(change.itemType.name, -change.quantity));
+            return {
+                beforeAction: "You still need "
+                    + View.arrayToText(missing) + " to",
+                afterAction: View.getQuantityText(this.itemType.name, 1) + ".",
+            };
+        }
+        const expenses = this.expenses.map(change => {
+            const quantity = -change.quantity;
+            return quantity === 1
+                ? "one " + change.itemType.name
+                : View.getQuantityText(change.itemType.name, quantity);
+        });
+        const prizes = this.prizes.map(change => {
+            const prize = View.getQuantityText(change.itemType.name, change.quantity);
+            return change.itemType.name === "coin" ? "its " + prize : prize;
+        });
+        const rewardText = "You keep the " + this.itemType.name
+            + (prizes.length > 0
+                ? " and take " + View.arrayToText(prizes)
+                : "");
+        const expenseQuantity = this.expenses.reduce((total, change) => total - change.quantity, 0);
+        const successText = expenses.length > 0
+            ? View.arrayToText(expenses) + " "
+                + (expenseQuantity === 1 ? "is" : "are")
+                + " used. " + rewardText
+            : rewardText;
+        return {
+            beforeAction: "",
+            afterAction: View.getQuantityText(this.itemType.name, 1)
+                + ". If you succeed, " + successText + ".",
+        };
     }
     areSameChanges(first, second) {
         return first.length === second.length

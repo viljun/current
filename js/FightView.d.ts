@@ -2,6 +2,11 @@ import { Coordinates } from "./Coordinates.js";
 import { Inventory } from "./Inventory.js";
 import type { ItemTakingSummary } from "./ItemTakingSummary.js";
 import type { Map } from "./Map.js";
+export interface DefeatTip {
+    id: string;
+    text: string;
+}
+export declare function defeatTipsForInventory(quantities: Readonly<Record<string, number>>, defeatedMonsterName?: string | null): DefeatTip[];
 export declare class FightView {
     private itemTakingSummary;
     private inventory;
@@ -12,22 +17,26 @@ export declare class FightView {
     private victoryApplied;
     private sourceElement;
     private dealtRound;
-    private shownExchange;
     private animating;
     private shownMonsterHealth;
     private shownPlayerHealth;
     private autoCloseTimer;
+    private monsterName;
     constructor(itemTakingSummary: ItemTakingSummary, inventory: Inventory, coordinates: Coordinates, map: Map);
     open(): void;
     private renderMissingYarrow;
     private startGame;
     private render;
-    private createFightDeck;
+    private createPanelHeader;
+    private createFightFloor;
+    private fightFloorSeed;
     private createHand;
     private createMonsterHand;
     private createIdentity;
+    private createFighterSeat;
     private createFighterDisplay;
     private createHealthDisplay;
+    private createEnchantmentDisplay;
     private createCombatants;
     private createPortrait;
     private playPlayerCard;
@@ -35,14 +44,14 @@ export declare class FightView {
     private chooseMonsterCardElement;
     private syncFightState;
     private finishFight;
+    private showDefeatAdvice;
+    private createDefeatAdvice;
     private sweepBoardCards;
     private updateHealthMeter;
     private applyVictory;
     private close;
     private requestClose;
     private button;
-    private capitalize;
     private turnStatus;
-    private showRoundEffect;
 }
 //# sourceMappingURL=FightView.d.ts.map

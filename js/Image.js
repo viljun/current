@@ -168,6 +168,54 @@ export class Image {
             rotate = 0;
             dimension *= 1.35;
         }
+        else if (name === "yarrow poultice") {
+            srcs = ["yarrow-poultice-medieval-photoreal-transparent-v2.png"];
+            rotate = 0;
+            dimension *= 1.35;
+        }
+        else if (name === "river trout") {
+            srcs = ["river-trout-medieval-photoreal-transparent-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.25;
+            zIndex = 24;
+        }
+        else if (name === "silver perch") {
+            srcs = ["silver-perch-medieval-photoreal-transparent-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.25;
+            zIndex = 24;
+        }
+        else if (name === "northern pike") {
+            srcs = ["northern-pike-medieval-photoreal-transparent-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.3;
+            zIndex = 24;
+        }
+        else if (name === "common carp") {
+            srcs = ["common-carp-medieval-photoreal-transparent-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.3;
+            zIndex = 24;
+        }
+        else if (name === "river eel") {
+            srcs = ["river-eel-medieval-photoreal-transparent-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.3;
+            zIndex = 24;
+        }
+        else if (name === "campfire") {
+            srcs = [
+                "campfire-riverside-cooking-medieval-photoreal-transparent-v2.png",
+            ];
+            rotate = 0;
+            dimension *= 1.75;
+            zIndex = 30;
+        }
+        else if (name === "river feast") {
+            srcs = ["river-feast-medieval-photoreal-transparent-v2.png"];
+            rotate = rotationSeed % 360;
+            dimension *= 1.45;
+        }
         else if (name === "poison potion") {
             srcs = ["poison-potion-medieval-photoreal-v1.png"];
             rotate = 0;
@@ -254,6 +302,92 @@ export class Image {
             dimension *= 2.9;
             style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
         }
+        else if (name === "highland gate") {
+            srcs = [
+                "dungeon-entrance-medieval-photoreal-grounded-v2.png",
+            ];
+            dimension *= 3;
+            style = "filter:brightness(.82) saturate(.72) hue-rotate(18deg);"
+                + "opacity:.97;";
+        }
+        else if ([
+            "highland rugged ground",
+            "highland jungle ground",
+            "highland mountain ground",
+            "highland castle floor",
+        ].includes(name)) {
+            srcs = name === "highland jungle ground"
+                ? ["highland-jungle-floor-medieval-photoreal-v1.png"]
+                : name === "highland castle floor"
+                    ? ["floor1.png", "floor2.png", "floor3.png", "floor4.png"]
+                    : ["dirt2.png"];
+            rotate = rotationSeed % 4 * 90;
+            dimension *= 1.42;
+            const highlandFilters = {
+                "highland rugged ground": "brightness(.72) saturate(.7) sepia(.18)",
+                "highland jungle ground": "brightness(.7) saturate(.72)",
+                "highland mountain ground": "brightness(.38) saturate(.35) contrast(1.16)",
+                "highland castle floor": "brightness(.6) saturate(.4) sepia(.12)",
+            };
+            style = "filter:" + highlandFilters[name] + ";opacity:.98;";
+            zIndex = 1;
+        }
+        else if (name === "highland mountain crag") {
+            srcs = [
+                "highland-mountain-crag-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = 0;
+            dimension = 2.05 + (dimensionSeed % 36) / 100;
+            style = "filter:brightness(.72) saturate(.7);opacity:.98;";
+            zIndex = 28;
+        }
+        else if ([
+            "highland castle wall",
+            "highland castle wall horizontal",
+            "highland castle wall vertical",
+        ].includes(name)) {
+            srcs = [
+                "highland-castle-wall-overhead-medieval-photoreal-transparent-v2.png",
+            ];
+            rotate = name === "highland castle wall vertical" ? 90 : 0;
+            dimension = 1.62;
+            style = "filter:brightness(.68) saturate(.5);opacity:.99;";
+            zIndex = 27;
+        }
+        else if (name.startsWith("magician selling ")) {
+            srcs = [
+                "highland-magician-merchant-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = 0;
+            dimension = 2.15;
+            const magicianHue = name.includes("mending")
+                ? 38
+                : name.includes("warding")
+                    ? 190
+                    : 0;
+            style = "filter:brightness(.84) saturate(.76) hue-rotate("
+                + magicianHue + "deg);opacity:.99;";
+            zIndex = 31;
+        }
+        else if ([
+            "spell of force",
+            "spell of mending",
+            "spell of warding",
+        ].includes(name)) {
+            srcs = [
+                "highland-permanent-spellbook-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = 0;
+            dimension = 1.45;
+            const spellHue = name === "spell of mending"
+                ? 35
+                : name === "spell of warding"
+                    ? 190
+                    : 0;
+            style = "filter:brightness(.9) saturate(.72) hue-rotate("
+                + spellHue + "deg);opacity:.98;";
+            zIndex = 24;
+        }
         else if (name === "dungeon floor") {
             srcs = [
                 // "dungeon_floor.webp",
@@ -267,8 +401,84 @@ export class Image {
                 "floor3",
                 "floor4",
             ];
-            style = "opacity:" + ((opacitySeed % 90) / 90 + 0.3).toFixed(2) + ";";
-            dimension = 0.6 + (dimensionSeed % 110) / 80;
+            const baseOpacity = (opacitySeed % 90) / 90 + 0.3;
+            const opacityBoost = 1.2
+                + (Image.visualSeed(seed, name, 7) % 31) / 100;
+            style = "opacity:"
+                + Math.min(1, baseOpacity * opacityBoost).toFixed(2)
+                + ";";
+            dimension = 1.15 + (dimensionSeed % 186) / 100;
+            rotate = (Image.visualSeed(seed, name, 8) % 33) - 16;
+            zIndex = 1;
+        }
+        else if (name === "dungeon moonwell water") {
+            srcs = [
+                "dungeon-deep-water-round-medieval-photoreal-transparent-v3.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = 2 + (dimensionSeed % 21) / 100;
+            style = "background:#123e62;border-radius:50%;"
+                + "filter:brightness(.78) saturate(.88);opacity:.98;"
+                + "mask-image:radial-gradient(circle,#000 0 68%,"
+                + "transparent 75%);"
+                + "-webkit-mask-image:radial-gradient(circle,#000 0 68%,"
+                + "transparent 75%);";
+            zIndex = 1;
+        }
+        else if (name === "dungeon wet floor") {
+            srcs = [
+                "dungeon-shallow-water-round-medieval-photoreal-transparent-v2.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = 2 + (dimensionSeed % 21) / 100;
+            style = "background:#397b88;border-radius:50%;"
+                + "filter:brightness(.82) saturate(.8);opacity:.98;"
+                + "mask-image:radial-gradient(circle,#000 0 68%,"
+                + "transparent 75%);"
+                + "-webkit-mask-image:radial-gradient(circle,#000 0 68%,"
+                + "transparent 75%);";
+            zIndex = 1;
+        }
+        else if (name === "dungeon sand floor") {
+            srcs = [
+                "dungeon-sand-vault-floor-medieval-photoreal-v1.png",
+            ];
+            rotate = rotationSeed % 4 * 90
+                + (Image.visualSeed(seed, name, 7) % 25) - 12;
+            dimension = 1.25 + (dimensionSeed % 156) / 100;
+            style = "filter:brightness(.72) saturate(.68);opacity:.98;";
+            zIndex = 1;
+        }
+        else if ([
+            "dungeon fungal floor",
+            "dungeon bone floor",
+            "dungeon bazaar floor",
+            "dungeon forge floor",
+            "dungeon chapel floor",
+            "dungeon web floor",
+            "dungeon moss floor",
+            "dungeon crystal floor",
+        ].includes(name)) {
+            srcs = [
+                "floor1.png",
+                "floor2.png",
+                "floor3.png",
+                "floor4.png",
+            ];
+            rotate = rotationSeed % 4 * 90
+                + (Image.visualSeed(seed, name, 7) % 25) - 12;
+            dimension = 1.25 + (dimensionSeed % 156) / 100;
+            const terrainFilters = {
+                "dungeon fungal floor": "brightness(.42) sepia(.45) hue-rotate(230deg) saturate(.7)",
+                "dungeon bone floor": "grayscale(.7) sepia(.25) brightness(.58)",
+                "dungeon bazaar floor": "sepia(.5) brightness(.58) saturate(.65)",
+                "dungeon forge floor": "sepia(.75) hue-rotate(330deg) brightness(.34) saturate(.75)",
+                "dungeon chapel floor": "grayscale(.75) sepia(.2) brightness(.32)",
+                "dungeon web floor": "grayscale(.9) brightness(.54) contrast(1.15)",
+                "dungeon moss floor": "sepia(.65) hue-rotate(55deg) brightness(.45) saturate(.8)",
+                "dungeon crystal floor": "grayscale(.55) hue-rotate(150deg) brightness(.52) saturate(.5)",
+            };
+            style = "filter:" + terrainFilters[name] + ";opacity:.96;";
             zIndex = 1;
         }
         else if (name === "dungeon wall") {
@@ -287,6 +497,67 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 100) / 500 + 0.9).toFixed(2) + ";";
             dimension *= 1.41;
             zIndex = 2;
+        }
+        else if ([
+            "dungeon mushroom cluster",
+            "gloamcap mushroom",
+            "mushroom mixing",
+        ].includes(name)) {
+            srcs = [
+                "dungeon-gloamcap-cluster-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = 0;
+            dimension = name === "gloamcap mushroom"
+                ? 1.02
+                : name === "mushroom mixing"
+                    ? 1.35
+                    : .92 + (dimensionSeed % 19) / 100;
+            style = "filter:brightness(.78) saturate(.72);opacity:.96;";
+            zIndex = name === "dungeon mushroom cluster" ? 14 : 20;
+        }
+        else if (name === "dungeon boneyard scatter") {
+            srcs = [
+                "dungeon-boneyard-scatter-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = .5 + (dimensionSeed % 251) / 100;
+            style = "filter:brightness(.72) sepia(.18);opacity:"
+                + (.5 + (opacitySeed % 31) / 100).toFixed(2) + ";";
+            zIndex = 13;
+        }
+        else if (name === "dungeon mineral cluster") {
+            srcs = [
+                "dungeon-mineral-cluster-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = .5 + (dimensionSeed % 251) / 100;
+            style = "filter:brightness(.68) saturate(.55);opacity:"
+                + (.5 + (opacitySeed % 31) / 100).toFixed(2) + ";";
+            zIndex = 18;
+        }
+        else if (name === "dungeon candle shrine") {
+            srcs = [
+                "dungeon-black-candle-shrine-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = 0;
+            dimension = 1.05 + (dimensionSeed % 16) / 100;
+            style = "filter:brightness(.78) saturate(.7);opacity:.96;";
+            zIndex = 19;
+        }
+        else if (name === "dungeon web tangle") {
+            srcs = ["hay-medieval-photoreal-soft-edge-v2.png"];
+            rotate = rotationSeed % 360;
+            dimension = 1.15 + (dimensionSeed % 26) / 100;
+            style = "filter:grayscale(1) brightness(1.22);opacity:.34;";
+            zIndex = 12;
+        }
+        else if (name === "dungeon root tangle") {
+            srcs = ["root-photoreal-v1.png"];
+            rotate = rotationSeed % 360;
+            dimension = .5 + (dimensionSeed % 251) / 100;
+            style = "filter:brightness(.55) sepia(.45) saturate(.7);opacity:"
+                + (.5 + (opacitySeed % 31) / 100).toFixed(2) + ";";
+            zIndex = 13;
         }
         else if (name === "forest") { // quite similar to "tree"
             srcs = [
@@ -341,6 +612,15 @@ export class Image {
             rotate = rotationSeed % 360;
             dimension *= 1.35;
         }
+        else if (name === "binding rope") {
+            srcs = [
+                "binding-rope-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = 0.95 + (dimensionSeed % 11) / 100;
+            style = "opacity:" + ((opacitySeed % 5) / 100 + 0.95).toFixed(2)
+                + ";";
+        }
         else if (["bones", "bone carving"].includes(name)) {
             srcs = ["root-photoreal-v1.png"];
             rotate = rotationSeed % 360;
@@ -348,10 +628,12 @@ export class Image {
             style = "filter:grayscale(.82) sepia(.18) brightness(1.18);";
         }
         else if (["cracked skull", "skull crushing"].includes(name)) {
-            srcs = ["stone-item-photoreal-blended-v2.png"];
-            rotate = rotationSeed % 360;
-            dimension *= 1.05;
-            style = "filter:sepia(.28) brightness(1.15);";
+            srcs = [
+                "cracked-skull-dark-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = (rotationSeed % 17) - 8;
+            dimension = 1.05 + (dimensionSeed % 22) / 100;
+            style = "filter:brightness(.82) saturate(.72);opacity:.98;";
         }
         else if (["rusted chain", "chain smelting"].includes(name)) {
             srcs = ["iron_ore.png"];
@@ -384,10 +666,12 @@ export class Image {
             style = "filter:grayscale(.8) brightness(.55);";
         }
         else if (["ancient nail", "nail reforging"].includes(name)) {
-            srcs = ["iron_ore2.png"];
+            srcs = [
+                "ancient-hand-forged-nail-medieval-photoreal-transparent-v1.png",
+            ];
             rotate = rotationSeed % 360;
-            dimension *= 0.8;
-            style = "filter:sepia(.7) saturate(.7);";
+            dimension = .98 + (dimensionSeed % 21) / 100;
+            style = "filter:brightness(.82) saturate(.72);opacity:.98;";
         }
         else if (["broken tile", "tile knapping"].includes(name)) {
             srcs = ["stone-item-photoreal-blended-v2.png"];
@@ -516,6 +800,38 @@ export class Image {
             dimension = 0.5 + (dimensionSeed % 123) / 20;
             style = "opacity:" + ((opacitySeed % 105) / 400 + 0.05).toFixed(2) + ";";
             zIndex = 10;
+        }
+        else if (name === "surface road bridge") {
+            srcs = [
+                "surface-road-timber-bridge-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = 0;
+            dimension = 4.15;
+            style = "filter:brightness(.86) saturate(.72);opacity:.98;";
+            zIndex = 8;
+        }
+        else if (name === "surface road milestone") {
+            srcs = [
+                "surface-road-milestone-medieval-photoreal-grounded-v2.png",
+            ];
+            rotate = 0;
+            dimension = 1.05 + (dimensionSeed % 18) / 100;
+            style = "filter:brightness(.78) saturate(.55);opacity:.96;";
+            zIndex = 19;
+        }
+        else if (name === "surface road grass") {
+            srcs = [
+                "grass1.png",
+                "grass2.png",
+                "grass3.png",
+                "grass4.png",
+                "grass5.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = .38 + (dimensionSeed % 43) / 100;
+            style = "opacity:"
+                + (.12 + (opacitySeed % 15) / 100).toFixed(2) + ";";
+            zIndex = 5;
         }
         else if (name === "rock formation") {
             srcs = [
@@ -649,6 +965,15 @@ export class Image {
             ];
             dimension *= 1.17;
             style = "opacity:" + ((opacitySeed % 8) / 100 + 0.9).toFixed(2) + ";";
+        }
+        else if (name === "worm") {
+            srcs = [
+                "worm-earthworm-medieval-photoreal-transparent-v1.png",
+            ];
+            rotate = rotationSeed % 360;
+            dimension = 1.2 + (dimensionSeed % 16) / 100;
+            style = "filter:brightness(.8) saturate(.72) contrast(1.08);"
+                + "opacity:.97;";
         }
         else if (name === "torch") {
             srcs = [

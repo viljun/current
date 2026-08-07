@@ -7,37 +7,11 @@ export class ItemType {
         return ["rat", "orc", "troll"].includes(this.name)
             || ItemType.DUNGEON_MONSTERS.some(([, name]) => name === this.name);
     }
-    isPortableFightItem() {
-        if (this.name.startsWith("cat buying ")
-            || this.name.startsWith("cat selling ")) {
-            return false;
-        }
-        if (ItemType.DUNGEON_ACTIONS.some(([, name]) => name === this.name)) {
-            return false;
-        }
-        return ![
-            "dungeon entrance",
-            "shop entrance",
-            "stairs up",
-            "furnace",
-            "armorer's bench",
-            "dungeon wall",
-            "dungeon floor",
-            "shop wall",
-            "shop floor",
-            "shop outside grass",
-            "shop shelf",
-            "shop table",
-            "sand",
-            "grass",
-            "road",
-            "tree",
-            "cactus",
-            "palm",
-            "cloud",
-            "rock formation",
-            "big rock",
-        ].includes(this.name);
+    static isRiverFish(itemName) {
+        return ItemType.RIVER_FISH_NAMES.some(name => name === itemName);
+    }
+    static isTransientAction(itemName) {
+        return itemName === "campfire";
     }
     // Returns item type by seed or null if there is no item in the location with the given seed.
     static getWithSeed(seed, areaId) {
@@ -77,7 +51,11 @@ export class ItemType {
                     ...ItemType.DUNGEON_MATERIALS,
                     ...ItemType.DUNGEON_WEAPONS,
                     ...ItemType.DUNGEON_ACTIONS,
-                ].find(([modulus]) => !(seed % modulus));
+                ].find(([modulus, itemName]) => !(seed % modulus)
+                    && (itemName !== "grave dust"
+                        || ItemType.frequencyGate(seed, 0x67726176, 1, 2))
+                    && (itemName !== "black candle"
+                        || ItemType.frequencyGate(seed, 0x63616e64, 1, 10)));
                 if (dungeonEntry !== undefined) {
                     name = dungeonEntry[1];
                 }
@@ -118,7 +96,7 @@ export class ItemType {
             else if (!(seed % 1201)) {
                 name = "armorer's bench";
             }
-            else if (!(seed % 2039) || !(seed % 3001)) {
+            else if (ItemType.DUNGEON_FURNACE_MODULI.some(modulus => !(seed % modulus))) {
                 name = "furnace";
             }
             else {
@@ -126,7 +104,10 @@ export class ItemType {
             }
             return new ItemType(name);
         }
-        if (ItemType.isDungeonEntranceSeed(seed)) {
+        if (ItemType.isHighlandEntranceSeed(seed)) {
+            name = "highland gate";
+        }
+        else if (ItemType.isDungeonEntranceSeed(seed)) {
             name = "dungeon entrance";
         }
         else if (ItemType.isShopEntranceSeed(seed)) {
@@ -139,9 +120,13 @@ export class ItemType {
             name = "stick";
         }
         else if (!(seed % 53)) {
+            if (!ItemType.frequencyGate(seed, 0x73746f53, 1, 2)) {
+                return null;
+            }
             name = "stone";
         }
-        else if (!(seed % 71)) {
+        else if (!(seed % 71)
+            && ItemType.frequencyGate(seed, 0x68617953, 1, 2)) {
             name = "hay";
         }
         else if (!(seed % 31)) {
@@ -152,6 +137,9 @@ export class ItemType {
         }
         else if (!(seed % 349)) {
             name = "yarrow";
+        }
+        else if (!(seed % 937)) {
+            name = "yarrow poultice";
         }
         else if (!(seed % 367)) {
             name = "hide";
@@ -166,9 +154,10 @@ export class ItemType {
             name = "orc";
         }
         else if (!(seed % 811) || !(seed % 887)) {
-            name = "torch";
+            name = "binding rope";
         }
-        else if (!(seed % 859) || !(seed % 907)) {
+        else if ((!(seed % 859) || !(seed % 907))
+            && ItemType.frequencyGate(seed, 0x636c7562, 4, 5)) {
             name = "club";
         }
         else if (!(seed % 877)) {
@@ -177,7 +166,7 @@ export class ItemType {
         else if (!(seed % 881) || !(seed % 883)) {
             name = "wooden shield";
         }
-        else if (!(seed % 929)) {
+        else if (!(seed % 929) || !(seed % 1861)) {
             name = "stone axe";
         }
         else if (!(seed % 997)) {
@@ -192,10 +181,22 @@ export class ItemType {
         else if (!(seed % 2013)) {
             name = "treasure";
         }
+        else if (!(seed % 173)) {
+            name = "worm";
+        }
         else {
             return null;
         }
         return new ItemType(name);
+    }
+    static frequencyGate(seed, salt, keptBuckets, totalBuckets) {
+        let value = (seed >>> 0) ^ salt;
+        value ^= value >>> 16;
+        value = Math.imul(value, 0x7feb352d);
+        value ^= value >>> 15;
+        value = Math.imul(value, 0x846ca68b);
+        value ^= value >>> 16;
+        return (value >>> 0) % totalBuckets < keptBuckets;
     }
     static getShopOutsideWithSeed(seed) {
         const areaItem = ItemType.getWithSeed(seed, 2);
@@ -234,9 +235,13 @@ export class ItemType {
             name = "stick";
         }
         else if (!(seed % 337)) {
+            if (!ItemType.frequencyGate(seed, 0x73746f4f, 1, 2)) {
+                return null;
+            }
             name = "stone";
         }
-        else if (!(seed % 487)) {
+        else if (!(seed % 487)
+            && ItemType.frequencyGate(seed, 0x6861794f, 1, 2)) {
             name = "hay";
         }
         else if (!(seed % 263)) {
@@ -252,12 +257,50 @@ export class ItemType {
             name = "hide";
         }
         else if (!(seed % 6089)) {
-            name = "torch";
+            name = "binding rope";
         }
         return name === null ? null : new ItemType(name);
     }
+    static isHighlandEntranceSeed(seed) {
+        const modulus = ItemType.HIGHLAND_ENTRANCE_MODULUS;
+        const remainder = ((seed % modulus) + modulus) % modulus;
+        return remainder === ItemType.HIGHLAND_ENTRANCE_REMAINDER;
+    }
     // Returns
     prizes() {
+        const magicianSpells = {
+            "magician selling force spell": {
+                spell: "spell of force",
+                price: 250,
+            },
+            "magician selling mending spell": {
+                spell: "spell of mending",
+                price: 220,
+            },
+            "magician selling warding spell": {
+                spell: "spell of warding",
+                price: 240,
+            },
+        };
+        const magicianSpell = magicianSpells[this.name];
+        if (magicianSpell !== undefined) {
+            return [
+                new ItemTypeAndQuantity(new ItemType("coin"), -magicianSpell.price),
+                new ItemTypeAndQuantity(new ItemType(magicianSpell.spell), 1),
+            ];
+        }
+        if (ItemType.isRiverFish(this.name)) {
+            return [
+                new ItemTypeAndQuantity(new ItemType("worm"), -1),
+            ];
+        }
+        if (this.name === "campfire") {
+            return [
+                ...ItemType.RIVER_FISH_NAMES.map(fish => new ItemTypeAndQuantity(new ItemType(fish), -1)),
+                new ItemTypeAndQuantity(new ItemType("hay"), -1),
+                new ItemTypeAndQuantity(new ItemType("river feast"), 1),
+            ];
+        }
         const buyingPrefix = "cat buying ";
         const sellingPrefix = "cat selling ";
         if (this.name.startsWith(buyingPrefix) || this.name.startsWith(sellingPrefix)) {
@@ -287,13 +330,18 @@ export class ItemType {
             const tier = Math.floor(dungeonMonsterIndex / 10);
             const rewardStyle = dungeonMonsterIndex % 3;
             const changes = [
-                new ItemTypeAndQuantity(new ItemType("grave dust"), -(1 + tier)),
+                new ItemTypeAndQuantity(new ItemType("binding rope"), -(1 + tier)),
             ];
             if (rewardStyle === 0) {
                 changes.push(new ItemTypeAndQuantity(new ItemType("coin"), 10 + dungeonMonsterIndex * 5));
             }
             if (rewardStyle === 1 || rewardStyle === 2) {
-                const material = ItemType.DUNGEON_MONSTER_REWARD_MATERIALS[dungeonMonsterIndex];
+                const material = [
+                    "skeletal guard",
+                    "armored skeleton",
+                ].includes(this.name)
+                    ? "bones"
+                    : ItemType.DUNGEON_MONSTER_REWARD_MATERIALS[dungeonMonsterIndex];
                 if (material !== undefined) {
                     changes.push(new ItemTypeAndQuantity(new ItemType(material), 1 + tier));
                 }
@@ -402,10 +450,22 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("cornflower"), -1),
             ];
         }
+        if (this.name === "yarrow poultice") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("yarrow"), -1),
+                new ItemTypeAndQuantity(new ItemType("hay"), -1),
+            ];
+        }
         if (this.name === "poison potion") {
             return [
                 new ItemTypeAndQuantity(new ItemType("healing potion"), -1),
                 new ItemTypeAndQuantity(new ItemType("grave dust"), -1),
+            ];
+        }
+        if (this.name === "mushroom mixing") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("gloamcap mushroom"), -3),
+                new ItemTypeAndQuantity(new ItemType("poison potion"), 1),
             ];
         }
         if (this.name === "poisoned masterwork greatsword") {
@@ -645,7 +705,7 @@ export class ItemType {
         }
         if (this.name === "orc") {
             return [
-                new ItemTypeAndQuantity(new ItemType("torch"), -2),
+                new ItemTypeAndQuantity(new ItemType("binding rope"), -2),
                 new ItemTypeAndQuantity(new ItemType("coin"), 50),
                 new ItemTypeAndQuantity(new ItemType("hide"), 1),
             ];
@@ -686,7 +746,7 @@ export class ItemType {
         }
         if (this.name === "rat") {
             return [
-                new ItemTypeAndQuantity(new ItemType("torch"), -1),
+                new ItemTypeAndQuantity(new ItemType("binding rope"), -1),
                 new ItemTypeAndQuantity(new ItemType("coin"), 10),
             ];
         }
@@ -711,14 +771,19 @@ export class ItemType {
                 new ItemTypeAndQuantity(new ItemType("root"), -1),
             ];
         }
+        if (this.name === "binding rope") {
+            return [
+                new ItemTypeAndQuantity(new ItemType("hay"), -2),
+            ];
+        }
         if (this.name === "treasure") {
             return [
-                new ItemTypeAndQuantity(new ItemType("coin"), 50),
+                new ItemTypeAndQuantity(new ItemType("coin"), 20),
             ];
         }
         if (this.name === "troll") {
             return [
-                new ItemTypeAndQuantity(new ItemType("torch"), -3),
+                new ItemTypeAndQuantity(new ItemType("binding rope"), -3),
                 new ItemTypeAndQuantity(new ItemType("club"), 1),
                 new ItemTypeAndQuantity(new ItemType("iron"), 2),
                 new ItemTypeAndQuantity(new ItemType("hide"), 2),
@@ -816,9 +881,18 @@ export class ItemType {
         return remainder === ItemType.SHOP_ENTRANCE_REMAINDER;
     }
 }
+ItemType.RIVER_FISH_NAMES = [
+    "river trout",
+    "silver perch",
+    "northern pike",
+    "common carp",
+    "river eel",
+];
 ItemType.ENTRANCE_MODULUS = 4120;
 ItemType.SHOP_ENTRANCE_REMAINDER = 2;
 ItemType.SHOP_TRADE_DENSITY_DIVISOR = 85;
+ItemType.HIGHLAND_ENTRANCE_MODULUS = 7817;
+ItemType.HIGHLAND_ENTRANCE_REMAINDER = 17;
 ItemType.SHOP_TRADES = [
     { item: "stick", quantity: 3 },
     { item: "stone", quantity: 3 },
@@ -855,7 +929,8 @@ ItemType.FOUNDATIONAL_VALUES = {
     troll: 80,
     yarrow: 10,
 };
-ItemType.PRODUCTION_ACTIONS = ["furnace"];
+ItemType.PRODUCTION_ACTIONS = ["furnace", "campfire"];
+ItemType.DUNGEON_FURNACE_MODULI = [419, 2039, 3001];
 ItemType.DUNGEON_MONSTERS = [
     [4001, "bone rat"], [4027, "cave bat"], [4051, "giant spider"],
     [4073, "plague beetle"], [4099, "crypt hound"],

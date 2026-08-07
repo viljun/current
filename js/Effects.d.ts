@@ -10,18 +10,25 @@ export declare class Effects {
     private static audioContext;
     static initialize(soundSwitch: HTMLInputElement): void;
     static playItemAction(result: ItemActionResult, sourceElement: HTMLElement | null, actionSeed: number): void;
-    static showAreaCollapse(map: HTMLElement, seed: number): void;
-    static showFightRound(board: HTMLElement, remainingRounds: number): void;
+    static showAreaExplosion(map: HTMLElement, seed: number): void;
+    private static areaExplosionSeed;
     static showFightOutcome(board: HTMLElement, outcome: "Victory" | "Defeated"): void;
     static showSpentFightCard(card: HTMLElement): void;
     static playFightCard(resolution: CardPlayResolution, cardElement: HTMLElement | null, monsterPortraitElement: HTMLElement | null, playerPortraitElement: HTMLElement | null, monsterHealthIcon: HTMLElement | null, playerHealthIcon: HTMLElement | null, monsterShieldArea: HTMLElement | null, playerShieldArea: HTMLElement | null, monsterName: string): Promise<void>;
-    static dealFightCards(deckElement: HTMLElement, cardElements: HTMLElement[]): void;
+    static dealFightCards(cardElements: HTMLElement[], owner: "player" | "monster", round: number): void;
     static sweepFightCards(cardElements: HTMLElement[]): Promise<void>;
     private static getType;
     private static showChanges;
     private static floatItem;
+    static itemFlightStartOffset(actionSeed: number, itemName: string, itemIndex: number, typeIndex: number, spreadX: number, spreadY: number): {
+        x: number;
+        y: number;
+    };
+    private static flightStreamSeed;
     private static flightSeed;
     private static stringSeed;
+    private static fightCardVariation;
+    private static monsterReadableAngle;
     private static animateBlockingCard;
     private static flipMonsterCard;
     private static animateShieldHits;

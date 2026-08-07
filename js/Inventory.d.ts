@@ -16,7 +16,10 @@ export declare class Inventory {
     private static readonly SAVE_VERSION;
     private static readonly REMOVED_ITEM_NAMES;
     private static readonly TROLL_WEAPONS;
+    private static readonly TROLL_CRAFT_WEAPONS;
+    private static readonly TROLL_WEAPON_RAW_MATERIALS;
     private static readonly DUNGEON_WEAPONS;
+    private static readonly DUNGEON_MONSTERS;
     private static readonly STRONG_WEAPONS;
     quantities: Record<string, number>;
     totalQuantities: Record<string, number>;
@@ -27,8 +30,10 @@ export declare class Inventory {
     countItemTypes(): number;
     onChange(listener: () => void): void;
     getItemOrigins(itemName: string): ItemOrigin[];
-    getText(): string | HTMLDivElement;
+    getText(): string;
     getProgressHint(): string;
+    private bindingRopeHayHint;
+    private trollWeaponHint;
     private craftingHint;
     private has;
     private quantity;
@@ -47,7 +52,9 @@ export declare class Inventory {
     private parseOrigin;
     private entries;
     updateTotalQuantities(): void;
+    private reconstructQuantities;
     getAreaId(): number;
     exitArea(): void;
+    private itemAtCoordinates;
 }
 //# sourceMappingURL=Inventory.d.ts.map

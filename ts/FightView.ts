@@ -4,13 +4,205 @@ import type {
     CardPlayResolution,
 } from "./CardGame.js";
 import { Coordinates }            from "./Coordinates.js";
+import { EncounterText }          from "./EncounterText.js";
 import { Effects }                from "./Effects.js";
 import { Inventory }              from "./Inventory.js";
 import { ItemTaking }             from "./ItemTaking.js";
 import type { ItemTakingSummary } from "./ItemTakingSummary.js";
+import { ItemType }               from "./ItemType.js";
 import type { Map }               from "./Map.js";
 import { MonsterDefinition }      from "./MonsterDefinition.js";
 import { OriginArtwork }          from "./OriginArtwork.js";
+import { View }                   from "./View.js";
+
+export interface DefeatTip {
+    id: string;
+    text: string;
+}
+
+interface RankedDefeatTip extends DefeatTip {
+    priority: number;
+    order: number;
+}
+
+interface CombatInventoryEntry {
+    itemName: string;
+    effects: { damage: number; block: number; healing: number };
+    quantity: number;
+}
+
+export function defeatTipsForInventory(
+    quantities: Readonly<Record<string, number>>,
+    defeatedMonsterName: string|null = null,
+): DefeatTip[] {
+    const sortedQuantities = Object.entries(quantities).sort(
+        ([first], [second]) =>
+            first < second ? -1 : first > second ? 1 : 0
+    );
+    const combatItems: CombatInventoryEntry[] = [];
+    for (const [itemName, rawQuantity] of sortedQuantities) {
+        const effects = CardGame.itemCardEffects(itemName);
+        const quantity = Math.max(0, Math.floor(rawQuantity));
+        if (effects !== null && quantity > 0) {
+            combatItems.push({ itemName, effects, quantity });
+        }
+    }
+    const strongestDamage = combatItems.reduce(
+        (strongest, item) => Math.max(strongest, item.effects.damage),
+        0,
+    );
+    const blockCopies = combatItems.reduce(
+        (total, item) => total
+            + (item.effects.block > 0 ? item.quantity : 0),
+        0,
+    );
+    const healingCopies = combatItems.reduce(
+        (total, item) => total
+            + (item.effects.healing > 0 ? item.quantity : 0),
+        0,
+    );
+    const combatItemCopies = combatItems.reduce(
+        (total, item) => total + item.quantity,
+        0,
+    );
+    const lowTierCopies = combatItems.reduce((total, item) => {
+        const strength = Math.max(
+            item.effects.damage,
+            item.effects.block,
+            item.effects.healing,
+        );
+
+        return total + (strength <= 4 ? item.quantity : 0);
+    }, 0);
+    const strongCopies = combatItems.reduce((total, item) => {
+        const strength = Math.max(
+            item.effects.damage,
+            item.effects.block,
+            item.effects.healing,
+        );
+
+        return total + (strength >= 7 ? item.quantity : 0);
+    }, 0);
+    const enchantmentCount = [
+        "spell of force",
+        "spell of mending",
+        "spell of warding",
+    ].reduce((total, itemName) => total + Math.max(
+        0,
+        Math.floor(quantities[itemName] ?? 0),
+    ), 0);
+    const yarrowCount = Math.max(0, Math.floor(quantities["yarrow"] ?? 0));
+    const hasOneClubAndNoOtherWeapons =
+        Math.max(0, Math.floor(quantities["club"] ?? 0)) === 1
+        && !combatItems.some(item =>
+            item.itemName !== "club"
+            && item.itemName !== "poison potion"
+            && item.effects.damage > 0
+            && !new ItemType(item.itemName).isMonster()
+        );
+    const hasCapturedMonster = Object.entries(quantities).some(
+        ([itemName, quantity]) =>
+            quantity > 0 && new ItemType(itemName).isMonster()
+    );
+    const defeatedMonsterType = defeatedMonsterName !== null
+        && new ItemType(defeatedMonsterName).isMonster()
+        ? defeatedMonsterName
+        : null;
+    const tips: RankedDefeatTip[] = [
+        {
+            id: "health",
+            text: "Gather yarrows. Each one adds 1 to your starting health. Small flowers, big help.",
+            priority: yarrowCount < 8 ? 120 : 45,
+            order: 0,
+        },
+        {
+            id: "weapons",
+            text: "Craft stronger weapons to deal more damage. A stern look only goes so far.",
+            priority: strongestDamage < 6 ? 115 : 55,
+            order: 1,
+        },
+        {
+            id: "shields",
+            text: "Craft shields to block incoming damage.",
+            priority: blockCopies === 0 ? 110 : 50,
+            order: 2,
+        },
+        {
+            id: "healing",
+            text: "Craft yarrow poultices—or, better yet, brew healing potions—to restore health during fights.",
+            priority: healingCopies === 0 ? 105 : 48,
+            order: 3,
+        },
+        {
+            id: "upgrades",
+            text: "Upgrade your equipment. Stronger versions improve attacks, blocks, or healing.",
+            priority: lowTierCopies > 0 ? 90 : 40,
+            order: 4,
+        },
+        {
+            id: "spells",
+            text: "Buy permanent spells from castle magicians. They strengthen every attack, block, or healing effect.",
+            priority: enchantmentCount === 0 ? 80 : 35,
+            order: 5,
+        },
+        {
+            id: "deck",
+            text: "Avoid filling your deck with low-tier items. A few strong items work better than a pile of weak ones.",
+            priority: lowTierCopies >= 4 && lowTierCopies > strongCopies
+                ? 125
+                : 60,
+            order: 6,
+        },
+        {
+            id: "bare-fist",
+            text: "“Bare Fist” appears when you run out of fight items. Craft more useful equipment—your knuckles have done enough.",
+            priority: combatItemCopies < 8 ? 108 : 38,
+            order: 7,
+        },
+        {
+            id: "choice",
+            text: "Choose two cards carefully each round. Balance attacks, blocks, and healing.",
+            priority: 30,
+            order: 8,
+        },
+        {
+            id: "retry",
+            text: "The same choices always lead to the same result. After a defeat, try different cards to find a winning sequence.",
+            priority: 25,
+            order: 9,
+        },
+        {
+            id: "safe",
+            text: "Defeat costs you nothing. You keep every item, so you can retry freely.",
+            priority: 20,
+            order: 10,
+        },
+    ];
+    if (hasOneClubAndNoOtherWeapons) {
+        tips.push({
+            id: "more-clubs",
+            text: "Craft more clubs to add more attacks to your deck. One club only swings once per capture.",
+            priority: 118,
+            order: 11,
+        });
+    }
+    if (defeatedMonsterType !== null) {
+        tips.push({
+            id: "find-another-monster",
+            text: "If this " + defeatedMonsterType
+                + " is too strong, find another " + defeatedMonsterType
+                + ". The next one may be less fierce.",
+            priority: hasCapturedMonster ? 15 : 123,
+            order: 12,
+        });
+    }
+
+    return tips
+        .sort((first, second) =>
+            second.priority - first.priority || first.order - second.order
+        )
+        .map(({ id, text }) => ({ id, text }));
+}
 
 export class FightView {
     private overlay: HTMLDivElement|null = null;
@@ -18,11 +210,18 @@ export class FightView {
     private victoryApplied = false;
     private sourceElement: HTMLElement|null = null;
     private dealtRound = 0;
-    private shownExchange = "";
     private animating = false;
     private shownMonsterHealth: number|null = null;
     private shownPlayerHealth: number|null = null;
     private autoCloseTimer: number|null = null;
+
+    private monsterName(): string {
+        return EncounterText.for(
+            this.itemTakingSummary.itemType.name,
+            this.coordinates.latitude,
+            this.coordinates.longitude,
+        ).name;
+    }
 
     constructor(
         private itemTakingSummary: ItemTakingSummary,
@@ -57,22 +256,24 @@ export class FightView {
         }
         const panel = document.createElement("section");
         panel.className = "fight-panel";
+        panel.setAttribute("aria-labelledby", "fight-title");
         const closeButton = this.button("×", () => this.close());
         closeButton.className = "fight-close";
-        closeButton.setAttribute("aria-label", "Close fight");
-        const title = document.createElement("h1");
-        title.textContent = "Battle";
+        closeButton.setAttribute("aria-label", "Close capture");
         const message = document.createElement("p");
         message.className = "fight-unavailable";
-        message.textContent = "You need to find at least one yarrow plant to fight.";
-        panel.append(closeButton, title, this.createCombatants(), message);
+        message.textContent =
+            "You need to find at least one yarrow plant to attempt a capture.";
+        const content = document.createElement("div");
+        content.className = "dialog-content";
+        content.append(this.createCombatants(), message);
+        panel.append(this.createPanelHeader(closeButton), content);
         this.overlay.append(panel);
     }
 
     private startGame(monster: MonsterDefinition): void {
         this.victoryApplied = false;
         this.dealtRound = 0;
-        this.shownExchange = "";
         this.animating = false;
         this.shownMonsterHealth = null;
         this.shownPlayerHealth = null;
@@ -80,9 +281,6 @@ export class FightView {
             window.clearTimeout(this.autoCloseTimer);
             this.autoCloseTimer = null;
         }
-        const requiredNames = this.itemTakingSummary.expenses.map(
-            expense => expense.itemType.name,
-        );
         const itemOrigins: Record<string, ReturnType<Inventory["getItemOrigins"]>> = {};
         for (const itemName of Object.keys(this.inventory.totalQuantities)) {
             itemOrigins[itemName] = this.inventory.getItemOrigins(itemName);
@@ -91,11 +289,21 @@ export class FightView {
             monster,
             this.inventory.totalQuantities,
             this.coordinates.getSeed(),
-            requiredNames,
             itemOrigins,
             CardGame.playerHealthForYarrow(
                 this.inventory.totalQuantities["yarrow"] ?? 0,
             ),
+            {
+                damage: this.inventory.totalQuantities[
+                    "spell of force"
+                ] ?? 0,
+                healing: this.inventory.totalQuantities[
+                    "spell of mending"
+                ] ?? 0,
+                block: this.inventory.totalQuantities[
+                    "spell of warding"
+                ] ?? 0,
+            },
         );
         this.render();
     }
@@ -108,95 +316,174 @@ export class FightView {
         this.overlay.innerHTML = "";
         const panel = document.createElement("section");
         panel.className = "fight-panel";
+        panel.setAttribute("aria-labelledby", "fight-title");
 
         const closeButton = this.button("×", () => this.requestClose());
         closeButton.className = "fight-close";
         closeButton.setAttribute("aria-label", state.status === "playing" ? "Retreat" : "Close fight");
-        panel.append(closeButton);
+        panel.append(this.createPanelHeader(closeButton));
 
         const board = document.createElement("div");
         board.className = "fight-board";
-        const monsterSide = document.createElement("section");
-        monsterSide.className = "fight-side fight-side--monster";
-        const monsterDeck = this.createFightDeck("monster");
-        monsterSide.append(monsterDeck);
-        monsterSide.append(this.createFighterDisplay(
+        const monsterSeat = this.createFighterSeat(
             this.itemTakingSummary.itemType.name,
-            this.capitalize(this.itemTakingSummary.itemType.name),
-            "above",
+            this.monsterName(),
             "monster",
             state.monsterHealth,
             state.monsterMaxHealth,
             this.shownMonsterHealth,
-        ));
-        if (state.status === "playing") {
-            monsterSide.append(this.createMonsterHand(state));
-        }
+            this.itemTakingSummary.itemType.name,
+        );
 
-        const center = document.createElement("div");
-        center.className = "fight-board-center";
-        const playerSide = document.createElement("section");
-        playerSide.className = "fight-side fight-side--player";
-        const playerDeck = this.createFightDeck("player");
-        playerSide.append(playerDeck);
+        const table = document.createElement("section");
+        table.className = "fight-table";
         let hand: HTMLDivElement|null = null;
         const shouldDeal = state.status === "playing"
             && state.phase === "player"
             && state.round !== this.dealtRound;
         if (state.status === "playing") {
+            table.append(this.createMonsterHand(state));
             const status = document.createElement("div");
             status.className = "fight-turn-status";
             status.setAttribute("role", "status");
             status.setAttribute("aria-live", "polite");
             status.textContent = this.turnStatus(state);
-            center.append(status);
             hand = this.createHand(state);
-            playerSide.append(hand);
+            hand.prepend(status);
+            table.append(hand);
         } else {
-            const outcome = document.createElement("div");
-            outcome.className = "fight-outcome fight-outcome--" + state.status;
-            outcome.textContent = state.status === "won" ? "Victory" : "Defeated";
-            center.append(outcome);
+            const center = document.createElement("div");
+            center.className = "fight-board-center";
+            if (state.status === "lost") {
+                table.classList.add("fight-table--defeated");
+                center.append(this.createDefeatAdvice());
+            } else {
+                const outcome = document.createElement("div");
+                outcome.className = "fight-outcome fight-outcome--won";
+                outcome.textContent = "Victory";
+                center.append(outcome);
+            }
+            table.append(center);
             if (state.status === "won") {
                 this.applyVictory();
             }
         }
-        playerSide.append(this.createFighterDisplay(
+        const playerSeat = this.createFighterSeat(
             "cat",
             "You",
-            "below",
             "player",
             state.playerHealth,
             state.playerMaxHealth,
             this.shownPlayerHealth,
-        ));
+        );
+        const enchantments = this.createEnchantmentDisplay(state);
+        if (enchantments !== null) {
+            playerSeat.append(enchantments);
+        }
         this.shownMonsterHealth = state.monsterHealth;
         this.shownPlayerHealth = state.playerHealth;
-        board.append(monsterSide, center, playerSide);
-        panel.append(board);
+        board.append(monsterSeat, table, playerSeat);
+        const content = document.createElement("div");
+        content.className = "dialog-content fight-dialog-content";
+        content.append(this.createFightFloor(), board);
+        panel.append(content);
         this.overlay.append(panel);
-        this.showRoundEffect(state, board);
         if (shouldDeal && hand !== null) {
             this.dealtRound = state.round;
             Effects.dealFightCards(
-                playerDeck,
                 Array.from(hand.querySelectorAll<HTMLElement>(".fight-card")),
+                "player",
+                state.round,
             );
             Effects.dealFightCards(
-                monsterDeck,
-                Array.from(monsterSide.querySelectorAll<HTMLElement>(
+                Array.from(table.querySelectorAll<HTMLElement>(
                     ".fight-monster-card-back",
                 )),
+                "monster",
+                state.round,
             );
         }
     }
 
-    private createFightDeck(owner: "player"|"monster"): HTMLDivElement {
-        const deck = document.createElement("div");
-        deck.className = "fight-deck fight-deck--" + owner;
-        deck.setAttribute("aria-hidden", "true");
+    private createPanelHeader(closeButton: HTMLButtonElement): HTMLElement {
+        const header = document.createElement("header");
+        header.className = "dialog-header";
+        const title = document.createElement("h1");
+        title.id = "fight-title";
+        title.textContent = "Battle";
+        header.append(title, closeButton);
 
-        return deck;
+        return header;
+    }
+
+    private createFightFloor(): HTMLDivElement {
+        const floor = document.createElement("div");
+        floor.className = "fight-floor";
+        floor.setAttribute("aria-hidden", "true");
+        const stones = document.createElement("div");
+        stones.className = "fight-floor-stones";
+        for (let index = 0; index < 96; index++) {
+            const stone = document.createElement("span");
+            const source = this.fightFloorSeed(index, "source") % 4;
+            stone.className = "fight-floor-stone fight-floor-stone--" + source;
+            stone.style.setProperty(
+                "--fight-floor-x",
+                (Number(this.fightFloorSeed(index, "x") % 17) - 8) + "%",
+            );
+            stone.style.setProperty(
+                "--fight-floor-y",
+                (Number(this.fightFloorSeed(index, "y") % 17) - 8) + "%",
+            );
+            stone.style.setProperty(
+                "--fight-floor-angle",
+                (this.fightFloorSeed(index, "rotation") % 360) + "deg",
+            );
+            stone.style.setProperty(
+                "--fight-floor-scale",
+                (0.9 + Number(
+                    this.fightFloorSeed(index, "scale") % 19,
+                ) / 100).toFixed(2),
+            );
+            stone.style.setProperty(
+                "--fight-floor-opacity",
+                (0.42 + Number(
+                    this.fightFloorSeed(index, "opacity") % 19,
+                ) / 100).toFixed(2),
+            );
+            stone.style.setProperty(
+                "--fight-floor-brightness",
+                (0.62 + Number(
+                    this.fightFloorSeed(index, "brightness") % 19,
+                ) / 100).toFixed(2),
+            );
+            stones.append(stone);
+        }
+        floor.append(stones);
+
+        return floor;
+    }
+
+    private fightFloorSeed(index: number, stream: string): number {
+        let seed = (this.coordinates.getSeed() >>> 0) ^ 0x9e3779b9;
+        const key = [
+            "fight-floor",
+            this.itemTakingSummary.itemType.name,
+            stream,
+        ].join(":");
+        for (let character = 0; character < key.length; character++) {
+            seed = Math.imul(
+                seed ^ key.charCodeAt(character),
+                0x01000193,
+            ) >>> 0;
+        }
+        seed ^= Math.imul(index + 1, 0x85ebca6b);
+        seed ^= seed >>> 16;
+        seed = Math.imul(seed, 0x7feb352d) >>> 0;
+        seed ^= seed >>> 15;
+        seed = Math.imul(seed, 0x846ca68b) >>> 0;
+        seed ^= seed >>> 16;
+
+        return seed >>> 0;
     }
 
     private createHand(state: CardGameState): HTMLDivElement {
@@ -209,9 +496,12 @@ export class FightView {
             cardButton.classList.add("fight-card");
             cardButton.dataset.cardId = card.id;
             cardButton.disabled = this.animating || state.phase !== "player";
+            cardButton.title = card.title;
             cardButton.append(Effects.createCardArtwork(card));
             const name = document.createElement("strong");
+            name.className = "fight-card-name";
             name.textContent = card.title;
+            name.title = card.title;
             cardButton.append(name, Effects.createCardEffectIcons(card));
             hand.append(cardButton);
         });
@@ -227,7 +517,7 @@ export class FightView {
         for (let index = 0; index < state.monsterHandSize; index++) {
             const back = document.createElement("div");
             back.className = "fight-monster-card-back";
-            back.setAttribute("aria-label", "Hidden monster card");
+            back.setAttribute("aria-label", "Hidden monster item");
             cards.append(back);
         }
         area.append(cards);
@@ -238,7 +528,7 @@ export class FightView {
     private createIdentity(
         itemName: string,
         label: string,
-        labelPosition: "above"|"below",
+        secondaryLabel?: string,
     ): HTMLDivElement {
         const origin = {
             latitude: this.coordinates.latitude,
@@ -246,36 +536,73 @@ export class FightView {
             areaId: this.inventory.getAreaId(),
         };
         const identity = document.createElement("div");
-        identity.className = "fight-identity fight-identity--" + labelPosition;
+        identity.className = "fight-identity";
         const name = document.createElement("strong");
         name.textContent = label;
+        const copy = document.createElement("div");
+        copy.className = "fight-fighter-copy";
+        copy.append(name);
+        if (secondaryLabel !== undefined) {
+            const type = document.createElement("span");
+            type.className = "fight-fighter-type";
+            type.textContent = secondaryLabel;
+            copy.append(type);
+        }
         const portrait = OriginArtwork.create(
             itemName,
             origin,
             "fight-portrait-art",
         );
-        if (labelPosition === "above") {
-            identity.append(name, portrait);
-        } else {
-            identity.append(portrait, name);
-        }
+        identity.append(portrait, copy);
 
         return identity;
+    }
+
+    private createFighterSeat(
+        itemName: string,
+        label: string,
+        owner: "player"|"monster",
+        health: number,
+        maximum: number,
+        previousHealth: number|null,
+        secondaryLabel?: string,
+    ): HTMLElement {
+        const seat = document.createElement("section");
+        seat.className = "fight-seat fight-seat--" + owner;
+        const chair = document.createElement("img");
+        chair.className = "fight-chair fight-chair--" + owner;
+        chair.src = "images/fight-chair-monster-topdown-photoreal-v1.png";
+        chair.alt = "";
+        chair.setAttribute("aria-hidden", "true");
+        seat.append(
+            chair,
+            this.createFighterDisplay(
+                itemName,
+                label,
+                owner,
+                health,
+                maximum,
+                previousHealth,
+                secondaryLabel,
+            ),
+        );
+
+        return seat;
     }
 
     private createFighterDisplay(
         itemName: string,
         label: string,
-        labelPosition: "above"|"below",
         owner: "player"|"monster",
         health: number,
         maximum: number,
         previousHealth: number|null,
+        secondaryLabel?: string,
     ): HTMLDivElement {
         const display = document.createElement("div");
         display.className = "fight-fighter fight-fighter--" + owner;
         display.append(
-            this.createIdentity(itemName, label, labelPosition),
+            this.createIdentity(itemName, label, secondaryLabel),
             this.createHealthDisplay(
                 owner,
                 health,
@@ -318,10 +645,60 @@ export class FightView {
         healthIcon.setAttribute("aria-hidden", "true");
         const value = document.createElement("span");
         value.className = "fight-health-value";
-        value.textContent = String(health);
+        value.textContent = health + "/" + maximum;
         value.setAttribute("aria-label", health + " health remaining");
         details.append(healthIcon, value);
         display.append(bar, details);
+
+        return display;
+    }
+
+    private createEnchantmentDisplay(
+        state: CardGameState,
+    ): HTMLElement|null {
+        const definitions = [
+            {
+                key: "damage" as const,
+                icon: "⚔",
+                label: "attack",
+            },
+            {
+                key: "healing" as const,
+                icon: "♥",
+                label: "healing",
+            },
+            {
+                key: "block" as const,
+                icon: "◆",
+                label: "block",
+            },
+        ];
+        const active = definitions.filter(
+            definition => state.playerEnchantments[definition.key] > 0,
+        );
+        if (active.length === 0) {
+            return null;
+        }
+        const display = document.createElement("aside");
+        display.className = "fight-enchantments";
+        display.setAttribute("aria-label", "Permanent spell bonuses");
+        for (const definition of active) {
+            const value = state.playerEnchantments[definition.key];
+            const badge = document.createElement("span");
+            badge.className = "fight-enchantment fight-enchantment--"
+                + definition.key;
+            badge.title = "+" + value + " " + definition.label
+                + " from permanent spells";
+            badge.setAttribute("aria-label", badge.title);
+            const icon = document.createElement("span");
+            icon.className = "fight-enchantment-icon";
+            icon.textContent = definition.icon;
+            icon.setAttribute("aria-hidden", "true");
+            const amount = document.createElement("strong");
+            amount.textContent = "+" + value;
+            badge.append(icon, amount);
+            display.append(badge);
+        }
 
         return display;
     }
@@ -337,7 +714,7 @@ export class FightView {
         row.append(
             this.createPortrait(
                 this.itemTakingSummary.itemType.name,
-                this.capitalize(this.itemTakingSummary.itemType.name),
+                this.monsterName(),
                 origin,
             ),
             this.createPortrait("cat", "You", origin),
@@ -423,10 +800,19 @@ export class FightView {
         }
         this.syncFightState();
         if (monsterResolution.roundComplete) {
-            await this.sweepBoardCards();
+            void this.sweepBoardCards();
+            await new Promise<void>(resolve => {
+                window.setTimeout(resolve, 260);
+            });
+            if (this.overlay === null || this.game === null) {
+                this.animating = false;
+
+                return;
+            }
             this.game.dealNextRound();
-            this.animating = false;
             this.render();
+            this.animating = false;
+            this.syncFightState();
 
             return;
         }
@@ -455,7 +841,7 @@ export class FightView {
             ) ?? null,
             this.overlay,
             this.overlay,
-            this.itemTakingSummary.itemType.name,
+            this.monsterName(),
         );
     }
 
@@ -466,7 +852,10 @@ export class FightView {
             return null;
         }
         const cards = Array.from(this.overlay.querySelectorAll<HTMLElement>(
-            ".fight-monster-card-back:not(.fight-card--empty)",
+            ".fight-monster-card-back"
+                + ":not(.fight-card--empty)"
+                + ":not(.fight-card--spent)"
+                + ":not(.fight-card--blocking)",
         ));
         if (cards.length === 0) {
             return null;
@@ -505,7 +894,8 @@ export class FightView {
                 ".fight-health-value",
             );
             if (value !== null) {
-                value.textContent = String(state.monsterHealth);
+                value.textContent = state.monsterHealth + "/"
+                    + state.monsterMaxHealth;
                 value.setAttribute(
                     "aria-label",
                     state.monsterHealth + " health remaining",
@@ -517,7 +907,8 @@ export class FightView {
                 ".fight-health-value",
             );
             if (value !== null) {
-                value.textContent = String(state.playerHealth);
+                value.textContent = state.playerHealth + "/"
+                    + state.playerMaxHealth;
                 value.setAttribute(
                     "aria-label",
                     state.playerHealth + " health remaining",
@@ -543,10 +934,6 @@ export class FightView {
         ).forEach(card => {
             card.disabled = this.animating || state.phase !== "player";
         });
-        const board = this.overlay.querySelector<HTMLElement>(".fight-board");
-        if (board !== null) {
-            this.showRoundEffect(state, board);
-        }
     }
 
     private finishFight(): void {
@@ -555,22 +942,22 @@ export class FightView {
 
             return;
         }
-        void this.sweepBoardCards();
+        const sweep = this.sweepBoardCards();
         this.animating = false;
         this.syncFightState();
         const state = this.game.getState();
         const status = this.overlay.querySelector<HTMLElement>(".fight-turn-status");
-        if (status !== null) {
-            status.className = "fight-outcome fight-outcome--" + state.status;
-            status.textContent = "";
-        }
+        status?.remove();
         const closeButton = this.overlay.querySelector<HTMLElement>(".fight-close");
-        closeButton?.setAttribute("aria-label", "Close fight");
+        closeButton?.setAttribute("aria-label", "Close capture");
         if (state.status === "won") {
             this.applyVictory();
         } else {
-            this.map.messageBox.textContent =
-                "Defeated. Gather more yarrow or craft stronger equipment, then try again.";
+            View.setMessage(
+                this.map.messageBox,
+                "Defeated. Gather yarrows or stronger gear, then retry.",
+            );
+            void sweep.then(() => this.showDefeatAdvice());
         }
         const board = this.overlay.querySelector<HTMLElement>(".fight-board");
         if (board !== null) {
@@ -579,10 +966,75 @@ export class FightView {
                 state.status === "won" ? "Victory" : "Defeated",
             );
         }
-        this.autoCloseTimer = window.setTimeout(() => {
-            this.autoCloseTimer = null;
-            this.close();
-        }, 3_000);
+        if (state.status === "won") {
+            this.autoCloseTimer = window.setTimeout(() => {
+                this.autoCloseTimer = null;
+                this.close();
+            }, 3_000);
+        }
+    }
+
+    private showDefeatAdvice(): void {
+        if (
+            this.overlay === null
+            || this.game?.getState().status !== "lost"
+        ) {
+            return;
+        }
+        const table = this.overlay.querySelector<HTMLElement>(".fight-table");
+        if (table === null) {
+            return;
+        }
+        const tableHeight = table.getBoundingClientRect().height;
+        if (tableHeight > 0) {
+            table.style.height = tableHeight + "px";
+        }
+        table.classList.add("fight-table--defeated");
+        const center = document.createElement("div");
+        center.className = "fight-board-center";
+        center.append(this.createDefeatAdvice());
+        table.replaceChildren(center);
+    }
+
+    private createDefeatAdvice(): HTMLElement {
+        const section = document.createElement("section");
+        section.className = "fight-defeat-advice";
+        section.setAttribute("aria-labelledby", "fight-defeat-advice-title");
+        const title = document.createElement("h2");
+        title.id = "fight-defeat-advice-title";
+        title.textContent = "Prepare, then try again";
+        const list = document.createElement("ol");
+        list.id = "fight-defeat-tip-list";
+        list.className = "fight-defeat-tip-list";
+        const tips = defeatTipsForInventory(
+            this.inventory.totalQuantities,
+            this.itemTakingSummary.itemType.name,
+        );
+        tips.forEach((tip, index) => {
+            const item = document.createElement("li");
+            item.className = "fight-defeat-tip";
+            item.dataset.tip = tip.id;
+            item.textContent = tip.text;
+            item.hidden = index >= 3;
+            list.append(item);
+        });
+        section.append(title, list);
+        if (tips.length > 3) {
+            const showAll = this.button("Show all tips", () => {
+                list.querySelectorAll<HTMLElement>(".fight-defeat-tip").forEach(
+                    item => {
+                        item.hidden = false;
+                    },
+                );
+                showAll.remove();
+            });
+            showAll.className = "fight-defeat-more";
+            showAll.setAttribute("aria-controls", list.id);
+            showAll.setAttribute("aria-expanded", "false");
+            section.append(showAll);
+        }
+
+        return section;
     }
 
     private async sweepBoardCards(): Promise<void> {
@@ -658,7 +1110,9 @@ export class FightView {
             );
         if (state?.status === "playing"
             && cardsHaveBeenPlayed
-            && !window.confirm("Retreat from this fight? Your inventory will not change.")
+            && !window.confirm(
+                "Retreat from this capture attempt? Your inventory will not change.",
+            )
         ) {
             return;
         }
@@ -675,10 +1129,6 @@ export class FightView {
         return button;
     }
 
-    private capitalize(text: string): string {
-        return text.charAt(0).toUpperCase() + text.slice(1);
-    }
-
     private turnStatus(state: CardGameState): string {
         if (state.status === "won") {
             return "Victory";
@@ -686,19 +1136,7 @@ export class FightView {
         if (state.status === "lost") {
             return "Defeated";
         }
-        return "";
+        return "Choose 2";
     }
 
-    private showRoundEffect(state: CardGameState, board: HTMLElement): void {
-        if (state.status !== "playing" || state.phase !== "player") {
-            return;
-        }
-        const exchange = state.playerPlayedCount + 1;
-        const key = state.round + ":" + exchange;
-        if (this.shownExchange === key) {
-            return;
-        }
-        this.shownExchange = key;
-        Effects.showFightRound(board, 4 - exchange);
-    }
 }

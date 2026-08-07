@@ -22,6 +22,8 @@ body {
 #mapContainer {
     position: fixed;
     inset: 0;
+    display: flex;
+    flex-direction: column;
     width: auto;
     height: auto;
     min-width: 100vw;
@@ -44,6 +46,205 @@ body {
 .cell {
     border: 1px solid rgba(0, 0, 0, 0.0);
 }
+.cell.surface-river,
+.origin-artwork-cell.surface-river {
+    position: relative;
+    overflow: visible;
+}
+.cell.surface-river::before,
+.origin-artwork-cell.surface-river::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 50%;
+    width: var(--surface-river-size);
+    height: var(--surface-river-size);
+    border-radius: 50%;
+    background-color: #286f91;
+    background-image:
+        url(images/surface-river-water-medieval-photoreal-v1.png);
+    background-position: var(--surface-river-texture-position);
+    background-repeat: repeat;
+    background-size: var(--surface-river-texture-size);
+    background-blend-mode: luminosity;
+    pointer-events: none;
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--surface-river-rotation));
+    transform-origin: center;
+    -webkit-mask-image:
+        radial-gradient(
+            circle,
+            #000 0 42%,
+            rgba(0, 0, 0, .72) 53%,
+            rgba(0, 0, 0, .38) 65%,
+            rgba(0, 0, 0, .16) 78%,
+            rgba(0, 0, 0, .06) 90%,
+            transparent 100%
+        );
+    mask-image:
+        radial-gradient(
+            circle,
+            #000 0 42%,
+            rgba(0, 0, 0, .72) 53%,
+            rgba(0, 0, 0, .38) 65%,
+            rgba(0, 0, 0, .16) 78%,
+            rgba(0, 0, 0, .06) 90%,
+            transparent 100%
+        );
+}
+.surface-river--river::before {
+    filter: saturate(1.08) brightness(.9);
+    opacity: .96;
+}
+.surface-river--tributary::before {
+    filter: saturate(.98) brightness(.87);
+    opacity: .92;
+}
+.cell.surface-road,
+.origin-artwork-cell.surface-road {
+    position: relative;
+    overflow: visible;
+}
+.cell.surface-road::after,
+.origin-artwork-cell.surface-road::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: var(--surface-road-size);
+    height: var(--surface-road-size);
+    border-radius: 50%;
+    background-color: #88775d;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    pointer-events: none;
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--surface-road-rotation));
+    transform-origin: center;
+    -webkit-mask-image:
+        radial-gradient(
+            circle,
+            #000 0 38%,
+            rgba(0, 0, 0, .78) 51%,
+            rgba(0, 0, 0, .42) 66%,
+            rgba(0, 0, 0, .17) 80%,
+            rgba(0, 0, 0, .05) 91%,
+            transparent 100%
+        );
+    mask-image:
+        radial-gradient(
+            circle,
+            #000 0 38%,
+            rgba(0, 0, 0, .78) 51%,
+            rgba(0, 0, 0, .42) 66%,
+            rgba(0, 0, 0, .17) 80%,
+            rgba(0, 0, 0, .05) 91%,
+            transparent 100%
+        );
+}
+.surface-road--road::after {
+    filter: brightness(.82) saturate(.68) contrast(.96);
+    opacity: .84;
+}
+.surface-road--path::after {
+    filter: brightness(.74) saturate(.66) contrast(.96);
+    opacity: .78;
+}
+.surface-road-surface--gravel::after {
+    background-color: #8c8069;
+    background-image: url(images/road2.png);
+    background-size: 310% !important;
+}
+.surface-road-surface--sand::after {
+    background-color: #a78d64;
+    background-image:
+        url(images/seamless-sand-light-beach-square-texture-39125213.jpg);
+}
+.surface-road-surface--cobble::after {
+    background-color: #817a6e;
+    background-image: url(images/road1.png);
+    background-size: 310% !important;
+}
+.surface-road-surface--stone::after {
+    background-color: #766e64;
+    background-image: url(images/road3.png);
+    background-size: 310% !important;
+}
+.surface-road-surface--dust::after {
+    background-color: #806448;
+    background-image: url(images/dirt2.png);
+}
+.surface-road-surface--mud::after {
+    background-color: #594431;
+    background-image: url(images/dirt.png);
+}
+.surface-road-crossing--ford::after {
+    filter: brightness(.68) saturate(.58) contrast(.9);
+    opacity: .7;
+}
+.surface-road-crossing--bridge::after {
+    opacity: .54;
+}
+#map .surface-road-grass {
+    z-index: 5 !important;
+    pointer-events: none;
+}
+#map .surface-road-bridge {
+    z-index: 8 !important;
+    pointer-events: none;
+}
+#map .surface-road-milestone {
+    z-index: 19 !important;
+    pointer-events: none;
+}
+.dungeon-soft-terrain-patch {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    background-repeat: repeat;
+    clip-path: circle(49.5%);
+}
+.dungeon-soft-terrain-patch--deep {
+    z-index: 2;
+    background-color: #123c5d;
+    background-image:
+        url(images/dungeon-deep-water-seamless-medieval-photoreal-v1.png);
+    filter: brightness(.78) saturate(.88);
+}
+.dungeon-soft-terrain-patch--shallow {
+    z-index: 1;
+    background-color: #416f79;
+    background-image:
+        url(images/dungeon-shallow-water-seamless-medieval-photoreal-v1.png);
+    filter: brightness(.82) saturate(.78);
+}
+.dungeon-soft-terrain-patch--chapel-soil {
+    z-index: 1;
+    background-color: #241b18;
+    background-image: url(images/dirt.png);
+    filter:
+        grayscale(.45)
+        sepia(.3)
+        brightness(.3)
+        saturate(.55)
+        contrast(1.08);
+}
+.dungeon-soft-terrain-patch--spider-soil {
+    z-index: 1;
+    background-color: #191718;
+    background-image: url(images/dirt2.png);
+    filter:
+        grayscale(.78)
+        sepia(.12)
+        brightness(.27)
+        saturate(.42)
+        contrast(1.12);
+}
 .cell.shop-outside,
 .origin-artwork-cell.shop-outside {
     background-color: #9d8b66;
@@ -63,18 +264,16 @@ body {
     outline-offset: -3px;
 }
 #messageBox {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative;
+    flex: none;
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
     width: auto;
-    height: 3.75rem;
+    height: auto;
     min-height: 3.75rem;
-    overflow: hidden;
+    overflow: visible;
     background-color: rgba(0, 0, 0, 0.7);
     text-align: center;
     padding: 0.5rem 1rem;
@@ -84,8 +283,7 @@ body {
 }
 #messageBox > .message {
     max-width: 100%;
-    max-height: 100%;
-    overflow: auto;
+    overflow: visible;
     scrollbar-width: none;
 }
 #messageBox > .message::-webkit-scrollbar {
@@ -221,6 +419,51 @@ body {
     margin: 0;
     pointer-events: none;
 }
+.effect-fight-deck {
+    position: fixed;
+    z-index: 10004;
+    box-sizing: border-box;
+    overflow: hidden;
+    margin: 0;
+    border: 2px solid #d9bd6a;
+    border-radius: 0.55rem;
+    background: #2b151d;
+    box-shadow:
+        -0.18rem 0.18rem 0 #1a0d12,
+        -0.34rem 0.34rem 0 #6f5636,
+        -0.5rem 0.5rem 0 rgba(12, 7, 5, 0.88),
+        0 0.35rem 0.7rem rgba(0, 0, 0, 0.62);
+    pointer-events: none;
+    transform-style: preserve-3d;
+    user-select: none;
+}
+.effect-fight-deck::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+        linear-gradient(rgba(16, 8, 5, 0.01), rgba(8, 4, 3, 0.1)),
+        url("images/fight-card-back-medieval-sentinel-photoreal-v1.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    filter: brightness(1.28) contrast(1.12) saturate(0.86);
+}
+.effect-fight-deck--monster::before {
+    transform: rotate(180deg) scale(1.025);
+}
+.effect-fight-deck--player::before {
+    transform: scale(1.025);
+}
+.effect-fight-deck::after {
+    content: "";
+    position: absolute;
+    inset: 0.22rem;
+    border: 1px solid rgba(217, 189, 106, 0.44);
+    border-radius: 0.3rem;
+    box-shadow: inset 0 0 0.4rem rgba(0, 0, 0, 0.62);
+}
 .fight-overlay {
     position: fixed;
     inset: 0;
@@ -233,17 +476,18 @@ body {
     font-family: sans-serif;
 }
 .fight-panel {
+    box-sizing: border-box;
     position: relative;
-    width: min(42rem, 100%);
+    display: flex;
+    flex-direction: column;
+    width: min(64rem, 100%);
     max-height: 100%;
-    overflow: auto;
+    overflow: hidden;
     padding: 1rem;
     border: 2px solid #d9bd6a;
     border-radius: 1rem;
     background: #171a20;
     text-align: center;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
 }
 .fight-close {
     position: absolute;
@@ -284,88 +528,370 @@ body {
     border-color: #ff9b9b;
     background: #4a2529;
 }
-.fight-panel h1 {
-    margin: 0 0 1rem;
+.dialog-header {
+    position: relative;
+    z-index: 20;
+    display: grid;
+    flex: none;
+    min-height: 2.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0 3.5rem 0.65rem;
+    place-items: center;
+    border-bottom: 1px solid rgba(217, 189, 106, 0.45);
+    background: #171a20;
+}
+.dialog-header h1 {
+    margin: 0;
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+.dialog-header > .fight-close {
+    top: 50%;
+    right: 0;
+    transform: translateY(calc(-50% - 0.325rem));
+}
+.dialog-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+.fight-dialog-content {
+    position: relative;
+    isolation: isolate;
+    background-color: #0b0c0d;
+    background-image:
+        linear-gradient(rgba(3, 4, 5, 0.2), rgba(3, 4, 5, 0.48)),
+        url("images/fight-floor-dark-mortar-base-photoreal-v1.png");
+    background-position: center, center;
+    background-repeat: no-repeat, repeat;
+    background-size: 100% 100%, 34rem 34rem;
+}
+.fight-floor {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+.fight-floor::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(0, 0, 0, 0) 25%,
+        rgba(0, 0, 0, 0.62) 100%
+    );
+}
+.fight-floor-stones {
+    position: absolute;
+    z-index: 1;
+    inset: -1.5rem;
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    overflow: hidden;
+}
+.fight-floor-stone {
+    width: 100%;
+    aspect-ratio: 1;
+    align-self: center;
+    background-image:
+        url("images/fight-floor-dark-flagstone-atlas-photoreal-transparent-v1.png");
+    background-repeat: no-repeat;
+    background-size: 200% 200%;
+    filter:
+        brightness(var(--fight-floor-brightness))
+        saturate(0.58);
+    opacity: var(--fight-floor-opacity);
+    transform:
+        translate(var(--fight-floor-x), var(--fight-floor-y))
+        rotate(var(--fight-floor-angle))
+        scale(var(--fight-floor-scale));
+}
+.fight-floor-stone--0 {
+    background-position: 0% 0%;
+}
+.fight-floor-stone--1 {
+    background-position: 100% 0%;
+}
+.fight-floor-stone--2 {
+    background-position: 0% 100%;
+}
+.fight-floor-stone--3 {
+    background-position: 100% 100%;
+}
+.fight-floor-stone:nth-child(n + 81) {
+    display: none;
 }
 .fight-board {
     position: relative;
+    z-index: 1;
     display: grid;
-    grid-template-rows: auto minmax(2.5rem, auto) auto;
-    gap: 0.55rem;
-    overflow: hidden;
+    grid-template-rows: auto auto auto;
+    width: min(52rem, 100%);
+    margin: 0 auto;
+    gap: 0.3rem;
+    overflow: visible;
 }
-.fight-side {
+.fight-seat {
     position: relative;
     display: grid;
-    gap: 0.45rem;
-}
-.fight-side--monster {
-    align-content: start;
-}
-.fight-side--player {
-    align-content: end;
-}
-.fight-board-center {
-    display: grid;
+    min-height: 6.4rem;
     place-items: center;
-    min-height: 2.5rem;
+    isolation: isolate;
 }
-.fight-identity {
-    display: grid;
-    width: min(9rem, 42%);
-    gap: 0.3rem;
-    justify-self: center;
-    text-align: center;
-}
-.fight-identity .fight-portrait-art {
+.fight-seat--monster,
+.fight-seat--player {
     box-sizing: border-box;
-    width: 100%;
-    margin: 0;
+    min-height: 9rem;
+    padding: 0;
+    align-items: center;
+}
+.fight-enchantments {
+    position: absolute;
+    top: 50%;
+    left: calc(50% + 10.4rem);
+    z-index: 3;
+    display: flex;
+    gap: 0.35rem;
+    transform: translateY(-50%);
+}
+.fight-enchantment {
+    display: grid;
+    width: 2.55rem;
+    min-height: 2.8rem;
+    place-items: center;
+    padding: 0.22rem;
+    border: 1px solid rgba(223, 195, 111, .62);
+    border-radius: 0.55rem;
+    background: rgba(20, 17, 13, .94);
+    box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, .55);
+    color: #f1dfab;
+    font-size: 0.76rem;
+    line-height: 1;
+}
+.fight-enchantment-icon {
+    font-size: 1.05rem;
+}
+.fight-enchantment--healing {
+    color: #d98d86;
+}
+.fight-enchantment--block {
+    color: #a9bfd0;
+}
+.fight-chair {
+    position: absolute;
+    z-index: 0;
+    width: 11rem;
+    height: 8rem;
+    object-fit: contain;
+    opacity: 0.62;
+    filter: brightness(0.72) saturate(0.78);
+    pointer-events: none;
+    user-select: none;
+}
+.fight-chair--monster,
+.fight-chair--player {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    width: 13rem;
+    height: 10.5rem;
+    object-fit: contain;
+    object-position: center;
+    opacity: 0.8;
+    filter: brightness(0.84) saturate(0.8);
+}
+.fight-chair--monster {
+    transform: translate(-50%, -50%);
+}
+.fight-chair--player {
+    transform: translate(-50%, -50%) rotate(180deg);
 }
 .fight-fighter {
+    position: relative;
+    z-index: 1;
     display: grid;
-    grid-template-columns: minmax(0, 9rem) auto;
-    justify-content: center;
-    column-gap: 0.65rem;
+    grid-template-columns: 4.75rem minmax(8.5rem, 13rem);
+    grid-template-rows: auto auto;
+    width: min(20rem, calc(100% - 2rem));
+    padding: 0.4rem 0.55rem;
+    column-gap: 0.6rem;
     row-gap: 0.3rem;
+    align-items: center;
+    border: 1px solid rgba(217, 189, 106, 0.35);
+    border-radius: 0.75rem;
+    background: rgba(23, 26, 32, 0.92);
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.5);
+    text-align: left;
+}
+.fight-fighter--monster {
+    transform: translateY(0.45rem);
+}
+.fight-fighter--player {
+    transform: translateY(-0.45rem);
 }
 .fight-fighter .fight-identity {
     display: contents;
 }
-.fight-fighter--monster .fight-identity > strong {
+.fight-fighter .fight-portrait-art {
+    box-sizing: border-box;
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 1 / 3;
+    width: 100%;
+    height: 4.75rem;
+    margin: 0;
+    border: 1px solid #7b8492;
+    border-radius: 0.55rem;
 }
-.fight-fighter--monster .fight-portrait-art {
-    grid-column: 1;
-    grid-row: 2;
-}
-.fight-fighter--monster .fight-health-display {
-    grid-column: 2;
-    grid-row: 2;
-}
-.fight-fighter--player .fight-portrait-art {
-    grid-column: 1;
-    grid-row: 1;
-}
-.fight-fighter--player .fight-identity > strong {
-    grid-column: 1;
-    grid-row: 2;
-}
-.fight-fighter--player .fight-health-display {
+.fight-fighter-copy {
+    display: grid;
     grid-column: 2;
     grid-row: 1;
+    min-width: 0;
+    gap: 0.05rem;
+}
+.fight-fighter-copy > strong {
+    overflow: hidden;
+    color: white;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fight-fighter-type {
+    color: #c8bda5;
+    font-size: 0.78rem;
+    text-transform: capitalize;
+}
+.fight-table {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 3rem;
+    padding: 1rem;
+    overflow: hidden;
+    border: 0.35rem solid #382619;
+    border-radius: 1rem;
+    background-image:
+        linear-gradient(rgba(20, 11, 6, 0.28), rgba(20, 11, 6, 0.38)),
+        url("images/fight-tabletop-aged-oak-topdown-photoreal-v1.png");
+    background-position: center;
+    background-size: cover;
+    box-shadow:
+        inset 0 0 0 1px rgba(218, 174, 104, 0.22),
+        inset 0 0.2rem 0.8rem rgba(0, 0, 0, 0.55),
+        0 0.35rem 0.8rem rgba(0, 0, 0, 0.55);
+    isolation: isolate;
+}
+.fight-board-center {
+    display: grid;
+    min-height: 1.75rem;
+    place-items: center;
+}
+.fight-table--defeated {
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+}
+.fight-table--defeated .fight-board-center {
+    width: 100%;
+    min-height: 0;
+}
+.fight-defeat-advice {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: min(36rem, 100%);
+    max-height: 100%;
+    min-height: 0;
+    gap: 0.65rem;
+    padding: clamp(0.7rem, 2vw, 1rem);
+    overflow: hidden;
+    border: 1px solid rgba(225, 194, 118, 0.58);
+    border-radius: 0.7rem;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(36, 27, 18, 0.94),
+            rgba(17, 14, 12, 0.96)
+        );
+    box-shadow:
+        0 0.35rem 1rem rgba(0, 0, 0, 0.5),
+        inset 0 0 1.2rem rgba(207, 153, 69, 0.08);
+    color: #f1e6ca;
+    opacity: 0;
+    animation: fight-defeat-advice-in 650ms ease 750ms both;
+    text-align: left;
+}
+.fight-defeat-advice h2 {
+    margin: 0;
+    color: #ffe19a;
+    font-size: clamp(1.05rem, 3vw, 1.35rem);
+    line-height: 1.15;
+    text-align: center;
+}
+.fight-defeat-tip-list {
+    display: grid;
+    min-height: 0;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0 0.2rem 0 1.55rem;
+    overflow-y: auto;
+    color: #f1e6ca;
+    font-size: clamp(0.78rem, 2.2vw, 0.95rem);
+    line-height: 1.28;
+    scrollbar-color: #8f693e rgba(0, 0, 0, 0.2);
+}
+.fight-defeat-tip::marker {
+    color: #d9aa59;
+    font-weight: 800;
+}
+.fight-defeat-tip[hidden] {
+    display: none;
+}
+.fight-defeat-more {
+    justify-self: center;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid #9d783f;
+    border-radius: 0.45rem;
+    background: #302318;
+    color: #ffe19a;
+    font: inherit;
+    font-weight: 750;
+}
+.fight-defeat-more:focus-visible,
+.fight-defeat-more:hover {
+    border-color: #e6bd6d;
+    background: #49321e;
+}
+@keyframes fight-defeat-advice-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.55rem) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 .fight-health-display {
-    display: flex;
+    display: grid;
+    grid-column: 2;
+    grid-row: 2;
+    grid-template-columns: minmax(4.5rem, 1fr) auto;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
 .fight-health-bar {
     box-sizing: border-box;
     position: relative;
-    width: 0.55rem;
-    height: 7rem;
+    width: 100%;
+    height: 0.55rem;
     overflow: hidden;
     border: 1px solid #9a6565;
     border-radius: 999px;
@@ -374,10 +900,10 @@ body {
 }
 .fight-health-fill {
     position: absolute;
-    inset: auto 0 0;
-    height: var(--health-fill);
+    inset: 0 auto 0 0;
+    width: var(--health-fill);
     background: #d52f3f;
-    transition: height 650ms cubic-bezier(.2,.8,.2,1);
+    transition: width 650ms cubic-bezier(.2,.8,.2,1);
 }
 .fight-health-details {
     display: flex;
@@ -389,14 +915,13 @@ body {
 }
 .fight-health-icon {
     color: #d93645;
-    font-size: 1.45rem;
+    font-size: 1rem;
     line-height: 1;
     text-shadow: 0 1px 3px #07170c;
 }
 .fight-health-value {
-    font-size: 0.9rem;
+    font-size: 0.82rem;
 }
-.fight-round-effect,
 .fight-outcome-effect {
     position: absolute;
     z-index: 10006;
@@ -414,7 +939,9 @@ body {
     font-size: clamp(2rem, 8vw, 4rem);
 }
 .fight-outcome-effect--defeated {
+    top: 30%;
     color: #ff7272;
+    font-size: clamp(2.6rem, 11vw, 6rem);
     text-shadow: 0 2px 5px #000, 0 0 16px #9e1f2b;
 }
 .fight-outcome-effect--victory {
@@ -457,78 +984,115 @@ body {
 .fight-hand {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(auto-fit, 7rem);
+    grid-template-columns: repeat(4, 6.25rem);
     justify-content: center;
-    gap: 0.6rem;
-    margin: 0.45rem 0;
+    gap: 0.5rem;
+    margin: 0;
 }
 .fight-monster-hand {
     display: grid;
-    gap: 0.45rem;
     justify-items: center;
-    margin: 0.35rem 0;
+    margin: 0;
 }
 .fight-monster-cards {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
-    gap: 0.45rem;
-    min-height: 10rem;
+    gap: 0.5rem;
+    min-height: 9rem;
     perspective: 50rem;
 }
 .fight-monster-card-back {
+    position: relative;
     box-sizing: border-box;
-    width: 7rem;
-    height: 10rem;
+    width: 6.25rem;
+    height: 9rem;
+    overflow: hidden;
     border: 2px solid #d9bd6a;
     border-radius: 0.5rem;
     background: repeating-linear-gradient(45deg, #4b2531 0 6px, #26141c 6px 12px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
+    box-shadow:
+        0 3px 8px rgba(0, 0, 0, 0.55),
+        inset 0 0 0.45rem rgba(0, 0, 0, 0.75);
     transform-style: preserve-3d;
     backface-visibility: hidden;
 }
+.fight-monster-card-back::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+        linear-gradient(rgba(16, 8, 5, 0.01), rgba(8, 4, 3, 0.1)),
+        url("images/fight-card-back-medieval-sentinel-photoreal-v1.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    filter: brightness(1.28) contrast(1.12) saturate(0.86);
+    transform: rotate(180deg) scale(1.025);
+}
+.fight-monster-card-back::after {
+    content: "";
+    position: absolute;
+    inset: 0.22rem;
+    border: 1px solid rgba(217, 189, 106, 0.44);
+    border-radius: 0.3rem;
+    box-shadow:
+        inset 0 0 0.4rem rgba(0, 0, 0, 0.62),
+        0 0 0.15rem rgba(217, 189, 106, 0.18);
+    pointer-events: none;
+}
 .fight-turn-status {
-    min-height: 1.5rem;
-    margin: 0.65rem 0;
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: #ffe173;
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: bold;
+    line-height: 1.35;
+    text-shadow:
+        0 0.12rem 0.2rem #160b05,
+        0 0 0.45rem rgba(255, 210, 72, 0.72);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.08);
+    transform-origin: center;
+    white-space: nowrap;
+    animation: fight-choice-prompt 2.4s ease-out forwards;
+}
+@keyframes fight-choice-prompt {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.08);
+    }
+    44% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(4.4);
+    }
 }
 .fight-monster-card {
+    position: relative;
+    padding: 0;
     background: #4b2531;
     border-color: #d9bd6a;
     transform-style: preserve-3d;
     backface-visibility: hidden;
 }
-.fight-deck {
-    position: absolute;
-    z-index: 10004;
-    width: 7rem;
-    min-height: 7rem;
-    height: 10rem;
-    border: 2px solid #d9bd6a;
-    border-radius: 0.65rem;
-    background: repeating-linear-gradient(45deg, #263a58 0 6px, #172338 6px 12px);
-    box-shadow: -5px 4px 0 #111923, -10px 8px 0 #34445a;
-    transform-origin: center;
-    opacity: 0;
-    pointer-events: none;
-}
-.fight-deck--monster {
-    top: 0;
-    left: 0;
-    background: repeating-linear-gradient(45deg, #4b2531 0 6px, #26141c 6px 12px);
-}
-.fight-deck--player {
-    bottom: 0;
-    left: 0;
-}
 .fight-card {
     box-sizing: border-box;
-    width: 7rem;
-    height: 10rem;
-    min-height: 7rem;
-    padding: 0.7rem;
+    width: 6.25rem;
+    height: 9rem;
+    min-height: 6.25rem;
+    padding: 0.6rem;
     border: 2px solid #7fa7d8;
     border-radius: 0.65rem;
     background: #202d3f;
@@ -552,43 +1116,119 @@ button.fight-card:not(:disabled):not(.fight-card--blocking) {
 button.fight-card:not(:disabled):not(.fight-card--blocking):hover,
 button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     animation: none;
-    border-color: #ffe173;
+    border-color: #fff0a4;
     background: #2b3d56;
-    box-shadow: 0 0 0 3px rgba(255, 225, 115, 0.24);
+    box-shadow:
+        0 0 0 3px rgba(255, 225, 115, 0.56),
+        0 0 1rem 0.25rem rgba(255, 210, 72, 0.48),
+        inset 0 0 0.5rem rgba(255, 240, 164, 0.2);
     transform: translateY(-0.3rem);
 }
 @keyframes fight-card-ready {
     0%, 100% {
-        border-color: #7fa7d8;
-        box-shadow: 0 0 0 0 rgba(255, 225, 115, 0);
+        border-color: #8fbef4;
+        box-shadow:
+            0 0 0 1px rgba(143, 190, 244, 0.34),
+            0 0 0.45rem rgba(99, 167, 247, 0.28);
     }
     50% {
-        border-color: #d6c66f;
-        box-shadow: 0 0 0 2px rgba(255, 225, 115, 0.16);
+        border-color: #ffe173;
+        box-shadow:
+            0 0 0 2px rgba(255, 225, 115, 0.48),
+            0 0 0.9rem 0.18rem rgba(255, 210, 72, 0.42),
+            inset 0 0 0.45rem rgba(255, 240, 164, 0.14);
     }
 }
 @media (prefers-reduced-motion: reduce) {
+    .fight-turn-status {
+        animation: fight-choice-prompt-reduced 2.4s linear forwards;
+        transform: translate(-50%, -50%) scale(1);
+    }
     button.fight-card:not(:disabled):not(.fight-card--blocking) {
         animation: none;
-        border-color: #d6c66f;
-        box-shadow: 0 0 0 2px rgba(255, 225, 115, 0.12);
+        border-color: #ffe173;
+        box-shadow:
+            0 0 0 2px rgba(255, 225, 115, 0.46),
+            0 0 0.75rem rgba(255, 210, 72, 0.38);
+    }
+}
+@keyframes fight-choice-prompt-reduced {
+    0%, 100% {
+        opacity: 0;
+    }
+    48% {
+        opacity: 1;
     }
 }
 .fight-card-art {
-    height: 5.5rem;
-    flex: 0 0 5.5rem;
-    margin: -0.7rem -0.7rem 0.2rem;
+    position: relative;
+    height: 4.8rem;
+    flex: 0 0 4.8rem;
+    margin: -0.6rem -0.6rem 0.15rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.fight-card-art-subject-frame,
+.inventory-entry-art-subject-frame {
+    position: absolute;
+    z-index: 50;
+    display: grid;
+    overflow: visible;
+    place-items: center;
+    pointer-events: none;
+}
+.fight-card-art-subject-frame {
+    top: 0.2rem;
+    left: 0.2rem;
+    width: calc(100% - 0.4rem);
+    height: calc(100% - 0.4rem);
+}
+.inventory-entry-art-subject-frame {
+    top: 0.25rem;
+    left: 0.25rem;
+    width: calc(100% - 0.5rem);
+    height: calc(100% - 0.5rem);
+}
+.fight-card-art-subject-frame > .origin-artwork-subject,
+.inventory-entry-art-subject-frame > .origin-artwork-subject {
+    position: relative;
+    top: auto;
+    left: auto;
+    display: block;
+    width: min(var(--origin-artwork-subject-width), 100%) !important;
+    height: min(var(--origin-artwork-subject-height), 100%) !important;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 !important;
+    object-fit: contain;
+    transform: scaleX(var(--item-mirror)) !important;
 }
 .fight-card-art--empty {
     background: transparent;
 }
+.fight-card-name {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .fight-card-effects {
-    min-height: 1.8rem;
+    min-height: 1.55rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.3rem;
+}
+.fight-monster-card-face {
+    box-sizing: border-box;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem;
+    overflow: hidden;
+    transform: rotate(180deg);
 }
 .fight-effect-icon {
     box-sizing: border-box;
@@ -659,16 +1299,19 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 }
 .fight-monster-card.fight-card--blocking {
     box-sizing: border-box;
-    width: 7rem;
-    min-height: 7rem;
-    height: 10rem;
-    padding: 0.7rem;
+    width: 6.25rem;
+    min-height: 6.25rem;
+    height: 9rem;
+    padding: 0;
     font-size: inherit;
 }
 .fight-card--selected {
     border-color: #ffe173;
     background: #594a18;
-    box-shadow: 0 0 0 3px rgba(255, 225, 115, 0.28);
+    box-shadow:
+        0 0 0 3px rgba(255, 225, 115, 0.62),
+        0 0 1.1rem 0.25rem rgba(255, 210, 72, 0.52),
+        inset 0 0 0.55rem rgba(255, 240, 164, 0.18);
     transform: translateY(-0.25rem);
 }
 .fight-outcome + button,
@@ -694,19 +1337,211 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 .message {
     display: inline-block;
 }
-.inventory-status {
-    width: 100%;
+.encounter-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+}
+.encounter-name {
+    min-width: 0;
+    margin-right: 0.55rem;
+    white-space: normal;
+}
+.encounter-action--fight .encounter-name {
+    flex: 1 4 38%;
+}
+.fight-cost,
+.fight-reward {
+    min-width: 0;
+    white-space: normal;
+}
+.fight-cost {
+    flex: 1 2 auto;
+    margin-right: 0.35rem;
+}
+.fight-reward {
+    flex: 1 2 auto;
+    margin-left: 0.35rem;
+}
+.encounter-action .button {
+    flex: none;
+}
+#encounterCard {
+    position: relative;
+    flex: 0 1 auto;
+    align-self: center;
+    min-height: 0;
+    z-index: 9998;
+    display: block;
+    width: min(42rem, calc(100% - 1rem));
+    max-height: 32rem;
+    overflow: auto;
+    margin: 0.5rem auto 0;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid rgba(217, 189, 106, 0.85);
+    border-radius: 0.65rem;
+    background: rgba(23, 26, 32, 0.94);
+    box-shadow: 0 0.25rem 0.8rem rgba(0, 0, 0, 0.45);
+    color: white;
+    font: italic 1rem/1.3 sans-serif;
+    text-align: left;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+#encounterCard[hidden] {
+    display: none;
+}
+.encounter-card-close {
+    top: 0.45rem;
+    right: 0.45rem;
+}
+.encounter-card-title {
+    margin: 0 3rem 0.45rem 0;
+    color: white;
+    font: 700 1.1rem/1.2 sans-serif;
+}
+.encounter-card-description {
+    display: block;
+}
+.encounter-card-details {
+    display: block;
+    margin-top: 0;
+    color: #e8e1cf;
+    font-style: normal;
+}
+.encounter-card-title + .encounter-card-details,
+.encounter-card-description + .encounter-card-details {
+    margin-top: 0.55rem;
+}
+.item-explanation {
+    display: grid;
+    gap: 0.5rem;
+}
+.item-explanation-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    margin: 0;
+}
+.item-explanation-heading,
+.item-explanation-text {
+    margin: 0;
+    padding: 0.38rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.item-explanation-heading {
+    color: #ffe9a6;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+.item-explanation-text {
+    padding-left: 0.75rem;
+}
+.item-explanation-heading:first-of-type,
+.item-explanation-heading:first-of-type + .item-explanation-text {
+    padding-top: 0;
+    border-top: 0;
+}
+.item-explanation-note {
+    margin: 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(217, 189, 106, 0.35);
+    color: #cfc7b6;
+    font-style: italic;
+}
+.item-explanation-note q {
+    quotes: "“" "”" "‘" "’";
+}
+#messageBox > .status-text {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
     vertical-align: top;
+}
+#messageBox .status-item-link {
+    display: inline;
+    min-height: 0;
+    margin: 0;
+    padding: 0 0.08em;
+    border: 0;
+    border-bottom: 1px dashed currentColor;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #ffe19a;
+    font: inherit;
+    font-weight: 750;
+    line-height: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+#messageBox .status-item-link:hover {
+    border-bottom-style: solid;
+    color: #fff0b8;
+}
+#messageBox .status-item-link[aria-expanded="true"] {
+    border-bottom-style: solid;
+    color: #fff4cf;
+}
+#messageBox .status-item-link:focus-visible {
+    outline: 2px solid #ffe19a;
+    outline-offset: 2px;
+}
+.encounter-item-card-content {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+}
+.encounter-card-title
+    + .encounter-card-details.encounter-item-card-content {
+    margin-top: 1.55rem;
+}
+.encounter-card-item-art {
+    width: 7rem;
+    height: 7rem;
+    border: 1px solid rgba(217, 189, 106, 0.55);
+    border-radius: 0.55rem;
+    background-color: #302b22;
+}
+.encounter-card-item-art-subject-frame {
+    position: absolute;
+    z-index: 50;
+    top: 0.3rem;
+    left: 0.3rem;
+    display: grid;
+    width: calc(100% - 0.6rem);
+    height: calc(100% - 0.6rem);
+    overflow: visible;
+    place-items: center;
+    pointer-events: none;
+}
+.encounter-card-item-art-subject-frame > .origin-artwork-subject {
+    position: relative;
+    top: auto;
+    left: auto;
+    display: block;
+    width: min(var(--origin-artwork-subject-width), 100%) !important;
+    height: min(var(--origin-artwork-subject-height), 100%) !important;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 !important;
+    object-fit: contain;
+    transform: scaleX(var(--item-mirror)) !important;
 }
 .inventory-dialog {
     position: relative;
-    width: min(42rem, calc(100% - 2rem));
+    width: min(64rem, calc(100% - 2rem));
+    max-width: min(64rem, calc(100% - 2rem));
     max-height: calc(100% - 2rem);
-    overflow: auto;
+    overflow: hidden;
     padding: 1rem;
     border: 2px solid #d9bd6a;
     border-radius: 1rem;
@@ -714,20 +1549,17 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     color: white;
     font-family: sans-serif;
     text-align: center;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+}
+.inventory-dialog[open] {
+    display: flex;
+    flex-direction: column;
 }
 .inventory-dialog::backdrop {
     background: rgba(4, 7, 10, 0.92);
 }
-.inventory-dialog h1 {
-    margin: 0 0 1rem;
-    min-height: 2.75rem;
-    padding: 0.6rem 3rem;
-}
 .inventory-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
     gap: 0.8rem;
 }
 .inventory-entry {
@@ -737,13 +1569,58 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     border-radius: 0.75rem;
     background: #282d36;
 }
-.inventory-entry-art {
-    height: 7rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+.inventory-entry-header {
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr) auto;
+    min-height: 5.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: left;
 }
-.inventory-entry strong {
+.inventory-entry-art {
+    width: 5.25rem;
+    height: 5.25rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+.inventory-entry-identity {
+    align-self: center;
+    min-width: 0;
+    padding: 0.65rem 0.7rem;
+}
+.inventory-entry-name {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: white;
+    font-size: 1.05rem;
+    line-height: 1.2;
+}
+.inventory-entry-category {
     display: block;
-    padding: 0.65rem 0.4rem;
+    margin-top: 0.2rem;
+    color: #bdb6a6;
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+}
+.inventory-entry-quantity {
+    align-self: start;
+    min-width: 2.25rem;
+    margin: 0.55rem 0.55rem 0 0;
+    padding: 0.22rem 0.42rem;
+    border: 1px solid rgba(217, 189, 106, 0.7);
+    border-radius: 999px;
+    background: rgba(23, 26, 32, 0.9);
+    color: #ffe9a6;
+    font-size: 0.8rem;
+    font-weight: bold;
+    line-height: 1;
+    text-align: center;
+}
+.inventory-entry-description {
+    margin: 0;
+    padding: 0.65rem 0.75rem 0.75rem;
+    color: #e8e1cf;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    text-align: left;
 }
 .button:disabled {
     color: #333333;
@@ -751,7 +1628,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 
 @media (max-width: 600px), (max-width: 900px) and (max-height: 500px) {
     #messageBox {
-        height: calc(3.75rem + env(safe-area-inset-top));
+        height: auto;
         min-height: calc(3.75rem + env(safe-area-inset-top));
         padding:
             max(0.5rem, env(safe-area-inset-top))
@@ -761,6 +1638,20 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
         font-size: 1.05rem;
         line-height: 1.25;
         font-family: sans-serif;
+    }
+    #encounterCard {
+        width: calc(100% - 0.5rem);
+        padding: 0.55rem 0.65rem;
+        font-size: 0.95rem;
+        line-height: 1.25;
+    }
+    .encounter-item-card-content {
+        grid-template-columns: 5.5rem minmax(0, 1fr);
+        gap: 0.55rem;
+    }
+    .encounter-card-item-art {
+        width: 5.5rem;
+        height: 5.5rem;
     }
     #exploreControl,
     #soundControl,
@@ -802,75 +1693,149 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
         padding: 0.55rem 0.7rem;
         font-size: 0.95rem;
         overflow: hidden;
-        text-overflow: ellipsis;
+        text-overflow: clip;
         white-space: nowrap;
     }
     .fight-overlay {
-        padding:
-            max(0.35rem, env(safe-area-inset-top))
-            max(0.35rem, env(safe-area-inset-right))
-            max(0.35rem, env(safe-area-inset-bottom))
-            max(0.35rem, env(safe-area-inset-left));
+        padding: 0;
     }
     .fight-panel {
         width: 100%;
-        height: auto;
-        max-height: 100%;
-        padding: 0.55rem;
-        border-radius: 0.65rem;
+        height: 100%;
+        height: 100dvh;
+        max-height: none;
+        padding:
+            max(0.55rem, env(safe-area-inset-top))
+            max(0.55rem, env(safe-area-inset-right))
+            max(0.55rem, env(safe-area-inset-bottom))
+            max(0.55rem, env(safe-area-inset-left));
+        border: 0;
+        border-radius: 0;
     }
-    .fight-panel h1 {
-        margin-bottom: 0.45rem;
-        padding-inline: 2.8rem;
+    .dialog-header h1 {
+        margin: 0;
         font-size: 1.4rem;
     }
     .fight-board {
-        gap: 0.25rem;
+        box-sizing: border-box;
+        min-height: 100%;
+        align-content: center;
+        gap: 0.35rem;
+        padding-block: 0.25rem;
         overflow: visible;
     }
-    .fight-side,
-    .fight-monster-hand {
-        gap: 0.25rem;
+    .fight-floor-stones {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-rows: repeat(16, minmax(0, 1fr));
+    }
+    .fight-floor-stone:nth-child(n) {
+        display: block;
+    }
+    .fight-seat {
+        min-height: 5.1rem;
+    }
+    .fight-seat--monster,
+    .fight-seat--player {
+        min-height: 7rem;
+        padding: 0;
+        align-items: center;
+    }
+    .fight-enchantments {
+        top: calc(50% + 2.25rem);
+        right: auto;
+        left: 50%;
+        gap: 0.2rem;
+        transform: translateX(-50%);
+    }
+    .fight-enchantment {
+        width: 2rem;
+        min-height: 2.2rem;
+        padding: 0.15rem;
+        font-size: 0.66rem;
+    }
+    .fight-enchantment-icon {
+        font-size: 0.82rem;
+    }
+    .fight-chair {
+        width: 8.5rem;
+        height: 6rem;
+    }
+    .fight-chair--monster,
+    .fight-chair--player {
+        top: 50%;
+        bottom: auto;
+        left: 50%;
+        width: 10.5rem;
+        height: 8.5rem;
+        object-fit: contain;
+        object-position: center;
+    }
+    .fight-chair--monster {
+        transform: translate(-50%, -50%);
+    }
+    .fight-chair--player {
+        transform: translate(-50%, -50%) rotate(180deg);
     }
     .fight-fighter {
-        grid-template-columns: minmax(0, 6rem) auto;
-        column-gap: 0.4rem;
+        grid-template-columns: 3.75rem minmax(7rem, 10rem);
+        width: min(16rem, calc(100% - 1rem));
+        padding: 0.3rem 0.45rem;
+        column-gap: 0.45rem;
+        row-gap: 0.2rem;
     }
-    .fight-portrait-art {
-        height: 4.5rem;
+    .fight-fighter--monster {
+        transform: translateY(0.35rem);
+    }
+    .fight-fighter--player {
+        transform: translateY(-0.35rem);
+    }
+    .fight-fighter .fight-portrait-art {
+        height: 3.75rem;
     }
     .fight-health-bar {
-        height: 4.5rem;
+        height: 0.45rem;
     }
     .fight-health-value {
-        font-size: 1rem;
+        font-size: 0.75rem;
+    }
+    .fight-table {
+        gap: 2.5rem;
+        padding: 0.55rem;
+        border-width: 0.25rem;
+        border-radius: 0.7rem;
     }
     .fight-hand {
-        grid-template-columns: repeat(auto-fit, 5.25rem);
-        gap: 0.35rem;
-        margin: 0.2rem 0;
+        grid-template-columns: repeat(4, 4.5rem);
+        gap: 0.3rem;
+        margin: 0;
     }
     .fight-monster-cards {
         gap: 0.3rem;
-        min-height: 7.5rem;
+        min-height: 6.75rem;
     }
     .fight-card,
     .fight-monster-card-back,
-    .fight-deck,
     .fight-monster-card.fight-card--blocking {
-        width: 5.25rem;
-        height: 7.5rem;
-        min-height: 5.25rem;
+        width: 4.5rem;
+        height: 6.75rem;
+        min-height: 4.5rem;
     }
-    .fight-card,
-    .fight-monster-card.fight-card--blocking {
+    .fight-card {
         padding: 0.45rem;
         gap: 0.2rem;
-        font-size: 0.9rem;
+        font-size: 0.78rem;
+    }
+    .fight-monster-card,
+    .fight-monster-card.fight-card--blocking {
+        padding: 0;
+    }
+    .fight-monster-card-face {
+        gap: 0.2rem;
+        padding: 0.45rem;
     }
     .fight-card-art {
-        height: 4rem;
-        flex-basis: 4rem;
+        height: 3.45rem;
+        flex-basis: 3.45rem;
         margin: -0.45rem -0.45rem 0.1rem;
     }
     .fight-card-effects {
@@ -887,62 +1852,195 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
         height: 1.45rem;
     }
     .fight-turn-status {
-        min-height: 1rem;
-        margin: 0.2rem 0;
-        font-size: 0.95rem;
+        margin: 0;
+        font-size: 0.85rem;
     }
     .inventory-dialog {
-        width: calc(100% - 0.7rem);
-        max-height: calc(100% - 0.7rem);
-        padding: 0.65rem;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        padding:
+            max(0.65rem, env(safe-area-inset-top))
+            max(0.65rem, env(safe-area-inset-right))
+            max(0.65rem, env(safe-area-inset-bottom))
+            max(0.65rem, env(safe-area-inset-left));
+        border: 0;
+        border-radius: 0;
     }
     .inventory-list {
-        grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
+        grid-template-columns: 1fr;
         gap: 0.5rem;
     }
-    .inventory-entry-art {
-        height: 5.5rem;
+    .inventory-entry-header {
+        grid-template-columns: 4.75rem minmax(0, 1fr) auto;
+        min-height: 4.75rem;
     }
-    .inventory-entry strong {
-        font-size: 0.95rem;
+    .inventory-entry-art {
+        width: 4.75rem;
+        height: 4.75rem;
+    }
+    .inventory-entry-name {
+        font-size: 1rem;
+    }
+    .inventory-entry-description {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .fight-hand {
+        grid-template-columns: repeat(2, 4.75rem);
+    }
+    .fight-monster-cards {
+        gap: 0;
+    }
+    .fight-monster-card-back,
+    .fight-monster-card,
+    .fight-monster-card.fight-card--blocking {
+        width: 4.75rem;
+        height: 6.25rem;
+        min-height: 4.75rem;
+    }
+    .fight-card {
+        height: 6.25rem;
+        min-height: 4.75rem;
+    }
+    .fight-card-art {
+        height: 3.1rem;
+        flex-basis: 3.1rem;
+    }
+    .fight-monster-cards {
+        min-height: 6.25rem;
+    }
+    .fight-monster-cards > :not(:first-child) {
+        margin-left: -0.8rem;
     }
 }
 
 @media (max-width: 900px) and (max-height: 500px) {
-    .fight-panel {
-        overflow: auto;
+    .fight-floor-stones {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-template-rows: repeat(8, minmax(0, 1fr));
     }
     .fight-board {
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        grid-template-rows: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        min-height: 0;
+        align-content: start;
+        gap: 0.1rem;
+        padding-block: 0;
+    }
+    .fight-seat {
+        min-height: 3rem;
+    }
+    .fight-seat--monster,
+    .fight-seat--player {
+        min-height: 4.3rem;
+        padding: 0;
         align-items: center;
-        gap: 0.45rem;
     }
-    .fight-side--monster {
-        grid-column: 1;
-        grid-row: 1;
+    .fight-chair {
+        width: 4.5rem;
+        height: 3.5rem;
     }
-    .fight-board-center {
-        grid-column: 2;
-        grid-row: 1;
-        min-width: 4.5rem;
+    .fight-chair--monster,
+    .fight-chair--player {
+        top: 50%;
+        bottom: auto;
+        left: 50%;
+        width: 6.5rem;
+        height: 5.2rem;
+        object-fit: contain;
+        object-position: center;
     }
-    .fight-side--player {
-        grid-column: 3;
-        grid-row: 1;
+    .fight-chair--monster {
+        transform: translate(-50%, -50%);
     }
-    .fight-monster-cards,
-    .fight-hand {
-        flex-wrap: nowrap;
-        grid-template-columns: repeat(3, minmax(0, 5.25rem));
+    .fight-chair--player {
+        transform: translate(-50%, -50%) rotate(180deg);
     }
     .fight-fighter {
-        grid-template-columns: minmax(0, 5rem) auto;
+        grid-template-columns: 2.6rem minmax(6rem, 8rem);
+        width: min(12.5rem, calc(100% - 0.5rem));
+        padding: 0.1rem 0.35rem;
+        column-gap: 0.35rem;
+        row-gap: 0.05rem;
+        font-size: 0.8rem;
+    }
+    .fight-fighter--monster {
+        transform: translateY(0.2rem);
+    }
+    .fight-fighter--player {
+        transform: translateY(-0.2rem);
+    }
+    .fight-fighter .fight-portrait-art {
+        height: 2.6rem;
+    }
+    .fight-fighter-type {
+        font-size: 0.66rem;
+    }
+    .fight-table {
+        gap: 0.9rem;
+        padding: 0.25rem;
+        border-width: 0.2rem;
+    }
+    .fight-hand {
+        grid-template-columns: repeat(4, 3.75rem);
+        gap: 0.2rem;
+    }
+    .fight-monster-cards {
+        gap: 0.2rem;
+        min-height: 4.7rem;
+    }
+    .fight-card,
+    .fight-monster-card-back,
+    .fight-monster-card,
+    .fight-monster-card.fight-card--blocking {
+        width: 3.75rem;
+        height: 4.7rem;
+        min-height: 3.75rem;
+    }
+    .fight-card,
+    .fight-monster-card-face {
+        font-size: 0.66rem;
+    }
+    .fight-card {
+        padding: 0.3rem;
+        gap: 0.1rem;
+    }
+    .fight-monster-card,
+    .fight-monster-card.fight-card--blocking {
+        padding: 0;
+    }
+    .fight-monster-card-face {
+        gap: 0.1rem;
+        padding: 0.3rem;
+    }
+    .fight-card-art {
+        height: 2.1rem;
+        flex-basis: 2.1rem;
+        margin: -0.3rem -0.3rem 0.05rem;
+    }
+    .fight-card-effects {
+        min-height: 1rem;
+    }
+    .fight-effect-icon {
+        width: 1rem;
+        height: 1rem;
+        flex-basis: 1rem;
+        font-size: 0.58rem;
+    }
+    .fight-turn-status {
+        font-size: 0.7rem;
     }
 }
-.area-collapse-effect {
-    display: grid;
-    grid-template-columns: repeat(var(--map-cols, 1), 42px);
+.area-explosion-effect {
+    contain: strict;
     inset: 0;
     overflow: hidden;
     pointer-events: none;
@@ -950,14 +2048,118 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     z-index: 80;
 }
 
-.area-collapse-effect > .cell {
-    animation: area-collapse 1.2s cubic-bezier(.4, 0, .8, .35) forwards;
+#map.area-explosion-map-burst {
+    animation: area-explosion-map-burst 540ms
+        cubic-bezier(.18, .72, .22, 1) both;
+    transform-origin: center;
+    will-change: transform, opacity;
 }
 
-@keyframes area-collapse {
-    0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+.area-explosion-effect > span {
+    display: block;
+    pointer-events: none;
+    position: absolute;
+    will-change: transform, opacity;
+}
+
+.area-explosion-flash {
+    animation: area-explosion-flash 240ms ease-out both;
+    background: #f3d69a;
+    inset: 0;
+}
+
+.area-explosion-shockwave {
+    animation: area-explosion-shockwave 520ms
+        cubic-bezier(.1, .7, .22, 1) both;
+    border: clamp(1rem, 4vmin, 2.5rem) solid rgba(244, 217, 151, .82);
+    border-radius: 50%;
+    height: 24vmax;
+    left: calc(50% - 12vmax);
+    top: calc(50% - 12vmax);
+    width: 24vmax;
+}
+
+.area-explosion-dust {
+    animation: area-explosion-dust 680ms
+        cubic-bezier(.12, .62, .25, 1) both;
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(34, 23, 14, 0) 0 20%,
+            rgba(50, 34, 20, .88) 46%,
+            rgba(9, 7, 5, .98) 100%
+        );
+    inset: -18%;
+}
+
+@keyframes area-explosion-map-burst {
+    0% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+    8% {
+        opacity: 1;
+        transform:
+            translate(var(--collapse-kick-x), -.7vmin)
+            scale(1.035)
+            rotate(var(--collapse-kick-turn));
+    }
+    17% {
+        opacity: 1;
+        transform:
+            translate(0, .4vmin)
+            scale(.985)
+            rotate(0);
+    }
+    100% {
+        opacity: .08;
+        transform: scale(1.3) rotate(var(--collapse-turn));
+    }
+}
+
+@keyframes area-explosion-flash {
+    0% { opacity: .98; }
+    36% { opacity: .82; }
+    100% { opacity: 0; }
+}
+
+@keyframes area-explosion-shockwave {
+    0% {
+        opacity: .95;
+        transform: scale(.08) rotate(0);
+    }
     100% {
         opacity: 0;
-        transform: translate(var(--collapse-x), 70vh) rotate(var(--collapse-rotate));
+        transform: scale(6) rotate(var(--collapse-counter-turn));
     }
+}
+
+@keyframes area-explosion-dust {
+    0% {
+        opacity: 0;
+        transform: scale(.6) rotate(0);
+    }
+    22% { opacity: .92; }
+    100% {
+        opacity: 0;
+        transform: scale(1.45) rotate(var(--collapse-counter-turn));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #map.area-explosion-map-burst {
+        animation: area-explosion-map-reduced 240ms linear both;
+    }
+    .area-explosion-shockwave,
+    .area-explosion-dust {
+        display: none;
+    }
+    .area-explosion-flash {
+        animation-duration: 240ms;
+    }
+}
+
+@keyframes area-explosion-map-reduced {
+    from { opacity: 1; }
+    to { opacity: .2; }
 }
