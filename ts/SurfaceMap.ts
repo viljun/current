@@ -310,25 +310,29 @@ export class SurfaceMap {
                 salt,
             );
 
-        return [-1, 0, 1].map((direction, index) => {
+        const alongSlots = [-.48, -.32, -.16, 0, .16, .32, .48];
+
+        return alongSlots.map((slot, index) => {
             const alongJitter = (
-                stableValue(index, 0x18c2f457) % 13 - 6
+                stableValue(index, 0x18c2f457) % 19 - 9
             ) / 100;
             const acrossJitter = (
-                stableValue(index, 0xa4d91e63) % 23 - 11
+                stableValue(index, 0xa4d91e63) % 65 - 32
             ) / 100;
-            const along = direction * .42 + alongJitter;
-            const diameter = direction === 0
-                ? .72 + stableValue(index, 0x73ab5f21) % 19 / 100
-                : .52 + stableValue(index, 0xc56e842d) % 18 / 100;
+            const along = slot + alongJitter;
+            const baseDiameter = slot === 0
+                ? .92 + stableValue(index, 0x73ab5f21) % 31 / 100
+                : .72 + stableValue(index, 0xc56e842d) % 25 / 100;
+            const sizeMultiplier = 1
+                + stableValue(index, 0x4d7c91a3) % 51 / 100;
 
             return {
-                diameterInTiles: diameter,
+                diameterInTiles: baseDiameter * sizeMultiplier,
                 offsetXInTiles: alongX * along + acrossX * acrossJitter,
                 offsetYInTiles: alongY * along + acrossY * acrossJitter,
-                opacity: direction === 0
-                    ? .66 + stableValue(index, 0x3fd812b7) % 18 / 100
-                    : .48 + stableValue(index, 0x91ea64c3) % 20 / 100,
+                opacity: slot === 0
+                    ? .34 + stableValue(index, 0x3fd812b7) % 16 / 100
+                    : .26 + stableValue(index, 0x91ea64c3) % 16 / 100,
             };
         });
     }

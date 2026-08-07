@@ -323,14 +323,14 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                         patches,
                         SurfaceMap.pathPatchVisualsAt(coordinates, road),
                     );
-                    assert.equal(patches.length, 3);
+                    assert.equal(patches.length, 7);
                     for (const patch of patches) {
                         assert.ok(
-                            patch.diameterInTiles >= .52
-                                && patch.diameterInTiles <= .9,
+                            patch.diameterInTiles >= .72
+                                && patch.diameterInTiles <= 1.83,
                         );
                         assert.ok(
-                            patch.opacity >= .48 && patch.opacity <= .84,
+                            patch.opacity >= .26 && patch.opacity <= .5,
                         );
                     }
                     pathPatchSignatures.add(JSON.stringify(patches));

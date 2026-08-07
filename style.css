@@ -150,7 +150,8 @@ body {
 .surface-road--road::after {
     z-index: 9;
     background-size: var(--surface-road-texture-size, 336px) !important;
-    opacity: .18;
+    background-blend-mode: multiply;
+    opacity: .24;
 }
 .surface-road--path::after {
     display: none;
@@ -187,7 +188,7 @@ body {
 }
 .surface-path-patch {
     position: absolute;
-    z-index: 14;
+    z-index: 11;
     top: calc(50% + var(--surface-path-patch-top));
     left: calc(50% + var(--surface-path-patch-left));
     width: var(--surface-path-patch-size);
@@ -205,19 +206,19 @@ body {
     -webkit-mask-image:
         radial-gradient(
             circle,
-            #000 0 54%,
-            rgba(0, 0, 0, .82) 66%,
-            rgba(0, 0, 0, .42) 79%,
-            rgba(0, 0, 0, .14) 90%,
+            #000 0 70%,
+            rgba(0, 0, 0, .84) 79%,
+            rgba(0, 0, 0, .48) 88%,
+            rgba(0, 0, 0, .16) 95%,
             transparent 100%
         );
     mask-image:
         radial-gradient(
             circle,
-            #000 0 54%,
-            rgba(0, 0, 0, .82) 66%,
-            rgba(0, 0, 0, .42) 79%,
-            rgba(0, 0, 0, .14) 90%,
+            #000 0 70%,
+            rgba(0, 0, 0, .84) 79%,
+            rgba(0, 0, 0, .48) 88%,
+            rgba(0, 0, 0, .16) 95%,
             transparent 100%
         );
 }
@@ -268,10 +269,11 @@ body {
     filter: brightness(.72) saturate(.6) sepia(.18) contrast(1.06);
 }
 .surface-road--road.surface-road-surface--sand::after {
+    background-color: #806347;
     background-image:
         url(images/seamless-sand-light-beach-square-texture-39125213.jpg)
         !important;
-    filter: brightness(.88) saturate(.65) sepia(.12) contrast(1.04);
+    filter: brightness(.78) saturate(.72) sepia(.24) contrast(1.06);
 }
 .surface-road--road.surface-road-surface--cobble::after {
     background-image: url(images/dungeon_floor.webp) !important;
@@ -297,8 +299,8 @@ body {
     filter: brightness(1) saturate(.82) contrast(1.08);
 }
 .surface-road-crossing--ford::after {
-    filter: brightness(.68) saturate(.58) contrast(.9);
-    opacity: .86;
+    z-index: 13;
+    opacity: .24;
 }
 .surface-road-crossing--bridge::after {
     opacity: 0;
