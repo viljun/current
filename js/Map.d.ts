@@ -41,6 +41,7 @@ export declare class Map {
     private decorateDungeonSoftTerrainCell;
     private decorateRiverCell;
     private decorateRoadCell;
+    private decoratePathPatches;
     private decorateRoadGrass;
     private static positiveModulo;
     private static shopOutsideDecoration;

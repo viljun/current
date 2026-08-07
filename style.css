@@ -55,19 +55,19 @@ body {
 .origin-artwork-cell.surface-river::before {
     content: "";
     position: absolute;
-    z-index: 3;
+    z-index: 12;
     top: 50%;
     left: 50%;
     width: var(--surface-river-size);
     height: var(--surface-river-size);
     border-radius: 50%;
-    background-color: #286f91;
+    background-color: #587a80;
     background-image:
         url(images/surface-river-water-medieval-photoreal-v1.png);
     background-position: var(--surface-river-texture-position);
     background-repeat: repeat;
     background-size: var(--surface-river-texture-size);
-    background-blend-mode: luminosity;
+    background-blend-mode: soft-light;
     pointer-events: none;
     transform:
         translate(-50%, -50%)
@@ -95,11 +95,11 @@ body {
         );
 }
 .surface-river--river::before {
-    filter: saturate(1.18) brightness(.94);
+    filter: saturate(.86) brightness(.98) contrast(1.07);
     opacity: .99;
 }
 .surface-river--tributary::before {
-    filter: saturate(1.07) brightness(.91);
+    filter: saturate(.78) brightness(.95) contrast(1.05);
     opacity: .96;
 }
 .cell.surface-road,
@@ -111,16 +111,16 @@ body {
 .origin-artwork-cell.surface-road::after {
     content: "";
     position: absolute;
-    z-index: 4;
+    z-index: 14;
     top: 50%;
     left: 50%;
-    width: var(--surface-road-size);
+    width: calc(var(--surface-road-size) * 1.3);
     height: var(--surface-road-size);
-    border-radius: 50%;
+    border-radius: 999px;
     background-color: #88775d;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
+    background-position: var(--surface-road-texture-position, center);
+    background-repeat: repeat;
+    background-size: var(--surface-road-texture-size, 336px);
     pointer-events: none;
     transform:
         translate(-50%, -50%)
@@ -128,7 +128,7 @@ body {
     transform-origin: center;
     -webkit-mask-image:
         radial-gradient(
-            circle,
+            ellipse,
             #000 0 38%,
             rgba(0, 0, 0, .78) 51%,
             rgba(0, 0, 0, .42) 66%,
@@ -138,7 +138,7 @@ body {
         );
     mask-image:
         radial-gradient(
-            circle,
+            ellipse,
             #000 0 38%,
             rgba(0, 0, 0, .78) 51%,
             rgba(0, 0, 0, .42) 66%,
@@ -148,12 +148,90 @@ body {
         );
 }
 .surface-road--road::after {
-    filter: brightness(.84) saturate(.75) contrast(1.04);
-    opacity: .94;
+    z-index: 9;
+    background-size: var(--surface-road-texture-size, 336px) !important;
+    opacity: .18;
 }
 .surface-road--path::after {
-    filter: brightness(.7) saturate(.74) contrast(1.14);
-    opacity: .96;
+    display: none;
+    width: calc(var(--surface-road-size) * 1.7);
+    background-image:
+        url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png)
+        !important;
+    background-position: var(--surface-road-texture-position, center);
+    background-repeat: repeat;
+    background-size: var(--surface-road-texture-size, 336px) !important;
+    background-blend-mode: normal;
+    filter: brightness(.9) saturate(.9) contrast(1.12);
+    opacity: .78;
+    -webkit-mask-image:
+        radial-gradient(
+            ellipse,
+            #000 0 44%,
+            rgba(0, 0, 0, .86) 56%,
+            rgba(0, 0, 0, .55) 68%,
+            rgba(0, 0, 0, .25) 80%,
+            rgba(0, 0, 0, .08) 91%,
+            transparent 100%
+        );
+    mask-image:
+        radial-gradient(
+            ellipse,
+            #000 0 44%,
+            rgba(0, 0, 0, .86) 56%,
+            rgba(0, 0, 0, .55) 68%,
+            rgba(0, 0, 0, .25) 80%,
+            rgba(0, 0, 0, .08) 91%,
+            transparent 100%
+        );
+}
+.surface-path-patch {
+    position: absolute;
+    z-index: 14;
+    top: calc(50% + var(--surface-path-patch-top));
+    left: calc(50% + var(--surface-path-patch-left));
+    width: var(--surface-path-patch-size);
+    height: var(--surface-path-patch-size);
+    border-radius: 50%;
+    background-color: #806448;
+    background-image:
+        url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png);
+    background-position: var(--surface-path-texture-position);
+    background-repeat: repeat;
+    background-size: var(--surface-path-texture-size);
+    opacity: var(--surface-path-patch-opacity);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    -webkit-mask-image:
+        radial-gradient(
+            circle,
+            #000 0 54%,
+            rgba(0, 0, 0, .82) 66%,
+            rgba(0, 0, 0, .42) 79%,
+            rgba(0, 0, 0, .14) 90%,
+            transparent 100%
+        );
+    mask-image:
+        radial-gradient(
+            circle,
+            #000 0 54%,
+            rgba(0, 0, 0, .82) 66%,
+            rgba(0, 0, 0, .42) 79%,
+            rgba(0, 0, 0, .14) 90%,
+            transparent 100%
+        );
+}
+.surface-road-surface--dust .surface-path-patch {
+    background-color: #806448;
+    filter: brightness(.88) saturate(.92) contrast(1.12);
+}
+.surface-road-surface--mud .surface-path-patch {
+    background-color: #594431;
+    filter: brightness(.76) saturate(.78) contrast(1.14);
+}
+.surface-road-surface--sand .surface-path-patch {
+    background-color: #a78d64;
+    filter: brightness(1) saturate(.82) contrast(1.08);
 }
 .surface-road-surface--gravel::after {
     background-color: #8c8069;
@@ -183,19 +261,54 @@ body {
     background-color: #594431;
     background-image: url(images/dirt.png);
 }
+.surface-road--road.surface-road-surface--gravel::after {
+    background-image:
+        url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png)
+        !important;
+    filter: brightness(.72) saturate(.6) sepia(.18) contrast(1.06);
+}
+.surface-road--road.surface-road-surface--sand::after {
+    background-image:
+        url(images/seamless-sand-light-beach-square-texture-39125213.jpg)
+        !important;
+    filter: brightness(.88) saturate(.65) sepia(.12) contrast(1.04);
+}
+.surface-road--road.surface-road-surface--cobble::after {
+    background-image: url(images/dungeon_floor.webp) !important;
+    background-size:
+        calc(var(--surface-road-texture-size, 336px) * .5)
+        !important;
+    filter: brightness(.62) saturate(.45) sepia(.12) contrast(1.08);
+}
+.surface-road--road.surface-road-surface--stone::after {
+    background-image: url(images/dungeon_floor.webp) !important;
+    background-size:
+        calc(var(--surface-road-texture-size, 336px) * .5)
+        !important;
+    filter: brightness(.55) saturate(.35) contrast(1.1);
+}
+.surface-road--path.surface-road-surface--dust::after {
+    filter: brightness(.88) saturate(.92) contrast(1.12);
+}
+.surface-road--path.surface-road-surface--mud::after {
+    filter: brightness(.76) saturate(.78) contrast(1.14);
+}
+.surface-road--path.surface-road-surface--sand::after {
+    filter: brightness(1) saturate(.82) contrast(1.08);
+}
 .surface-road-crossing--ford::after {
     filter: brightness(.68) saturate(.58) contrast(.9);
-    opacity: .7;
+    opacity: .86;
 }
 .surface-road-crossing--bridge::after {
-    opacity: .54;
+    opacity: 0;
 }
 #map .surface-road-grass {
-    z-index: 5 !important;
+    z-index: 15 !important;
     pointer-events: none;
 }
 #map .surface-road-bridge {
-    z-index: 8 !important;
+    z-index: 18 !important;
     pointer-events: none;
 }
 #map .surface-road-milestone {
@@ -370,6 +483,7 @@ body {
     pointer-events: none;
 }
 #compassIndicator {
+    --compass-rotation: 0deg;
     position: absolute;
     left: 0.75rem;
     bottom: 3.35rem;
@@ -393,10 +507,12 @@ body {
 .compass-arrow {
     position: absolute;
     top: 50%;
-    left: 44%;
+    left: 50%;
     width: 0.82rem;
     height: 1.72rem;
-    transform: translate(-50%, -50%) rotate(90deg);
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--compass-rotation));
     transform-origin: center;
     filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.85));
 }
@@ -420,9 +536,13 @@ body {
 .compass-north {
     position: absolute;
     top: 50%;
-    right: 0.15rem;
+    left: 50%;
     font: 800 0.57rem/1 sans-serif;
-    transform: translateY(-50%);
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--compass-rotation))
+        translateY(-0.92rem);
+    transform-origin: center;
     text-shadow: 0 1px 2px #000;
 }
 #gpsStatus[data-state="warning"] {

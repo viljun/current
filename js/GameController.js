@@ -53,6 +53,7 @@ export class GameController {
         this.soundSwitch = this.element("soundSwitch");
         this.inventoryControl = this.element("inventoryControl");
         this.restartControl = this.element("restartControl");
+        this.compassIndicator = this.element("compassIndicator");
         this.gpsStatus = this.element("gpsStatus");
         this.inventory = new Inventory();
         this.mapDimensionStyle = document.createElement("style");
@@ -79,6 +80,7 @@ export class GameController {
         this.map = new Map(this.mapElement, this.messageBox, dimensions.cols, dimensions.rows, this.inventory, this.state, GameController.TILE_SIZE, coordinates => this.selectCoordinates(coordinates), () => this.resumeMovement());
         this.map.show({});
         this.bindControls();
+        this.bindCompass();
     }
     start() {
         if (!navigator.geolocation) {
@@ -117,6 +119,62 @@ export class GameController {
         this.restartControl.addEventListener("click", () => this.restart());
         window.addEventListener("resize", () => this.scheduleResize());
         (_a = window.visualViewport) === null || _a === void 0 ? void 0 : _a.addEventListener("resize", () => this.scheduleResize());
+    }
+    bindCompass() {
+        if (!("DeviceOrientationEvent" in window)) {
+            return;
+        }
+        const orientationConstructor = window.DeviceOrientationEvent;
+        const update = (event) => {
+            var _a;
+            const orientation = event;
+            const heading = (_a = orientation.webkitCompassHeading) !== null && _a !== void 0 ? _a : (orientation.absolute && orientation.alpha !== null
+                ? (360 - orientation.alpha) % 360
+                : null);
+            if (heading === null || !Number.isFinite(heading)) {
+                return;
+            }
+            const northRotation = ((-heading % 360) + 360) % 360;
+            this.compassIndicator.style.setProperty("--compass-rotation", northRotation + "deg");
+            this.compassIndicator.setAttribute("aria-label", "Compass heading " + Math.round(heading) + " degrees");
+        };
+        let listening = false;
+        const listen = () => {
+            if (listening) {
+                return;
+            }
+            listening = true;
+            window.addEventListener("deviceorientationabsolute", update);
+            window.addEventListener("deviceorientation", update);
+        };
+        if (orientationConstructor.requestPermission === undefined) {
+            listen();
+            return;
+        }
+        this.compassIndicator.style.pointerEvents = "auto";
+        this.compassIndicator.setAttribute("role", "button");
+        this.compassIndicator.setAttribute("tabindex", "0");
+        this.compassIndicator.title = "Tap to enable compass";
+        const requestPermission = () => {
+            var _a;
+            void ((_a = orientationConstructor.requestPermission) === null || _a === void 0 ? void 0 : _a.call(orientationConstructor).then(permission => {
+                if (permission !== "granted") {
+                    return;
+                }
+                listen();
+                this.compassIndicator.style.pointerEvents = "none";
+                this.compassIndicator.setAttribute("role", "img");
+                this.compassIndicator.removeAttribute("tabindex");
+                this.compassIndicator.title = "North";
+            }).catch(() => { }));
+        };
+        this.compassIndicator.addEventListener("click", requestPermission);
+        this.compassIndicator.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                requestPermission();
+            }
+        });
     }
     scheduleResize() {
         if (this.resizeFrame !== null) {

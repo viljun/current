@@ -213,13 +213,83 @@ export class OriginArtwork {
         );
         const visual = SurfaceMap.roadVisualAt(coordinates, road);
         const diameter = visual.diameterInTiles * tileSize;
+        const inset = (diameter - tileSize) / 2;
+        const textureSize = tileSize * 8;
         cell.style.setProperty("--surface-road-size", diameter + "px");
         cell.style.setProperty(
             "--surface-road-rotation",
             visual.rotationDegrees + "deg",
         );
+        cell.style.setProperty(
+            "--surface-road-texture-size",
+            textureSize + "px",
+        );
+        cell.style.setProperty(
+            "--surface-road-texture-position",
+            visual.textureOffsetXInTiles * tileSize + inset + "px "
+                + (visual.textureOffsetYInTiles * tileSize + inset)
+                + "px",
+        );
+        if (road.kind === "path") {
+            OriginArtwork.decoratePathPatches(
+                cell,
+                coordinates,
+                road,
+                tileSize,
+                textureSize,
+            );
+        }
 
         return visual;
+    }
+
+    private static decoratePathPatches(
+        cell: HTMLDivElement,
+        coordinates: Coordinates,
+        road: SurfaceRoadCell,
+        tileSize: number,
+        textureSize: number,
+    ): void {
+        for (
+            const patch of SurfaceMap.pathPatchVisualsAt(coordinates, road)
+        ) {
+            const element = document.createElement("span");
+            const diameter = patch.diameterInTiles * tileSize;
+            const offsetX = patch.offsetXInTiles * tileSize;
+            const offsetY = patch.offsetYInTiles * tileSize;
+            const inset = (diameter - tileSize) / 2;
+            element.className = "surface-path-patch";
+            element.style.setProperty(
+                "--surface-path-patch-size",
+                diameter + "px",
+            );
+            element.style.setProperty(
+                "--surface-path-patch-left",
+                offsetX + "px",
+            );
+            element.style.setProperty(
+                "--surface-path-patch-top",
+                offsetY + "px",
+            );
+            element.style.setProperty(
+                "--surface-path-patch-opacity",
+                String(patch.opacity),
+            );
+            element.style.setProperty(
+                "--surface-path-texture-size",
+                textureSize + "px",
+            );
+            element.style.setProperty(
+                "--surface-path-texture-position",
+                -coordinates.latitude * tileSize
+                    + inset - offsetX + "px "
+                    + (
+                        -coordinates.longitude * tileSize
+                        + inset - offsetY
+                    ) + "px",
+            );
+            cell.append(element);
+        }
     }
 
     private static decorateRoadGrass(

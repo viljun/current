@@ -28,6 +28,12 @@ export interface SurfaceRoadVisual {
     grassRotationDegrees: number;
     grassSizeInTiles: number;
 }
+export interface SurfacePathPatchVisual {
+    diameterInTiles: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    opacity: number;
+}
 export interface SurfaceRoadCrossing {
     kind: "ford" | "bridge";
     bridgeAnchor: boolean;
@@ -53,6 +59,7 @@ export declare class SurfaceMap {
     static isRiverAt(coordinates: Coordinates): boolean;
     static roadAt(coordinates: Coordinates): SurfaceRoadCell | null;
     static roadVisualAt(coordinates: Coordinates, road: SurfaceRoadCell): SurfaceRoadVisual;
+    static pathPatchVisualsAt(coordinates: Coordinates, road: SurfaceRoadCell): readonly SurfacePathPatchVisual[];
     static crossingAt(coordinates: Coordinates, road?: SurfaceRoadCell | null, river?: SurfaceRiverCell | null): SurfaceRoadCrossing | null;
     static milestoneAt(coordinates: Coordinates): boolean;
     private static milestoneRouteAt;

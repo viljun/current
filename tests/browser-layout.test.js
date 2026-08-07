@@ -254,7 +254,7 @@ test(
             assert.ok(
                 layout.gps.fontSize >= (viewport.mobile ? 15 : 14),
             );
-            assert.equal(layout.compass.label, "North points right");
+            assert.equal(layout.compass.label, "North points up");
             assert.ok(
                 layout.compass.rectangle.bottom < layout.gps.rectangle.top,
                 viewport.name + " compass does not sit above GPS status",

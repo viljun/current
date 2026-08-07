@@ -821,7 +821,7 @@ export class Image {
                 "surface-road-timber-bridge-medieval-photoreal-transparent-v1.png",
             ];
             rotate = 0;
-            dimension = 4.15;
+            dimension = 5.15;
             style = "filter:brightness(.86) saturate(.72);opacity:.98;";
             zIndex = 8;
         } else if (name === "surface road milestone") {
@@ -969,10 +969,14 @@ export class Image {
                 "worm-earthworm-medieval-photoreal-transparent-v1.png",
             ];
             rotate = rotationSeed % 360;
-            dimension = .68 + (dimensionSeed % 14) / 100;
-            style = "filter:brightness(.58) saturate(.42) contrast(.94);"
+            const sizeMultiplier = .5
+                + (Image.visualSeed(seed, name, 5) % 21) / 100;
+            dimension = (
+                .68 + (dimensionSeed % 14) / 100
+            ) * sizeMultiplier;
+            style = "filter:brightness(.5) saturate(.3) contrast(.92);"
                 + "opacity:"
-                + (.58 + (opacitySeed % 14) / 100).toFixed(2)
+                + (.48 + (opacitySeed % 13) / 100).toFixed(2)
                 + ";";
         } else if (name === "torch") {
             srcs = [

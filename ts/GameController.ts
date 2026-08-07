@@ -11,6 +11,14 @@ interface SmoothedLocation {
     longitude: number;
 }
 
+interface CompassOrientationEvent extends DeviceOrientationEvent {
+    webkitCompassHeading?: number;
+}
+
+interface CompassOrientationEventConstructor {
+    requestPermission?: () => Promise<"granted"|"denied">;
+}
+
 export interface MapLayout {
     cols: number;
     rows: number;
@@ -104,6 +112,8 @@ export class GameController {
     private readonly soundSwitch = this.element<HTMLInputElement>("soundSwitch");
     private readonly inventoryControl = this.element<HTMLButtonElement>("inventoryControl");
     private readonly restartControl = this.element<HTMLButtonElement>("restartControl");
+    private readonly compassIndicator =
+        this.element<HTMLDivElement>("compassIndicator");
     private readonly gpsStatus = this.element<HTMLDivElement>("gpsStatus");
     private readonly inventory = new Inventory();
     private readonly mapDimensionStyle = document.createElement("style");
@@ -147,6 +157,7 @@ export class GameController {
         );
         this.map.show({});
         this.bindControls();
+        this.bindCompass();
     }
 
     start(): void {
@@ -205,6 +216,75 @@ export class GameController {
             "resize",
             () => this.scheduleResize(),
         );
+    }
+
+    private bindCompass(): void {
+        if (!("DeviceOrientationEvent" in window)) {
+            return;
+        }
+        const orientationConstructor = window.DeviceOrientationEvent as unknown as CompassOrientationEventConstructor;
+        const update = (event: Event): void => {
+            const orientation = event as CompassOrientationEvent;
+            const heading = orientation.webkitCompassHeading
+                ?? (
+                    orientation.absolute && orientation.alpha !== null
+                        ? (360 - orientation.alpha) % 360
+                        : null
+                );
+            if (heading === null || !Number.isFinite(heading)) {
+                return;
+            }
+            const northRotation = ((-heading % 360) + 360) % 360;
+            this.compassIndicator.style.setProperty(
+                "--compass-rotation",
+                northRotation + "deg",
+            );
+            this.compassIndicator.setAttribute(
+                "aria-label",
+                "Compass heading " + Math.round(heading) + " degrees",
+            );
+        };
+        let listening = false;
+        const listen = (): void => {
+            if (listening) {
+                return;
+            }
+            listening = true;
+            window.addEventListener("deviceorientationabsolute", update);
+            window.addEventListener("deviceorientation", update);
+        };
+
+        if (orientationConstructor.requestPermission === undefined) {
+            listen();
+
+            return;
+        }
+
+        this.compassIndicator.style.pointerEvents = "auto";
+        this.compassIndicator.setAttribute("role", "button");
+        this.compassIndicator.setAttribute("tabindex", "0");
+        this.compassIndicator.title = "Tap to enable compass";
+        const requestPermission = (): void => {
+            void orientationConstructor.requestPermission?.()
+                .then(permission => {
+                    if (permission !== "granted") {
+                        return;
+                    }
+                    listen();
+                    this.compassIndicator.style.pointerEvents = "none";
+                    this.compassIndicator.setAttribute("role", "img");
+                    this.compassIndicator.removeAttribute("tabindex");
+                    this.compassIndicator.title = "North";
+                })
+                .catch(() => {});
+        };
+        this.compassIndicator.addEventListener("click", requestPermission);
+        this.compassIndicator.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                requestPermission();
+            }
+        });
     }
 
     private scheduleResize(): void {

@@ -40,6 +40,13 @@ export interface SurfaceRoadVisual {
     grassSizeInTiles: number;
 }
 
+export interface SurfacePathPatchVisual {
+    diameterInTiles: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    opacity: number;
+}
+
 export interface SurfaceRoadCrossing {
     kind: "ford"|"bridge";
     bridgeAnchor: boolean;
@@ -258,7 +265,10 @@ export class SurfaceMap {
             road.routeId,
             salt,
         );
-        const sizeSeed = values(0x6d26e251);
+        const routeWidthSeed = SurfaceMap.hash(
+            road.routeId,
+            road.kind === "road" ? 0x4b72e193 : 0x78c4a2df,
+        );
         const grassPlacementSeed = values(0x123da847);
         const grassPresent = grassPlacementSeed % (
             road.kind === "road" ? 7 : 13
@@ -266,17 +276,61 @@ export class SurfaceMap {
 
         return {
             diameterInTiles: road.kind === "road"
-                ? 2.15 + sizeSeed % 51 / 100
-                : 1.5 + sizeSeed % 43 / 100,
-            rotationDegrees: values(0xa5381c6d) % 36_000 / 100,
-            textureOffsetXInTiles: -(values(0x391be74f) % 800) / 100,
-            textureOffsetYInTiles: -(values(0xc648a315) % 800) / 100,
+                ? 1.72 + routeWidthSeed % 13 / 100
+                : 1.02 + routeWidthSeed % 9 / 100,
+            rotationDegrees: road.headingDegrees,
+            textureOffsetXInTiles: -coordinates.latitude,
+            textureOffsetYInTiles: -coordinates.longitude,
             grassOpacity: grassPresent
                 ? .12 + values(0x75d932ab) % 15 / 100
                 : 0,
             grassRotationDegrees: values(0x24e180b7) % 360,
             grassSizeInTiles: .38 + values(0xe73c0a49) % 43 / 100,
         };
+    }
+
+    static pathPatchVisualsAt(
+        coordinates: Coordinates,
+        road: SurfaceRoadCell,
+    ): readonly SurfacePathPatchVisual[] {
+        if (road.kind !== "path") {
+            return [];
+        }
+        const heading = road.headingDegrees * Math.PI / 180;
+        const alongX = Math.cos(heading);
+        const alongY = Math.sin(heading);
+        const acrossX = -alongY;
+        const acrossY = alongX;
+        const stableValue = (index: number, salt: number): number =>
+            SurfaceMap.hash(
+                coordinates.latitude,
+                coordinates.longitude,
+                road.routeId,
+                index,
+                salt,
+            );
+
+        return [-1, 0, 1].map((direction, index) => {
+            const alongJitter = (
+                stableValue(index, 0x18c2f457) % 13 - 6
+            ) / 100;
+            const acrossJitter = (
+                stableValue(index, 0xa4d91e63) % 23 - 11
+            ) / 100;
+            const along = direction * .42 + alongJitter;
+            const diameter = direction === 0
+                ? .72 + stableValue(index, 0x73ab5f21) % 19 / 100
+                : .52 + stableValue(index, 0xc56e842d) % 18 / 100;
+
+            return {
+                diameterInTiles: diameter,
+                offsetXInTiles: alongX * along + acrossX * acrossJitter,
+                offsetYInTiles: alongY * along + acrossY * acrossJitter,
+                opacity: direction === 0
+                    ? .66 + stableValue(index, 0x3fd812b7) % 18 / 100
+                    : .48 + stableValue(index, 0x91ea64c3) % 20 / 100,
+            };
+        });
     }
 
     static crossingAt(

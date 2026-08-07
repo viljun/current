@@ -517,7 +517,30 @@ export class Map {
         div.style.setProperty("--surface-road-texture-position", visual.textureOffsetXInTiles * this.tile_size + inset + "px "
             + (visual.textureOffsetYInTiles * this.tile_size + inset)
             + "px");
+        if (road.kind === "path") {
+            this.decoratePathPatches(div, coordinates, road, textureSize);
+        }
         return visual;
+    }
+    decoratePathPatches(div, coordinates, road, textureSize) {
+        for (const patch of SurfaceMap.pathPatchVisualsAt(coordinates, road)) {
+            const element = document.createElement("span");
+            const diameter = patch.diameterInTiles * this.tile_size;
+            const offsetX = patch.offsetXInTiles * this.tile_size;
+            const offsetY = patch.offsetYInTiles * this.tile_size;
+            const inset = (diameter - this.tile_size) / 2;
+            element.className = "surface-path-patch";
+            element.style.setProperty("--surface-path-patch-size", diameter + "px");
+            element.style.setProperty("--surface-path-patch-left", offsetX + "px");
+            element.style.setProperty("--surface-path-patch-top", offsetY + "px");
+            element.style.setProperty("--surface-path-patch-opacity", String(patch.opacity));
+            element.style.setProperty("--surface-path-texture-size", textureSize + "px");
+            element.style.setProperty("--surface-path-texture-position", -coordinates.latitude * this.tile_size
+                + inset - offsetX + "px "
+                + (-coordinates.longitude * this.tile_size
+                    + inset - offsetY) + "px");
+            div.append(element);
+        }
     }
     decorateRoadGrass(div, seed, visual) {
         if (visual.grassOpacity <= 0) {

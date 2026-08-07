@@ -147,7 +147,9 @@ test("map items, walls, and visual properties repeat from stable inputs", () => 
     );
     assert.deepEqual(firstMap.map, secondMap.map);
 
-    for (const name of ["cat", "cactus", "palm", "yarrow", "dungeon dragon"]) {
+    for (const name of [
+        "cat", "cactus", "palm", "yarrow", "worm", "dungeon dragon",
+    ]) {
         const first = Image.getWithItemTypeName(name, 42, 987654);
         const second = Image.getWithItemTypeName(name, 42, 987654);
         assert.deepEqual(
@@ -167,6 +169,22 @@ test("map items, walls, and visual properties repeat from stable inputs", () => 
             },
         );
     }
+});
+
+test("worms stay tiny, muted, and broadly rotated", () => {
+    const rotations = new Set();
+    for (let seed = 0; seed < 500; seed++) {
+        const first = Image.getWithItemTypeName("worm", 42, seed);
+        const replay = Image.getWithItemTypeName("worm", 42, seed);
+        assert.equal(first.dimension, replay.dimension);
+        assert.equal(first.rotate, replay.rotate);
+        assert.equal(first.style, replay.style);
+        assert.ok(first.dimension >= .34 && first.dimension <= .57);
+        assert.ok(first.rotate >= 0 && first.rotate < 360);
+        assert.match(first.style, /brightness\(\.5\).*saturate\(\.3\)/);
+        rotations.add(first.rotate);
+    }
+    assert.ok(rotations.size >= 250);
 });
 
 test("surface rivers and tributaries are connected and deterministic", () => {
@@ -238,6 +256,8 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
         [1, 1],
     ];
     const materials = new Map();
+    const routeWidths = new Map();
+    const pathPatchSignatures = new Set();
     let roads = 0;
     let paths = 0;
     let crossroads = 0;
@@ -260,6 +280,25 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                     new Coordinates(latitude + x, longitude + y),
                 ));
             if (road !== null) {
+                const visual = SurfaceMap.roadVisualAt(coordinates, road);
+                const routeKey = road.kind + ":" + road.routeId;
+                assert.equal(visual.rotationDegrees, road.headingDegrees);
+                assert.equal(
+                    visual.textureOffsetXInTiles,
+                    -coordinates.latitude,
+                );
+                assert.equal(
+                    visual.textureOffsetYInTiles,
+                    -coordinates.longitude,
+                );
+                if (routeWidths.has(routeKey)) {
+                    assert.equal(
+                        visual.diameterInTiles,
+                        routeWidths.get(routeKey),
+                    );
+                } else {
+                    routeWidths.set(routeKey, visual.diameterInTiles);
+                }
                 materials.set(
                     road.surface,
                     (materials.get(road.surface) ?? 0) + 1,
@@ -276,6 +315,25 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                     }
                 } else {
                     paths++;
+                    const patches = SurfaceMap.pathPatchVisualsAt(
+                        coordinates,
+                        road,
+                    );
+                    assert.deepEqual(
+                        patches,
+                        SurfaceMap.pathPatchVisualsAt(coordinates, road),
+                    );
+                    assert.equal(patches.length, 3);
+                    for (const patch of patches) {
+                        assert.ok(
+                            patch.diameterInTiles >= .52
+                                && patch.diameterInTiles <= .9,
+                        );
+                        assert.ok(
+                            patch.opacity >= .48 && patch.opacity <= .84,
+                        );
+                    }
+                    pathPatchSignatures.add(JSON.stringify(patches));
                     if (nearbyRoads.some(value => value?.kind === "road")) {
                         pathRoadContacts++;
                     }
@@ -295,9 +353,7 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                         isolatedPaths++;
                     }
                 }
-                if (
-                    SurfaceMap.roadVisualAt(coordinates, road).grassOpacity > 0
-                ) {
+                if (visual.grassOpacity > 0) {
                     grass++;
                 }
             }
@@ -325,6 +381,7 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
     assert.ok(bridges >= 2 && bridges < fords / 5);
     assert.ok(milestones > 30 && milestones < roads / 40);
     assert.ok(grass > 0 && grass < (roads + paths) / 5);
+    assert.ok(pathPatchSignatures.size > 500);
     for (const material of [
         "sand",
         "gravel",
