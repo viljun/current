@@ -969,9 +969,11 @@ export class Image {
                 "worm-earthworm-medieval-photoreal-transparent-v1.png",
             ];
             rotate = rotationSeed % 360;
-            dimension = 1.2 + (dimensionSeed % 16) / 100;
-            style = "filter:brightness(.8) saturate(.72) contrast(1.08);"
-                + "opacity:.97;";
+            dimension = .68 + (dimensionSeed % 14) / 100;
+            style = "filter:brightness(.58) saturate(.42) contrast(.94);"
+                + "opacity:"
+                + (.58 + (opacitySeed % 14) / 100).toFixed(2)
+                + ";";
         } else if (name === "torch") {
             srcs = [
                 "torch.png",

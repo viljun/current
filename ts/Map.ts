@@ -32,6 +32,7 @@ export interface MapState {
     coordinates: Coordinates;
     selectedCoordinates: Coordinates|null;
     exploreMode: boolean;
+    takingRangeMeters: number|null;
 }
 
 export class Map {
@@ -697,6 +698,14 @@ export class Map {
     }
 
     isWithinTakingRange(coordinates: Coordinates): boolean {
+        if (
+            !this.state.exploreMode
+            && this.state.takingRangeMeters !== null
+        ) {
+            return this.state.coordinates.distanceInMetersFrom(coordinates)
+                <= this.state.takingRangeMeters;
+        }
+
         return this.state.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
     }
 

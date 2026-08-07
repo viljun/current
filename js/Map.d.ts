@@ -6,6 +6,7 @@ export interface MapState {
     coordinates: Coordinates;
     selectedCoordinates: Coordinates | null;
     exploreMode: boolean;
+    takingRangeMeters: number | null;
 }
 export declare class Map {
     private static readonly PROGRESS_ITEM_NAMES;

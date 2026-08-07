@@ -14,4 +14,19 @@ export class Coordinates {
     distanceFrom(coordinates) {
         return Math.hypot(this.latitude - coordinates.latitude, this.longitude - coordinates.longitude);
     }
+    // Returns an approximate great-circle distance for GPS-derived grid cells.
+    distanceInMetersFrom(coordinates) {
+        const latitudeDegrees = this.latitude
+            / Coordinates.GRID_CELLS_PER_DEGREE;
+        const otherLatitudeDegrees = coordinates.latitude
+            / Coordinates.GRID_CELLS_PER_DEGREE;
+        const latitudeDifference = latitudeDegrees - otherLatitudeDegrees;
+        const longitudeDifference = (this.longitude - coordinates.longitude) / Coordinates.GRID_CELLS_PER_DEGREE;
+        const meanLatitudeRadians = (latitudeDegrees + otherLatitudeDegrees) / 2 * Math.PI / 180;
+        return Math.hypot(latitudeDifference * Coordinates.METERS_PER_DEGREE, longitudeDifference
+            * Coordinates.METERS_PER_DEGREE
+            * Math.cos(meanLatitudeRadians));
+    }
 }
+Coordinates.GRID_CELLS_PER_DEGREE = 10000;
+Coordinates.METERS_PER_DEGREE = 111320;

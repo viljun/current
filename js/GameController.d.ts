@@ -1,3 +1,4 @@
+import { Coordinates } from "./Coordinates.js";
 export interface MapLayout {
     cols: number;
     rows: number;
@@ -6,6 +7,9 @@ export interface MapLayout {
     marginLeft: number;
     marginTop: number;
 }
+export declare function gpsTakingRangeMeters(accuracyMeters: number): number;
+export declare function gpsHysteresisMeters(accuracyMeters: number): number;
+export declare function shouldAdoptGpsCoordinates(current: Coordinates | null, candidate: Coordinates, accuracyMeters: number): boolean;
 export declare function calculateMapLayout(viewportWidth: number, viewportHeight: number, tileSize: number, safetyMargin: number): MapLayout;
 export declare class GameController {
     private static readonly EXPLORE_STORAGE_KEY;

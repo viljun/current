@@ -109,6 +109,14 @@
                     rectangle: rectangle(document.getElementById("gpsStatus")),
                     fontSize: fontSize(document.getElementById("gpsStatus")),
                 },
+                compass: {
+                    rectangle: rectangle(
+                        document.getElementById("compassIndicator"),
+                    ),
+                    label: document
+                        .getElementById("compassIndicator")
+                        .getAttribute("aria-label"),
+                },
                 controls,
                 paintedEdges: {
                     right: cellAt(

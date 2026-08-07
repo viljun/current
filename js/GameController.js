@@ -4,6 +4,27 @@ import { Effects } from "./Effects.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
 import { View } from "./View.js";
+const MIN_GPS_TAKING_RANGE_METERS = 15;
+const MAX_GPS_TAKING_RANGE_METERS = 50;
+const MIN_GPS_HYSTERESIS_METERS = 6;
+const MAX_GPS_HYSTERESIS_METERS = 10;
+export function gpsTakingRangeMeters(accuracyMeters) {
+    const accuracy = Number.isFinite(accuracyMeters)
+        ? Math.max(0, accuracyMeters)
+        : MAX_GPS_TAKING_RANGE_METERS;
+    return Math.min(MAX_GPS_TAKING_RANGE_METERS, Math.max(MIN_GPS_TAKING_RANGE_METERS, accuracy));
+}
+export function gpsHysteresisMeters(accuracyMeters) {
+    const accuracy = Number.isFinite(accuracyMeters)
+        ? Math.max(0, accuracyMeters)
+        : MAX_GPS_TAKING_RANGE_METERS;
+    return Math.min(MAX_GPS_HYSTERESIS_METERS, Math.max(MIN_GPS_HYSTERESIS_METERS, accuracy * .2));
+}
+export function shouldAdoptGpsCoordinates(current, candidate, accuracyMeters) {
+    return current === null
+        || current.distanceInMetersFrom(candidate)
+            >= gpsHysteresisMeters(accuracyMeters);
+}
 export function calculateMapLayout(viewportWidth, viewportHeight, tileSize, safetyMargin) {
     const oddSizeAtLeast = (visibleSize) => {
         const minimum = Math.max(1, Math.ceil(visibleSize) + safetyMargin);
@@ -48,6 +69,7 @@ export class GameController {
             coordinates,
             selectedCoordinates: exploreMode ? coordinates : null,
             exploreMode,
+            takingRangeMeters: null,
         };
         this.exploreSwitch.checked = this.state.exploreMode;
         this.mapContainer.classList.toggle("explore-mode", this.state.exploreMode);
@@ -207,11 +229,22 @@ export class GameController {
             };
         }
         this.latestGpsAccuracy = accuracy;
-        this.latestGpsCoordinates = new Coordinates(Math.round(this.smoothedGpsLocation.latitude * ACCURACY_MULTIPLIER), Math.round(this.smoothedGpsLocation.longitude * ACCURACY_MULTIPLIER));
+        const candidateCoordinates = new Coordinates(Math.round(this.smoothedGpsLocation.latitude * ACCURACY_MULTIPLIER), Math.round(this.smoothedGpsLocation.longitude * ACCURACY_MULTIPLIER));
+        const previousTakingRange = this.state.takingRangeMeters;
+        this.state.takingRangeMeters = gpsTakingRangeMeters(accuracy);
+        const coordinatesChanged = shouldAdoptGpsCoordinates(this.latestGpsCoordinates, candidateCoordinates, accuracy);
+        if (coordinatesChanged) {
+            this.latestGpsCoordinates = candidateCoordinates;
+        }
         this.showCurrentGpsStatus();
         if (!this.state.exploreMode
-            && !this.state.coordinates.equals(this.latestGpsCoordinates)) {
-            this.moveTo(this.latestGpsCoordinates);
+            && this.latestGpsCoordinates !== null) {
+            if (!this.state.coordinates.equals(this.latestGpsCoordinates)) {
+                this.moveTo(this.latestGpsCoordinates);
+            }
+            else if (previousTakingRange !== this.state.takingRangeMeters) {
+                this.map.show({});
+            }
         }
     }
     showGpsError(error) {
@@ -298,6 +331,6 @@ GameController.EXPLORE_LOCATION_STORAGE_KEY = "gpsgame.exploreLocation";
 GameController.INVENTORY_STORAGE_KEY = "gpsgame.inventory";
 GameController.SAFETY_MARGIN = 6;
 GameController.TILE_SIZE = 42;
-GameController.MAX_ACCEPTED_GPS_ACCURACY_METERS = 50;
-GameController.GPS_SMOOTHING_FACTOR = 0.35;
+GameController.MAX_ACCEPTED_GPS_ACCURACY_METERS = MAX_GPS_TAKING_RANGE_METERS;
+GameController.GPS_SMOOTHING_FACTOR = 0.55;
 GameController.DEFAULT_COORDINATES = new Coordinates(Math.round(60.8923514 * ACCURACY_MULTIPLIER), Math.round(25.1498475 * ACCURACY_MULTIPLIER));

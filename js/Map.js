@@ -435,6 +435,11 @@ export class Map {
         });
     }
     isWithinTakingRange(coordinates) {
+        if (!this.state.exploreMode
+            && this.state.takingRangeMeters !== null) {
+            return this.state.coordinates.distanceInMetersFrom(coordinates)
+                <= this.state.takingRangeMeters;
+        }
         return this.state.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
     }
     isWallAt(coordinates, areaId = this.inventory.getAreaId()) {

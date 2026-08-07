@@ -254,6 +254,16 @@ test(
             assert.ok(
                 layout.gps.fontSize >= (viewport.mobile ? 15 : 14),
             );
+            assert.equal(layout.compass.label, "North points right");
+            assert.ok(
+                layout.compass.rectangle.bottom < layout.gps.rectangle.top,
+                viewport.name + " compass does not sit above GPS status",
+            );
+            assert.ok(layout.compass.rectangle.left >= 0);
+            assert.ok(
+                layout.compass.rectangle.right <= viewport.width,
+                viewport.name + " compass extends outside the viewport",
+            );
 
             for (const [name, dialog] of Object.entries(layout.dialogs)) {
                 assert.equal(dialog.overflow, "hidden", name);

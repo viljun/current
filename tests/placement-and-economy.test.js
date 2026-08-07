@@ -125,8 +125,7 @@ test("fish live in rivers, worms on land, and campfires stay rare on banks", () 
     assert.ok(fish >= 250 && fish <= 320, fish);
     assert.ok(campfires > 10 && campfires < 100, campfires);
     assert.ok(campfires * 3 < fish);
-    assert.ok(worms >= 1_500 && worms <= 2_000, worms);
-    assert.ok(worms > fish * 5, { fish, worms });
+    assert.ok(worms >= 150 && worms <= 210, worms);
 });
 
 test("chests are absent from surface and shop pools but present in dungeon", () => {

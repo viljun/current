@@ -20,6 +20,43 @@ export interface MapLayout {
     marginTop: number;
 }
 
+const MIN_GPS_TAKING_RANGE_METERS = 15;
+const MAX_GPS_TAKING_RANGE_METERS = 50;
+const MIN_GPS_HYSTERESIS_METERS = 6;
+const MAX_GPS_HYSTERESIS_METERS = 10;
+
+export function gpsTakingRangeMeters(accuracyMeters: number): number {
+    const accuracy = Number.isFinite(accuracyMeters)
+        ? Math.max(0, accuracyMeters)
+        : MAX_GPS_TAKING_RANGE_METERS;
+
+    return Math.min(
+        MAX_GPS_TAKING_RANGE_METERS,
+        Math.max(MIN_GPS_TAKING_RANGE_METERS, accuracy),
+    );
+}
+
+export function gpsHysteresisMeters(accuracyMeters: number): number {
+    const accuracy = Number.isFinite(accuracyMeters)
+        ? Math.max(0, accuracyMeters)
+        : MAX_GPS_TAKING_RANGE_METERS;
+
+    return Math.min(
+        MAX_GPS_HYSTERESIS_METERS,
+        Math.max(MIN_GPS_HYSTERESIS_METERS, accuracy * .2),
+    );
+}
+
+export function shouldAdoptGpsCoordinates(
+    current: Coordinates|null,
+    candidate: Coordinates,
+    accuracyMeters: number,
+): boolean {
+    return current === null
+        || current.distanceInMetersFrom(candidate)
+            >= gpsHysteresisMeters(accuracyMeters);
+}
+
 export function calculateMapLayout(
     viewportWidth: number,
     viewportHeight: number,
@@ -52,8 +89,9 @@ export class GameController {
     private static readonly INVENTORY_STORAGE_KEY = "gpsgame.inventory";
     private static readonly SAFETY_MARGIN = 6;
     private static readonly TILE_SIZE = 42;
-    private static readonly MAX_ACCEPTED_GPS_ACCURACY_METERS = 50;
-    private static readonly GPS_SMOOTHING_FACTOR = 0.35;
+    private static readonly MAX_ACCEPTED_GPS_ACCURACY_METERS =
+        MAX_GPS_TAKING_RANGE_METERS;
+    private static readonly GPS_SMOOTHING_FACTOR = 0.55;
     private static readonly DEFAULT_COORDINATES = new Coordinates(
         Math.round(60.8923514 * ACCURACY_MULTIPLIER),
         Math.round(25.1498475 * ACCURACY_MULTIPLIER),
@@ -87,6 +125,7 @@ export class GameController {
             coordinates,
             selectedCoordinates: exploreMode ? coordinates : null,
             exploreMode,
+            takingRangeMeters: null,
         };
 
         this.exploreSwitch.checked = this.state.exploreMode;
@@ -297,16 +336,32 @@ export class GameController {
         }
 
         this.latestGpsAccuracy = accuracy;
-        this.latestGpsCoordinates = new Coordinates(
+        const candidateCoordinates = new Coordinates(
             Math.round(this.smoothedGpsLocation.latitude * ACCURACY_MULTIPLIER),
             Math.round(this.smoothedGpsLocation.longitude * ACCURACY_MULTIPLIER),
         );
+        const previousTakingRange = this.state.takingRangeMeters;
+        this.state.takingRangeMeters = gpsTakingRangeMeters(accuracy);
+        const coordinatesChanged = shouldAdoptGpsCoordinates(
+            this.latestGpsCoordinates,
+            candidateCoordinates,
+            accuracy,
+        );
+        if (coordinatesChanged) {
+            this.latestGpsCoordinates = candidateCoordinates;
+        }
         this.showCurrentGpsStatus();
         if (
             !this.state.exploreMode
-            && !this.state.coordinates.equals(this.latestGpsCoordinates)
+            && this.latestGpsCoordinates !== null
         ) {
-            this.moveTo(this.latestGpsCoordinates);
+            if (!this.state.coordinates.equals(this.latestGpsCoordinates)) {
+                this.moveTo(this.latestGpsCoordinates);
+            } else if (
+                previousTakingRange !== this.state.takingRangeMeters
+            ) {
+                this.map.show({});
+            }
         }
     }
 

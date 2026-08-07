@@ -369,6 +369,62 @@ body {
     line-height: 1.25;
     pointer-events: none;
 }
+#compassIndicator {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 3.35rem;
+    z-index: 9998;
+    width: 2.45rem;
+    height: 2.45rem;
+    border: 2px solid rgba(255, 255, 255, 0.58);
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle at 40% 35%,
+            rgba(73, 64, 45, 0.92),
+            rgba(11, 13, 10, 0.94) 72%
+        );
+    box-shadow:
+        0 0.18rem 0.35rem rgba(0, 0, 0, 0.52),
+        inset 0 0 0 1px rgba(217, 189, 106, 0.22);
+    color: #f1e4bd;
+    pointer-events: none;
+}
+.compass-arrow {
+    position: absolute;
+    top: 50%;
+    left: 44%;
+    width: 0.82rem;
+    height: 1.72rem;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.85));
+}
+.compass-arrow::before,
+.compass-arrow::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    border-right: 0.41rem solid transparent;
+    border-left: 0.41rem solid transparent;
+    transform: translateX(-50%);
+}
+.compass-arrow::before {
+    top: 0;
+    border-bottom: 0.96rem solid #b94d3e;
+}
+.compass-arrow::after {
+    bottom: 0;
+    border-top: 0.82rem solid #ddd0aa;
+}
+.compass-north {
+    position: absolute;
+    top: 50%;
+    right: 0.15rem;
+    font: 800 0.57rem/1 sans-serif;
+    transform: translateY(-50%);
+    text-shadow: 0 1px 2px #000;
+}
 #gpsStatus[data-state="warning"] {
     color: #ffd65a;
 }
@@ -1695,6 +1751,10 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
         overflow: hidden;
         text-overflow: clip;
         white-space: nowrap;
+    }
+    #compassIndicator {
+        left: max(0.45rem, env(safe-area-inset-left));
+        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 3rem);
     }
     .fight-overlay {
         padding: 0;

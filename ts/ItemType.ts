@@ -279,7 +279,10 @@ export class ItemType {
             name = "reinforced shield";
         } else if (!(seed % 2013)) {
             name = "treasure";
-        } else if (!(seed % 173)) {
+        } else if (
+            !(seed % 173)
+            && ItemType.frequencyGate(seed, 0x776f726d, 1, 10)
+        ) {
             name = "worm";
         } else {
             return null;
