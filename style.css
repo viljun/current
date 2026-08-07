@@ -55,7 +55,7 @@ body {
 .origin-artwork-cell.surface-river::before {
     content: "";
     position: absolute;
-    z-index: 1;
+    z-index: 3;
     top: 50%;
     left: 50%;
     width: var(--surface-river-size);
@@ -95,12 +95,12 @@ body {
         );
 }
 .surface-river--river::before {
-    filter: saturate(1.08) brightness(.9);
-    opacity: .96;
+    filter: saturate(1.18) brightness(.94);
+    opacity: .99;
 }
 .surface-river--tributary::before {
-    filter: saturate(.98) brightness(.87);
-    opacity: .92;
+    filter: saturate(1.07) brightness(.91);
+    opacity: .96;
 }
 .cell.surface-road,
 .origin-artwork-cell.surface-road {
@@ -111,7 +111,7 @@ body {
 .origin-artwork-cell.surface-road::after {
     content: "";
     position: absolute;
-    z-index: 2;
+    z-index: 4;
     top: 50%;
     left: 50%;
     width: var(--surface-road-size);
@@ -148,12 +148,12 @@ body {
         );
 }
 .surface-road--road::after {
-    filter: brightness(.82) saturate(.68) contrast(.96);
-    opacity: .84;
+    filter: brightness(.84) saturate(.75) contrast(1.04);
+    opacity: .94;
 }
 .surface-road--path::after {
-    filter: brightness(.74) saturate(.66) contrast(.96);
-    opacity: .78;
+    filter: brightness(.7) saturate(.74) contrast(1.14);
+    opacity: .96;
 }
 .surface-road-surface--gravel::after {
     background-color: #8c8069;

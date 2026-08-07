@@ -116,7 +116,7 @@ export class SurfaceMap {
         return {
             diameterInTiles: road.kind === "road"
                 ? 2.15 + sizeSeed % 51 / 100
-                : 1.35 + sizeSeed % 38 / 100,
+                : 1.5 + sizeSeed % 43 / 100,
             rotationDegrees: values(0xa5381c6d) % 36000 / 100,
             textureOffsetXInTiles: -(values(0x391be74f) % 800) / 100,
             textureOffsetYInTiles: -(values(0xc648a315) % 800) / 100,
