@@ -29,6 +29,7 @@ interface CombatInventoryEntry {
     itemName: string;
     effects: { damage: number; block: number; healing: number };
     quantity: number;
+    special: boolean;
 }
 
 export function defeatTipsForInventory(
@@ -44,7 +45,12 @@ export function defeatTipsForInventory(
         const effects = CardGame.itemCardEffects(itemName);
         const quantity = Math.max(0, Math.floor(rawQuantity));
         if (effects !== null && quantity > 0) {
-            combatItems.push({ itemName, effects, quantity });
+            combatItems.push({
+                itemName,
+                effects,
+                quantity,
+                special: CardGame.itemCardSpecialEffect(itemName) !== null,
+            });
         }
     }
     const strongestDamage = combatItems.reduce(
@@ -66,6 +72,9 @@ export function defeatTipsForInventory(
         0,
     );
     const lowTierCopies = combatItems.reduce((total, item) => {
+        if (item.special) {
+            return total;
+        }
         const strength = Math.max(
             item.effects.damage,
             item.effects.block,
@@ -75,6 +84,9 @@ export function defeatTipsForInventory(
         return total + (strength <= 4 ? item.quantity : 0);
     }, 0);
     const strongCopies = combatItems.reduce((total, item) => {
+        if (item.special) {
+            return total;
+        }
         const strength = Math.max(
             item.effects.damage,
             item.effects.block,
@@ -334,6 +346,7 @@ export class FightView {
             this.shownMonsterHealth,
             this.itemTakingSummary.itemType.name,
         );
+        monsterSeat.append(this.createModifierDisplay(state, "monster"));
 
         const table = document.createElement("section");
         table.className = "fight-table";
@@ -380,6 +393,7 @@ export class FightView {
         if (enchantments !== null) {
             playerSeat.append(enchantments);
         }
+        playerSeat.append(this.createModifierDisplay(state, "player"));
         this.shownMonsterHealth = state.monsterHealth;
         this.shownPlayerHealth = state.playerHealth;
         board.append(monsterSeat, table, playerSeat);
@@ -703,6 +717,77 @@ export class FightView {
         return display;
     }
 
+    private createModifierDisplay(
+        state: CardGameState,
+        owner: "player"|"monster",
+    ): HTMLElement {
+        const display = document.createElement("aside");
+        display.className = "fight-modifiers fight-modifiers--" + owner;
+        display.setAttribute(
+            "aria-label",
+            owner === "player" ? "Your battle spells" : "Opponent battle spells",
+        );
+        const modifiers = state.modifiers;
+        const active = owner === "monster"
+            ? [
+                modifiers.monsterFrozenRound === state.round
+                    ? { icon: "❄", text: "Frozen this round" } : null,
+                modifiers.monsterActionsPerRound === 1
+                    ? { icon: "⌛", text: "One action per round" } : null,
+                modifiers.monsterBlockDivisor > 1
+                    ? {
+                        icon: "◈",
+                        text: "Block divided by "
+                            + modifiers.monsterBlockDivisor,
+                    } : null,
+                modifiers.monsterHealingPoisoned
+                    ? { icon: "☠", text: "Healing becomes poison" } : null,
+                modifiers.monsterDamageDivisor > 1
+                    ? {
+                        icon: "↘",
+                        text: "Attack divided by "
+                            + modifiers.monsterDamageDivisor,
+                    } : null,
+                modifiers.monsterVulnerability > 0
+                    ? {
+                        icon: "✥",
+                        text: "+" + modifiers.monsterVulnerability
+                            + " damage from attacks",
+                    } : null,
+            ]
+            : [
+                modifiers.playerKeepsBlock
+                    ? { icon: "⬟", text: "Block carries between rounds" } : null,
+                modifiers.playerLifeStealPercent > 0
+                    ? {
+                        icon: "♥",
+                        text: modifiers.playerLifeStealPercent
+                            + "% life-steal",
+                    } : null,
+                modifiers.playerEchoCharges > 0
+                    ? {
+                        icon: "Ⅱ",
+                        text: modifiers.playerEchoCharges
+                            + (modifiers.playerEchoCharges === 1
+                                ? " echo ready"
+                                : " echoes ready"),
+                    } : null,
+            ];
+        for (const modifier of active) {
+            if (modifier === null) {
+                continue;
+            }
+            const badge = document.createElement("span");
+            badge.className = "fight-modifier";
+            badge.textContent = modifier.icon;
+            badge.title = modifier.text;
+            badge.setAttribute("aria-label", modifier.text);
+            display.append(badge);
+        }
+
+        return display;
+    }
+
     private createCombatants(): HTMLDivElement {
         const origin = {
             latitude: this.coordinates.latitude,
@@ -776,7 +861,7 @@ export class FightView {
 
             return;
         }
-        const monsterCard = this.chooseMonsterCardElement(
+        let monsterCard = this.chooseMonsterCardElement(
             this.game.getState(),
         );
         const monsterResolution = this.game.playMonsterCard();
@@ -786,7 +871,17 @@ export class FightView {
 
             return;
         }
+        if (["frozen turn", "slowed turn"].includes(
+            monsterResolution.card.itemName,
+        )) {
+            monsterCard = null;
+        }
         await this.playCardEffects(monsterResolution, monsterCard);
+        if (monsterResolution.monsterDefeated) {
+            this.finishFight();
+
+            return;
+        }
         if (monsterResolution.playerDefeated) {
             this.finishFight();
 
@@ -925,14 +1020,49 @@ export class FightView {
             state.playerHealth,
             state.playerMaxHealth,
         );
+        this.syncShieldCards("monster", state.monsterShields);
+        this.syncShieldCards("player", state.playerShields);
         const status = this.overlay.querySelector<HTMLElement>(".fight-turn-status");
         if (status !== null) {
             status.textContent = this.turnStatus(state);
+        }
+        for (const owner of ["monster", "player"] as const) {
+            const display = this.overlay.querySelector<HTMLElement>(
+                ".fight-modifiers--" + owner,
+            );
+            if (display !== null) {
+                display.replaceWith(this.createModifierDisplay(state, owner));
+            }
         }
         this.overlay.querySelectorAll<HTMLButtonElement>(
             ".fight-card:not(.fight-card--blocking):not(.fight-card--spent)",
         ).forEach(card => {
             card.disabled = this.animating || state.phase !== "player";
+        });
+    }
+
+    private syncShieldCards(
+        owner: "player"|"monster",
+        shields: CardGameState["playerShields"],
+    ): void {
+        const selector = owner === "monster"
+            ? ".fight-monster-card.fight-card--blocking"
+            : ".fight-hand .fight-card.fight-card--blocking";
+        this.overlay?.querySelectorAll<HTMLElement>(selector).forEach(card => {
+            const id = card.dataset.shieldId;
+            const shield = shields.find(candidate => candidate.id === id);
+            if (shield === undefined) {
+                card.classList.remove("fight-card--blocking");
+                Effects.showSpentFightCard(card);
+
+                return;
+            }
+            const value = card.querySelector<HTMLElement>(
+                ".fight-effect--block",
+            );
+            if (value !== null) {
+                value.textContent = String(shield.remainingBlock);
+            }
         });
     }
 

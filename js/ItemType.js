@@ -1,4 +1,5 @@
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
+import { BattleSpell } from "./BattleSpell.js";
 export class ItemType {
     constructor(name) {
         this.name = name;
@@ -157,13 +158,15 @@ export class ItemType {
             name = "binding rope";
         }
         else if ((!(seed % 859) || !(seed % 907))
-            && ItemType.frequencyGate(seed, 0x636c7562, 4, 5)) {
+            && ItemType.frequencyGate(seed, 0x636c7562, 4, 5)
+            && ItemType.frequencyGate(seed, 0x6c650020, 1, 2)) {
             name = "club";
         }
         else if (!(seed % 877)) {
             name = "padded hide";
         }
-        else if (!(seed % 881) || !(seed % 883)) {
+        else if ((!(seed % 881) || !(seed % 883))
+            && ItemType.frequencyGate(seed, 0x6c650034, 1, 2)) {
             name = "wooden shield";
         }
         else if (!(seed % 929) || !(seed % 1861)) {
@@ -181,8 +184,11 @@ export class ItemType {
         else if (!(seed % 2013)) {
             name = "treasure";
         }
-        else if (!(seed % 173)
-            && ItemType.frequencyGate(seed, 0x776f726d, 1, 10)) {
+        else if (((!(seed % 173)
+            && ItemType.frequencyGate(seed, 0x776f726d, 3, 10))
+            || (!(seed % 26)
+                && ItemType.frequencyGate(seed, 0x2d78bb56, 5, 10)))
+            && ItemType.frequencyGate(seed, 0x51a70016, 1, 3)) {
             name = "worm";
         }
         else {
@@ -269,6 +275,10 @@ export class ItemType {
     }
     // Returns
     prizes() {
+        const battleSpell = BattleSpell.get(this.name);
+        if (battleSpell !== null) {
+            return battleSpell.ingredients.map(ingredient => new ItemTypeAndQuantity(new ItemType(ingredient.itemName), -ingredient.quantity));
+        }
         const magicianSpells = {
             "magician selling force spell": {
                 spell: "spell of force",
@@ -888,6 +898,25 @@ ItemType.RIVER_FISH_NAMES = [
     "northern pike",
     "common carp",
     "river eel",
+];
+ItemType.CRAFTING_ACTIONS = [
+    "binding rope", "club", "torch", "stone axe", "sword", "crucible",
+    "campfire", "padded hide", "wooden shield", "reinforced shield",
+    "iron-spiked club", "iron hand axe", "flanged mace",
+    "bearded battle axe", "arming sword", "war hammer", "longsword",
+    "two-handed battle axe", "poleaxe", "masterwork greatsword",
+    "yarrow poultice", "healing potion", "poison potion",
+    "poisoned masterwork greatsword", "bone knife", "spiked cudgel",
+    "iron dagger", "falchion", "morning star", "war pick",
+    "heavy crossbow", "zweihander", "halberd", "executioner's axe",
+    "estoc", "bec de corbin", "gothic mace", "runed longsword",
+    "blacksteel glaive", "relic warhammer", "dragonbone axe",
+    "royal claymore", "obsidian polearm", "dungeon-forged greatblade",
+    "bone carving", "skull crushing", "chain smelting",
+    "dust distilling", "wing tanning", "silk binding",
+    "candle reclaiming", "nail reforging", "tile knapping",
+    "moss brewing", "furnace", "mushroom mixing", "armorer's bench",
+    ...BattleSpell.names(),
 ];
 ItemType.ENTRANCE_MODULUS = 4120;
 ItemType.SHOP_ENTRANCE_REMAINDER = 2;

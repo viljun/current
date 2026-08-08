@@ -6,6 +6,18 @@ export class ShopMap {
         if (this.isNearStairs(coordinates) || this.isOutside(coordinates)) {
             return false;
         }
+        if (this.hasPrimaryWallShapeAt(coordinates)) {
+            return true;
+        }
+        if (this.isDesignedDoorAt(coordinates)) {
+            return false;
+        }
+        return this.isDiagonalWallBridgeAt(coordinates);
+    }
+    static hasPrimaryWallShapeAt(coordinates) {
+        if (this.isOutside(coordinates)) {
+            return false;
+        }
         const layout = this.layoutPosition(coordinates);
         const { x, y } = layout;
         const xWall = this.X_WALLS.includes(x);
@@ -20,6 +32,60 @@ export class ShopMap {
             return false;
         }
         return true;
+    }
+    static isDesignedDoorAt(coordinates) {
+        if (this.isOutside(coordinates)) {
+            return false;
+        }
+        const layout = this.layoutPosition(coordinates);
+        const { x, y } = layout;
+        return this.X_WALLS.includes(x)
+            && this.isVerticalDoor(layout, x, y)
+            || this.Y_WALLS.includes(y)
+                && this.isHorizontalDoor(layout, x, y);
+    }
+    static isDiagonalWallBridgeAt(coordinates) {
+        var _a, _b;
+        const directions = [
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1],
+        ];
+        for (const [dx, dy] of directions) {
+            const horizontal = new Coordinates(coordinates.latitude + dx, coordinates.longitude);
+            const vertical = new Coordinates(coordinates.latitude, coordinates.longitude + dy);
+            if (!this.hasUsablePrimaryWallAt(horizontal)
+                || !this.hasUsablePrimaryWallAt(vertical)) {
+                continue;
+            }
+            const alternateBridge = new Coordinates(coordinates.latitude + dx, coordinates.longitude + dy);
+            if (this.hasUsablePrimaryWallAt(alternateBridge)) {
+                continue;
+            }
+            if (!this.canAddBridgeAt(alternateBridge)) {
+                return true;
+            }
+            const candidates = [coordinates, alternateBridge].sort((first, second) => first.latitude - second.latitude
+                || first.longitude - second.longitude);
+            const first = (_a = candidates[0]) !== null && _a !== void 0 ? _a : coordinates;
+            const second = (_b = candidates[1]) !== null && _b !== void 0 ? _b : alternateBridge;
+            const chooseFirst = this.hash(first.latitude + second.latitude, first.longitude + second.longitude, 0x57414c4c) % 2 === 0;
+            const chosen = chooseFirst ? first : second;
+            if (coordinates.equals(chosen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    static hasUsablePrimaryWallAt(coordinates) {
+        return this.hasPrimaryWallShapeAt(coordinates)
+            && !this.isNearStairs(coordinates);
+    }
+    static canAddBridgeAt(coordinates) {
+        return !this.isOutside(coordinates)
+            && !this.isNearStairs(coordinates)
+            && !this.isDesignedDoorAt(coordinates);
     }
     static decorationAt(coordinates) {
         if (this.isOutside(coordinates)

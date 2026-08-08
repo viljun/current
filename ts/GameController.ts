@@ -1,6 +1,7 @@
 import { Coordinates } from "./Coordinates.js";
 import { HIGHLAND_AREA } from "./Area.js";
 import { Effects } from "./Effects.js";
+import { EncounterCard } from "./EncounterCard.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
 import type { MapState } from "./Map.js";
@@ -94,6 +95,7 @@ export function calculateMapLayout(
 export class GameController {
     private static readonly EXPLORE_STORAGE_KEY = "gpsgame.exploreMode";
     private static readonly EXPLORE_LOCATION_STORAGE_KEY = "gpsgame.exploreLocation";
+    private static readonly LABELS_STORAGE_KEY = "gpsgame.mapLabels";
     private static readonly INVENTORY_STORAGE_KEY = "gpsgame.inventory";
     private static readonly SAFETY_MARGIN = 6;
     private static readonly TILE_SIZE = 42;
@@ -110,6 +112,7 @@ export class GameController {
     private readonly messageBox = this.element<HTMLDivElement>("messageBox");
     private readonly exploreSwitch = this.element<HTMLInputElement>("exploreSwitch");
     private readonly soundSwitch = this.element<HTMLInputElement>("soundSwitch");
+    private readonly labelsSwitch = this.element<HTMLInputElement>("labelsSwitch");
     private readonly inventoryControl = this.element<HTMLButtonElement>("inventoryControl");
     private readonly restartControl = this.element<HTMLButtonElement>("restartControl");
     private readonly compassIndicator =
@@ -139,7 +142,12 @@ export class GameController {
         };
 
         this.exploreSwitch.checked = this.state.exploreMode;
+        this.labelsSwitch.checked = this.loadLabelsEnabled();
         this.mapContainer.classList.toggle("explore-mode", this.state.exploreMode);
+        this.mapContainer.classList.toggle(
+            "map-labels-enabled",
+            this.labelsSwitch.checked,
+        );
         Effects.initialize(this.soundSwitch);
         document.head.append(this.mapDimensionStyle);
 
@@ -201,8 +209,22 @@ export class GameController {
     }
 
     private bindControls(): void {
+        document.addEventListener(
+            EncounterCard.ITEM_FOCUS_EVENT,
+            event => {
+                const detail = (event as CustomEvent<{
+                    itemName: string|null;
+                }>).detail;
+                this.map.focusItemLabels(detail.itemName);
+            },
+        );
         this.exploreSwitch.addEventListener("change", () => {
             this.setExploreMode(this.exploreSwitch.checked);
+        });
+        this.labelsSwitch.addEventListener("change", () => {
+            const enabled = this.labelsSwitch.checked;
+            this.mapContainer.classList.toggle("map-labels-enabled", enabled);
+            this.save(GameController.LABELS_STORAGE_KEY, String(enabled));
         });
         this.inventoryControl.addEventListener(
             "click",
@@ -474,6 +496,15 @@ export class GameController {
     private loadExploreMode(): boolean {
         try {
             return localStorage.getItem(GameController.EXPLORE_STORAGE_KEY) === "true";
+        } catch {
+            return false;
+        }
+    }
+
+    private loadLabelsEnabled(): boolean {
+        try {
+            return localStorage.getItem(GameController.LABELS_STORAGE_KEY)
+                === "true";
         } catch {
             return false;
         }

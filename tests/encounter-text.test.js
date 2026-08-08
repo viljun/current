@@ -61,27 +61,41 @@ test("monster status labels include the generated name and monster type", () => 
     );
 });
 
-test("vendor action buttons say only Trade", () => {
-    for (const vendor of ["cat buying stick", "cat selling treasure"]) {
-        const summary = new ItemTakingSummary(
-            new ItemType(vendor),
-            [],
-            [],
-            [],
-            [],
-        );
-        assert.equal(summary.getTakeButtonText().buttonText, "Trade");
-    }
-
-    const yarrowTrade = new ItemTakingSummary(
+test("vendor actions clearly say Buy or Sell", () => {
+    const yarrowPurchase = new ItemTakingSummary(
         new ItemType("cat selling yarrow"),
         [new ItemTypeAndQuantity(new ItemType("yarrow"), 1)],
         [new ItemTypeAndQuantity(new ItemType("coin"), -15)],
         [],
         [],
     );
-    assert.deepEqual(yarrowTrade.getTakeButtonText(), {
-        buttonText: "Trade",
-        additionalText: " 15 coins for a yarrow.",
+    assert.deepEqual(yarrowPurchase.getTakeButtonText(), {
+        buttonText: "Buy",
+        additionalText: " a yarrow with 15 coins.",
+    });
+
+    const stickSale = new ItemTakingSummary(
+        new ItemType("cat buying stick"),
+        [new ItemTypeAndQuantity(new ItemType("coin"), 4)],
+        [new ItemTypeAndQuantity(new ItemType("stick"), -3)],
+        [],
+        [],
+    );
+    assert.deepEqual(stickSale.getTakeButtonText(), {
+        buttonText: "Sell",
+        additionalText: " 3 sticks for 4 coins.",
+    });
+
+    const missingCruciblePurchase = new ItemTakingSummary(
+        new ItemType("cat selling crucible"),
+        [new ItemTypeAndQuantity(new ItemType("crucible"), 1)],
+        [new ItemTypeAndQuantity(new ItemType("coin"), -21)],
+        [],
+        [new ItemTypeAndQuantity(new ItemType("coin"), -21)],
+    );
+    assert.deepEqual(missingCruciblePurchase.getTakeButtonText(), {
+        buttonText: "Buy",
+        additionalText:
+            " a crucible with 21 coins. Find them to buy a crucible.",
     });
 });

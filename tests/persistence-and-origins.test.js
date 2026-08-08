@@ -100,6 +100,53 @@ test("inventory origins follow coordinate history and consumed items disappear",
     assert.equal("quantities" in saved, false);
 });
 
+test("recipe knowledge is reconstructed after ingredients are consumed", () => {
+    localStorage.clear();
+    const inventory = new Inventory();
+    inventory.takeItem(new Coordinates(1, 38));
+    inventory.takeItem(new Coordinates(1, 111));
+
+    const foundRecipes = inventory.getKnownRecipes();
+    assert.equal(
+        foundRecipes.some(recipe => recipe.itemName === "stick"),
+        true,
+    );
+    assert.equal(
+        foundRecipes.some(recipe => recipe.itemName === "club"),
+        false,
+    );
+
+    inventory.takeItem(new Coordinates(1, 1021));
+    assert.equal(inventory.totalQuantities.stick, 0);
+    assert.equal(inventory.totalQuantities.root, 0);
+    const clubRecipe = inventory.getKnownRecipes().find(
+        recipe => recipe.itemName === "club",
+    );
+    assert.notEqual(clubRecipe, undefined);
+    assert.equal(clubRecipe.ready, false);
+    assert.deepEqual(
+        clubRecipe.variants[0].ingredients.map(ingredient => ({
+            itemName: ingredient.itemName,
+            owned: ingredient.owned,
+            required: ingredient.required,
+        })),
+        [
+            { itemName: "stick", owned: 0, required: 1 },
+            { itemName: "root", owned: 0, required: 1 },
+        ],
+    );
+
+    const reloadedRecipes = new Inventory().getKnownRecipes();
+    assert.equal(
+        reloadedRecipes.some(recipe => recipe.itemName === "club"),
+        true,
+    );
+    assert.equal(
+        reloadedRecipes.some(recipe => recipe.itemName === "stick"),
+        true,
+    );
+});
+
 test("permanent spells reconstruct only from purchased coordinates", () => {
     localStorage.clear();
     let magician = null;

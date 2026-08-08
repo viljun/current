@@ -5,6 +5,11 @@ export declare class ShopMap {
     private static readonly X_WALLS;
     private static readonly Y_WALLS;
     static hasWallAt(coordinates: Coordinates): boolean;
+    private static hasPrimaryWallShapeAt;
+    private static isDesignedDoorAt;
+    private static isDiagonalWallBridgeAt;
+    private static hasUsablePrimaryWallAt;
+    private static canAddBridgeAt;
     static decorationAt(coordinates: Coordinates): "shop table" | "shop shelf" | null;
     static isBesideWall(coordinates: Coordinates): boolean;
     static isOutside(coordinates: Coordinates): boolean;

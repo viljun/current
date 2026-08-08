@@ -12,6 +12,20 @@ export class ShopMap {
         if (this.isNearStairs(coordinates) || this.isOutside(coordinates)) {
             return false;
         }
+        if (this.hasPrimaryWallShapeAt(coordinates)) {
+            return true;
+        }
+        if (this.isDesignedDoorAt(coordinates)) {
+            return false;
+        }
+
+        return this.isDiagonalWallBridgeAt(coordinates);
+    }
+
+    private static hasPrimaryWallShapeAt(coordinates: Coordinates): boolean {
+        if (this.isOutside(coordinates)) {
+            return false;
+        }
         const layout = this.layoutPosition(coordinates);
         const { x, y } = layout;
         const xWall = this.X_WALLS.includes(x);
@@ -27,6 +41,85 @@ export class ShopMap {
         }
 
         return true;
+    }
+
+    private static isDesignedDoorAt(coordinates: Coordinates): boolean {
+        if (this.isOutside(coordinates)) {
+            return false;
+        }
+        const layout = this.layoutPosition(coordinates);
+        const { x, y } = layout;
+
+        return this.X_WALLS.includes(x)
+                && this.isVerticalDoor(layout, x, y)
+            || this.Y_WALLS.includes(y)
+                && this.isHorizontalDoor(layout, x, y);
+    }
+
+    private static isDiagonalWallBridgeAt(
+        coordinates: Coordinates,
+    ): boolean {
+        const directions = [
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1],
+        ] as const;
+        for (const [dx, dy] of directions) {
+            const horizontal = new Coordinates(
+                coordinates.latitude + dx,
+                coordinates.longitude,
+            );
+            const vertical = new Coordinates(
+                coordinates.latitude,
+                coordinates.longitude + dy,
+            );
+            if (!this.hasUsablePrimaryWallAt(horizontal)
+                || !this.hasUsablePrimaryWallAt(vertical)
+            ) {
+                continue;
+            }
+            const alternateBridge = new Coordinates(
+                coordinates.latitude + dx,
+                coordinates.longitude + dy,
+            );
+            if (this.hasUsablePrimaryWallAt(alternateBridge)) {
+                continue;
+            }
+            if (!this.canAddBridgeAt(alternateBridge)) {
+                return true;
+            }
+            const candidates = [coordinates, alternateBridge].sort(
+                (first, second) => first.latitude - second.latitude
+                    || first.longitude - second.longitude,
+            );
+            const first = candidates[0] ?? coordinates;
+            const second = candidates[1] ?? alternateBridge;
+            const chooseFirst = this.hash(
+                first.latitude + second.latitude,
+                first.longitude + second.longitude,
+                0x57414c4c,
+            ) % 2 === 0;
+            const chosen = chooseFirst ? first : second;
+            if (coordinates.equals(chosen)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static hasUsablePrimaryWallAt(
+        coordinates: Coordinates,
+    ): boolean {
+        return this.hasPrimaryWallShapeAt(coordinates)
+            && !this.isNearStairs(coordinates);
+    }
+
+    private static canAddBridgeAt(coordinates: Coordinates): boolean {
+        return !this.isOutside(coordinates)
+            && !this.isNearStairs(coordinates)
+            && !this.isDesignedDoorAt(coordinates);
     }
 
     static decorationAt(coordinates: Coordinates): "shop table"|"shop shelf"|null {

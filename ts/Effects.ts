@@ -2,6 +2,7 @@ import type { ItemActionResult } from "./Inventory.js";
 import type { CardDefinition, CardPlayResolution, CombatEffect } from "./CardGame.js";
 import { Image as GameImage } from "./Image.js";
 import { OriginArtwork } from "./OriginArtwork.js";
+import { BattleSpell } from "./BattleSpell.js";
 
 type EffectType = "collect" | "craft" | "combat" | "rare";
 
@@ -677,6 +678,9 @@ export class Effects {
         }
         if (Effects.CRAFT_ITEMS.has(itemName)) {
             return "craft";
+        }
+        if (BattleSpell.isBattleSpell(itemName)) {
+            return "rare";
         }
         if (Effects.RARE_ITEMS.has(itemName)) {
             return "rare";
@@ -1364,6 +1368,10 @@ export class Effects {
         const actor = effect.actor === "player" ? "You" : Effects.capitalize(monsterName);
         const target = effect.target === "player" ? "you" : monsterName;
         if (effect.type === "damage") {
+            if (effect.special === "curse") {
+                return "Cursed healing poisons " + target + " for "
+                    + effect.amount;
+            }
             if (effect.amount === 0 && effect.blocked > 0) {
                 return Effects.capitalize(target) + "'s block absorbs "
                     + effect.blocked + " damage";
@@ -1386,6 +1394,19 @@ export class Effects {
         if (effect.type === "defeated") {
             return effect.target === "monster" ? "Monster defeated" : "You are defeated";
         }
+        if (effect.type === "special" && effect.special !== undefined) {
+            if (effect.special === "freeze-skip") {
+                return "Frozen — action skipped";
+            }
+            if (effect.special === "slow-skip") {
+                return "Slowed — action skipped";
+            }
+            if (effect.special === "unravel" && effect.amount > 0) {
+                return "Unravel destroys " + effect.amount + " block";
+            }
+
+            return BattleSpell.forEffect(effect.special).shortLabel;
+        }
 
         return actor + (effect.actor === "player" ? " wait" : " waits");
     }
@@ -1396,6 +1417,15 @@ export class Effects {
         Effects.appendCardEffectIcon(effects, "damage", card.damage);
         Effects.appendCardEffectIcon(effects, "block", card.block);
         Effects.appendCardEffectIcon(effects, "healing", card.healing);
+        if (card.special !== undefined) {
+            const spell = BattleSpell.forEffect(card.special);
+            const icon = document.createElement("span");
+            icon.className = "fight-effect-icon fight-effect--special";
+            icon.textContent = spell.icon + " " + spell.shortLabel;
+            icon.title = spell.description;
+            icon.setAttribute("aria-label", spell.description);
+            effects.append(icon);
+        }
 
         return effects;
     }

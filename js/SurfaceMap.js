@@ -111,16 +111,40 @@ export class SurfaceMap {
     static roadVisualAt(coordinates, road) {
         const values = (salt) => SurfaceMap.hash(coordinates.latitude, coordinates.longitude, road.routeId, salt);
         const routeWidthSeed = SurfaceMap.hash(road.routeId, road.kind === "road" ? 0x4b72e193 : 0x78c4a2df);
-        const roadPatchScale = 1.1 + values(0x6d26e251) % 31 / 100;
+        const roadPatchScale = 1.12 + values(0x6d26e251) % 49 / 100;
+        const roadOnlyVariation = road.kind === "road";
+        const rotationJitter = roadOnlyVariation
+            ? (values(0x57a92c31) % 1601 - 800) / 100
+            : 0;
+        const offsetX = roadOnlyVariation
+            ? (values(0x91d34e27) % 25 - 12) / 100
+            : 0;
+        const offsetY = roadOnlyVariation
+            ? (values(0x2bc681f5) % 25 - 12) / 100
+            : 0;
+        const textureSize = 6.6 + values(0xe31a794d) % 421 / 100;
+        const textureJitterX = roadOnlyVariation
+            ? (values(0x4f82b6c9) % 601 - 300) / 100
+            : 0;
+        const textureJitterY = roadOnlyVariation
+            ? (values(0xb7591d43) % 601 - 300) / 100
+            : 0;
         const grassPlacementSeed = values(0x123da847);
         const grassPresent = grassPlacementSeed % (road.kind === "road" ? 7 : 13) === 0;
         return {
             diameterInTiles: road.kind === "road"
                 ? (1.72 + routeWidthSeed % 13 / 100) * roadPatchScale
                 : 1.02 + routeWidthSeed % 9 / 100,
-            rotationDegrees: road.headingDegrees,
-            textureOffsetXInTiles: -coordinates.latitude,
-            textureOffsetYInTiles: -coordinates.longitude,
+            rotationDegrees: road.headingDegrees + rotationJitter,
+            offsetXInTiles: offsetX,
+            offsetYInTiles: offsetY,
+            textureSizeInTiles: textureSize,
+            textureOffsetXInTiles: roadOnlyVariation
+                ? -coordinates.latitude + textureJitterX
+                : -coordinates.latitude,
+            textureOffsetYInTiles: roadOnlyVariation
+                ? -coordinates.longitude + textureJitterY
+                : -coordinates.longitude,
             grassOpacity: grassPresent
                 ? .12 + values(0x75d932ab) % 15 / 100
                 : 0,

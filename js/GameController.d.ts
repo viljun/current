@@ -14,6 +14,7 @@ export declare function calculateMapLayout(viewportWidth: number, viewportHeight
 export declare class GameController {
     private static readonly EXPLORE_STORAGE_KEY;
     private static readonly EXPLORE_LOCATION_STORAGE_KEY;
+    private static readonly LABELS_STORAGE_KEY;
     private static readonly INVENTORY_STORAGE_KEY;
     private static readonly SAFETY_MARGIN;
     private static readonly TILE_SIZE;
@@ -25,6 +26,7 @@ export declare class GameController {
     private readonly messageBox;
     private readonly exploreSwitch;
     private readonly soundSwitch;
+    private readonly labelsSwitch;
     private readonly inventoryControl;
     private readonly restartControl;
     private readonly compassIndicator;
@@ -54,6 +56,7 @@ export declare class GameController {
     private showCurrentGpsStatus;
     private setGpsStatus;
     private loadExploreMode;
+    private loadLabelsEnabled;
     private loadExploreCoordinates;
     private saveExploreCoordinates;
     private save;

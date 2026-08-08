@@ -4,7 +4,9 @@ import { OriginArtwork } from "./OriginArtwork.js";
 
 export class EncounterCard {
     static readonly ID = "encounterCard";
+    static readonly ITEM_FOCUS_EVENT = "encounter-card-item-focus";
     private static activeItemToggle: HTMLElement|null = null;
+    private static activeItemName: string|null = null;
 
     static show(
         description: string,
@@ -14,6 +16,7 @@ export class EncounterCard {
         closeLabel = "Close encounter details",
     ): void {
         EncounterCard.setActiveItemToggle(null);
+        EncounterCard.setActiveItemName(null);
         const card = EncounterCard.element();
         const closeButton = document.createElement("button");
         closeButton.type = "button";
@@ -94,10 +97,12 @@ export class EncounterCard {
             "Close item details",
         );
         EncounterCard.setActiveItemToggle(returnFocus);
+        EncounterCard.setActiveItemName(itemName);
     }
 
     static clear(): void {
         EncounterCard.setActiveItemToggle(null);
+        EncounterCard.setActiveItemName(null);
         const card = document.getElementById(EncounterCard.ID);
         if (!(card instanceof HTMLElement)) {
             return;
@@ -138,5 +143,16 @@ export class EncounterCard {
         if (button !== null) {
             button.setAttribute("aria-expanded", "true");
         }
+    }
+
+    private static setActiveItemName(itemName: string|null): void {
+        if (EncounterCard.activeItemName === itemName) {
+            return;
+        }
+        EncounterCard.activeItemName = itemName;
+        document.dispatchEvent(new CustomEvent(
+            EncounterCard.ITEM_FOCUS_EVENT,
+            { detail: { itemName } },
+        ));
     }
 }

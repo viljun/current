@@ -37,12 +37,14 @@ export declare class FightView {
     private createFighterDisplay;
     private createHealthDisplay;
     private createEnchantmentDisplay;
+    private createModifierDisplay;
     private createCombatants;
     private createPortrait;
     private playPlayerCard;
     private playCardEffects;
     private chooseMonsterCardElement;
     private syncFightState;
+    private syncShieldCards;
     private finishFight;
     private showDefeatAdvice;
     private createDefeatAdvice;

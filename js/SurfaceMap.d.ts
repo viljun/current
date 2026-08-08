@@ -22,6 +22,9 @@ export interface SurfaceRoadCell {
 export interface SurfaceRoadVisual {
     diameterInTiles: number;
     rotationDegrees: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    textureSizeInTiles: number;
     textureOffsetXInTiles: number;
     textureOffsetYInTiles: number;
     grassOpacity: number;

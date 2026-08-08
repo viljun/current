@@ -8,11 +8,24 @@ export interface MapState {
     exploreMode: boolean;
     takingRangeMeters: number | null;
 }
+export interface MapItemLabelVisual {
+    angleDegrees: number;
+    distanceInTiles: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+}
+export interface ShopWallVisual {
+    rotationDegrees: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    scale: number;
+}
 export declare class Map {
     private static readonly PROGRESS_ITEM_NAMES;
     slidingAnimationInProgress: boolean;
     interactionLocked: boolean;
     private catFacingX;
+    private focusedLabelItemName;
     private catVisualState;
     private visibleDungeonWalls;
     map: HTMLDivElement;
@@ -33,13 +46,20 @@ export declare class Map {
         length: number;
         itemName: string;
     }[];
+    static itemLabelVisualAt(itemName: string, coordinates: Coordinates): MapItemLabelVisual;
+    static shopWallVisualAt(coordinates: Coordinates): ShopWallVisual;
+    private static shopWallSeed;
+    private static itemLabelSeed;
+    private decorateItemLabel;
     private progressStatusElement;
+    focusItemLabels(itemName: string | null): void;
     private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
     isWallAt(coordinates: Coordinates, areaId?: number): boolean;
     private static coordinatesKey;
     private decorateDungeonSoftTerrainCell;
     private decorateRiverCell;
+    private decorateShopWallCell;
     private decorateRoadCell;
     private decoratePathPatches;
     private decorateRoadGrass;

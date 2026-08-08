@@ -1,6 +1,7 @@
 import { ItemType }            from "./ItemType.js";
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { View }                from './View.js';
+import { BattleSpell }         from "./BattleSpell.js";
 
 export class ItemTakingSummary {
     itemType: ItemType;
@@ -24,7 +25,7 @@ export class ItemTakingSummary {
 
     // Returns "take"-button text.
     getTakeButtonText() {
-        const craftable = [
+        const craftable = BattleSpell.isBattleSpell(this.itemType.name) || [
             "binding rope",
             "crucible",
             "padded hide",
@@ -77,13 +78,18 @@ export class ItemTakingSummary {
             "mushroom mixing",
             "campfire",
         ].includes(this.itemType.name);
-        const merchant = this.itemType.name.startsWith("cat buying ")
-            || this.itemType.name.startsWith("cat selling ")
-            || this.itemType.name.startsWith("magician selling ");
+        const catBuying = this.itemType.name.startsWith("cat buying ");
+        const catSelling = this.itemType.name.startsWith("cat selling ");
+        const magicianSelling = this.itemType.name.startsWith(
+            "magician selling ",
+        );
+        const merchant = catBuying || catSelling || magicianSelling;
         let buttonText = merchant
-            ? this.itemType.name.startsWith("magician selling ")
+            ? magicianSelling
                 ? "Buy spell"
-                : "Trade"
+                : catBuying
+                    ? "Sell"
+                    : "Buy"
             : this.itemType.name === "furnace"
             ? "Smelt iron"
             : this.itemType.name === "mushroom mixing"
@@ -98,8 +104,7 @@ export class ItemTakingSummary {
                 ? "Craft " + this.itemType.name
                 : "Take " + this.itemType.name;
         let additionalText = "";
-        const catMerchant = this.itemType.name.startsWith("cat buying ")
-            || this.itemType.name.startsWith("cat selling ");
+        const catMerchant = catBuying || catSelling;
 
         if (
             catMerchant
@@ -112,8 +117,11 @@ export class ItemTakingSummary {
             const prizeTexts = this.prizes.map(value =>
                 View.getQuantityText(value.itemType.name, value.quantity)
             );
-            additionalText = " " + View.arrayToText(expenseTexts)
-                + " for " + View.arrayToText(prizeTexts) + ".";
+            additionalText = catBuying
+                ? " " + View.arrayToText(expenseTexts)
+                    + " for " + View.arrayToText(prizeTexts) + "."
+                : " " + View.arrayToText(prizeTexts)
+                    + " with " + View.arrayToText(expenseTexts) + ".";
         } else {
             // Expenses.
             if (this.expenses.length > 0) {
@@ -158,8 +166,18 @@ export class ItemTakingSummary {
         // Missing items.
         if (this.missing.length > 0) {
             if (this.areSameChanges(this.expenses, this.missing)) {
+                const merchantItems = catBuying
+                    ? this.expenses
+                    : this.prizes;
+                const merchantItemTexts = merchantItems.map(value =>
+                    View.getQuantityText(
+                        value.itemType.name,
+                        Math.abs(value.quantity),
+                    )
+                );
                 const purpose = merchant
-                    ? "complete this trade"
+                    ? (catBuying ? "sell " : "buy ")
+                        + View.arrayToText(merchantItemTexts)
                     : this.itemType.name === "furnace"
                         ? "smelt iron"
                         : this.itemType.name === "mushroom mixing"

@@ -93,7 +93,10 @@ export class TakeItemButton {
 
         // Text after the button.
         if (takeButtonText.additionalText !== "") {
-            takeItemButton.append(takeButtonText.additionalText);
+            const followingText = document.createElement("span");
+            followingText.className = "encounter-following-text";
+            followingText.textContent = takeButtonText.additionalText.trim();
+            takeItemButton.append(followingText);
         }
 
         return takeItemButton;

@@ -154,7 +154,7 @@ test("item explanation chapters only appear when applicable", () => {
     );
     assert.deepEqual(
         poultice.map(section => section.heading),
-        ["Make", "Fight", "Field note"],
+        ["Make", "Use", "Fight", "Field note"],
     );
     const stick = ItemExplanation.sectionsFor("stick", 10, 20, 0);
     assert.deepEqual(

@@ -8,6 +8,8 @@ import { OriginArtwork } from "./OriginArtwork.js";
 import { ShopMap } from "./ShopMap.js";
 import { SurfaceMap } from "./SurfaceMap.js";
 import { View } from './View.js';
+import { BattleSpell } from "./BattleSpell.js";
+import { CardGame } from "./CardGame.js";
 export class Inventory {
     constructor() {
         this.quantities = {};
@@ -32,6 +34,27 @@ export class Inventory {
     getItemOrigins(itemName) {
         var _a;
         return ((_a = this.reconstructItemOrigins()[itemName]) !== null && _a !== void 0 ? _a : []).map(origin => (Object.assign({}, origin)));
+    }
+    getKnownRecipes() {
+        const discoveries = this.reconstructDiscoveryOrigins();
+        const variants = this.recipeVariantsByOutput();
+        const recipes = [];
+        for (const [itemName, origin] of Object.entries(discoveries)) {
+            const itemVariants = variants[itemName];
+            if (itemVariants === undefined || itemVariants.length === 0) {
+                continue;
+            }
+            recipes.push({
+                itemName,
+                origin: Object.assign({}, origin),
+                group: this.recipeGroup(itemName),
+                variants: itemVariants,
+                ready: itemVariants.some(variant => variant.ready),
+            });
+        }
+        return recipes.sort((first, second) => Number(second.ready) - Number(first.ready)
+            || first.group.localeCompare(second.group)
+            || ItemExplanation.displayName(first.itemName).localeCompare(ItemExplanation.displayName(second.itemName)));
     }
     // Returns text that describes inventory contents.
     getText() {
@@ -193,7 +216,14 @@ export class Inventory {
         if (spellCount < 3) {
             return "Search another castle for a different permanent spell.";
         }
-        return "Explore the highlands and strengthen your permanent spells.";
+        const battleSpellCount = BattleSpell.names().filter(itemName => this.has(itemName)).length;
+        if (battleSpellCount === 0) {
+            return "Find and craft a Highland battle spell to bend the rules during captures.";
+        }
+        if (battleSpellCount < BattleSpell.DEFINITIONS.length) {
+            return "Find and craft another Highland battle spell to gain a new capture tactic.";
+        }
+        return "Explore the highlands and master your spellbook.";
     }
     bindingRopeHayHint() {
         const missingHay = Math.max(0, 2 - this.quantity("hay"));
@@ -284,8 +314,8 @@ export class Inventory {
         return (_a = this.totalQuantities[itemName]) !== null && _a !== void 0 ? _a : 0;
     }
     openDialog() {
-        var _a;
         const entries = this.entries();
+        const recipes = this.getKnownRecipes();
         const dialog = document.createElement("dialog");
         dialog.className = "inventory-dialog";
         dialog.setAttribute("aria-labelledby", "inventory-title");
@@ -300,6 +330,51 @@ export class Inventory {
         const header = document.createElement("header");
         header.className = "dialog-header";
         header.append(title, closeButton);
+        const tabs = document.createElement("nav");
+        tabs.className = "inventory-tabs";
+        tabs.setAttribute("role", "tablist");
+        tabs.setAttribute("aria-label", "Inventory sections");
+        const itemsTab = this.dialogTab("Items");
+        const recipesTab = this.dialogTab("Recipes");
+        tabs.append(itemsTab, recipesTab);
+        const content = document.createElement("div");
+        content.id = "inventory-tab-panel";
+        content.className = "dialog-content inventory-dialog-content";
+        content.setAttribute("role", "tabpanel");
+        const showTab = (tab) => {
+            const itemsSelected = tab === "items";
+            itemsTab.setAttribute("aria-selected", String(itemsSelected));
+            recipesTab.setAttribute("aria-selected", String(!itemsSelected));
+            itemsTab.classList.toggle("inventory-tab--active", itemsSelected);
+            recipesTab.classList.toggle("inventory-tab--active", !itemsSelected);
+            content.setAttribute("aria-labelledby", itemsSelected ? itemsTab.id : recipesTab.id);
+            content.replaceChildren(itemsSelected
+                ? this.createInventoryList(entries)
+                : this.createRecipeView(recipes));
+        };
+        itemsTab.onclick = () => showTab("items");
+        recipesTab.onclick = () => showTab("recipes");
+        showTab("items");
+        dialog.append(header, tabs, content);
+        dialog.addEventListener("close", () => dialog.remove(), { once: true });
+        document.body.append(dialog);
+        dialog.showModal();
+    }
+    dialogTab(label) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.id = "inventory-" + label.toLowerCase() + "-tab";
+        button.className = "inventory-tab";
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-controls", "inventory-tab-panel");
+        button.textContent = label;
+        return button;
+    }
+    createInventoryList(entries) {
+        var _a;
+        if (entries.length === 0) {
+            return this.emptyDialogMessage("Your inventory is empty. The backpack is enjoying the rest.");
+        }
         const list = document.createElement("div");
         list.className = "inventory-list";
         for (const [name, quantity] of entries) {
@@ -333,13 +408,156 @@ export class Inventory {
             item.append(header, explanation);
             list.append(item);
         }
-        const content = document.createElement("div");
-        content.className = "dialog-content";
-        content.append(list);
-        dialog.append(header, content);
-        dialog.addEventListener("close", () => dialog.remove(), { once: true });
-        document.body.append(dialog);
-        dialog.showModal();
+        return list;
+    }
+    createRecipeView(recipes) {
+        if (recipes.length === 0) {
+            return this.emptyDialogMessage("Find or create a craftable item to add its recipe here.");
+        }
+        const view = document.createElement("section");
+        view.className = "recipe-book";
+        const toolbar = document.createElement("div");
+        toolbar.className = "recipe-toolbar";
+        const filterLabel = document.createElement("label");
+        filterLabel.className = "recipe-filter-label";
+        filterLabel.textContent = "Show";
+        const filter = document.createElement("select");
+        filter.className = "recipe-filter";
+        filter.setAttribute("aria-label", "Filter recipes");
+        const filters = [
+            ["all", "All recipes"],
+            ["ready", "Ready to craft"],
+            ["Weapons", "Weapons"],
+            ["Shields", "Shields"],
+            ["Healing", "Healing"],
+            ["Battle spells", "Battle spells"],
+            ["Tools & materials", "Tools & materials"],
+        ];
+        for (const [value, label] of filters) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = label;
+            filter.append(option);
+        }
+        filterLabel.append(filter);
+        const count = document.createElement("span");
+        count.className = "recipe-count";
+        const note = document.createElement("p");
+        note.className = "recipe-book-note";
+        note.textContent = "Find the item or method on the map when you are ready to craft.";
+        const list = document.createElement("div");
+        list.className = "recipe-list";
+        const render = () => {
+            const shown = recipes.filter(recipe => filter.value === "all"
+                || (filter.value === "ready" && recipe.ready)
+                || recipe.group === filter.value);
+            count.textContent = shown.length === recipes.length
+                ? recipes.length + (recipes.length === 1 ? " recipe" : " recipes")
+                : shown.length + " of " + recipes.length;
+            list.replaceChildren();
+            shown.forEach((recipe, index) => list.append(this.createRecipeEntry(recipe, index)));
+            if (shown.length === 0) {
+                list.append(this.emptyDialogMessage("No known recipes match this filter."));
+            }
+        };
+        filter.onchange = render;
+        toolbar.append(filterLabel, count);
+        view.append(toolbar, note, list);
+        render();
+        return view;
+    }
+    createRecipeEntry(recipe, index) {
+        const entry = document.createElement("article");
+        entry.className = "recipe-entry "
+            + (recipe.ready ? "recipe-entry--ready" : "recipe-entry--missing");
+        entry.dataset.itemName = recipe.itemName;
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "recipe-entry-toggle";
+        const detailsId = "recipe-details-"
+            + recipe.itemName.replace(/[^a-z0-9]+/g, "-") + "-" + index;
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-controls", detailsId);
+        const artwork = OriginArtwork.create(recipe.itemName, recipe.origin, "recipe-entry-art");
+        OriginArtwork.containSubject(artwork, "inventory-entry-art-subject-frame");
+        const identity = document.createElement("span");
+        identity.className = "recipe-entry-identity";
+        const name = document.createElement("strong");
+        name.className = "recipe-entry-name";
+        name.textContent = ItemExplanation.displayName(recipe.itemName);
+        const group = document.createElement("span");
+        group.className = "recipe-entry-group";
+        group.textContent = recipe.group;
+        identity.append(name, group);
+        const status = document.createElement("span");
+        status.className = "recipe-status";
+        status.textContent = recipe.ready ? "Ready" : "Missing items";
+        toggle.append(artwork, identity, status);
+        const summary = document.createElement("p");
+        summary.className = "recipe-summary";
+        summary.textContent = this.recipeSummary(recipe);
+        const variants = document.createElement("div");
+        variants.className = "recipe-variants";
+        recipe.variants.forEach(variant => variants.append(this.createRecipeVariant(recipe, variant)));
+        const details = ItemExplanation.element(recipe.itemName, recipe.origin.latitude, recipe.origin.longitude, recipe.origin.areaId);
+        details.id = detailsId;
+        details.classList.add("recipe-entry-details");
+        details.hidden = true;
+        toggle.onclick = () => {
+            details.hidden = !details.hidden;
+            toggle.setAttribute("aria-expanded", String(!details.hidden));
+        };
+        entry.append(toggle, summary, variants, details);
+        return entry;
+    }
+    createRecipeVariant(recipe, variant) {
+        const section = document.createElement("section");
+        section.className = "recipe-variant";
+        const heading = document.createElement("h3");
+        heading.className = "recipe-variant-title";
+        heading.textContent = variant.actionName === recipe.itemName
+            ? "Recipe"
+            : "Method: " + ItemExplanation.displayName(variant.actionName);
+        if (variant.outputQuantity > 1) {
+            const output = document.createElement("span");
+            output.className = "recipe-output-quantity";
+            output.textContent = "Makes ×" + variant.outputQuantity;
+            heading.append(output);
+        }
+        const ingredients = document.createElement("ul");
+        ingredients.className = "recipe-ingredients";
+        for (const ingredient of variant.ingredients) {
+            const item = document.createElement("li");
+            item.className = "recipe-ingredient "
+                + (ingredient.owned >= ingredient.required
+                    ? "recipe-ingredient--owned"
+                    : "recipe-ingredient--missing");
+            if (ingredient.reusable) {
+                item.classList.add("recipe-ingredient--reusable");
+                item.title = "Required but not consumed";
+            }
+            const label = document.createElement("span");
+            label.className = "recipe-ingredient-name";
+            label.textContent = ItemExplanation.displayName(ingredient.itemName) + (ingredient.reusable ? " (kept)" : "");
+            const quantity = document.createElement("strong");
+            quantity.textContent = ingredient.owned + "/" + ingredient.required;
+            item.append(label, quantity);
+            ingredients.append(item);
+        }
+        section.append(heading, ingredients);
+        return section;
+    }
+    recipeSummary(recipe) {
+        var _a, _b;
+        const sections = ItemExplanation.sectionsFor(recipe.itemName, recipe.origin.latitude, recipe.origin.longitude, recipe.origin.areaId);
+        const useful = (_a = sections.find(section => section.heading === "Fight")) !== null && _a !== void 0 ? _a : sections.find(section => section.heading === "Use");
+        return (_b = useful === null || useful === void 0 ? void 0 : useful.text) !== null && _b !== void 0 ? _b : "A known recipe. Gather its ingredients, then find it on the map to craft it.";
+    }
+    emptyDialogMessage(text) {
+        const message = document.createElement("p");
+        message.className = "inventory-empty";
+        message.textContent = text;
+        return message;
     }
     isItemTypeTaken(itemType) {
         var _a;
@@ -473,6 +691,96 @@ export class Inventory {
             }
         }
         return origins;
+    }
+    reconstructDiscoveryOrigins() {
+        const discoveries = {};
+        for (const key of Object.keys(this.usedCoordinates)) {
+            const origin = this.parseOrigin(key);
+            if (origin === null) {
+                continue;
+            }
+            const action = this.itemAtCoordinates(new Coordinates(origin.latitude, origin.longitude), origin.areaId);
+            if (action === null
+                || Inventory.REMOVED_ITEM_NAMES.includes(action.name)) {
+                continue;
+            }
+            if (!ItemType.isTransientAction(action.name)) {
+                discoveries[action.name] = Object.assign({}, origin);
+            }
+            for (const change of action.prizes()) {
+                if (change.quantity > 0) {
+                    discoveries[change.itemType.name] = Object.assign({}, origin);
+                }
+            }
+        }
+        return discoveries;
+    }
+    recipeVariantsByOutput() {
+        var _a;
+        var _b;
+        const recipes = {};
+        for (const actionName of ItemType.CRAFTING_ACTIONS) {
+            const action = new ItemType(actionName);
+            const changes = action.prizes();
+            const expenses = changes.filter(change => change.quantity < 0);
+            if (expenses.length === 0) {
+                continue;
+            }
+            const prizes = changes.filter(change => change.quantity > 0);
+            const outputs = prizes.length > 0
+                ? prizes.map(prize => ({
+                    itemName: prize.itemType.name,
+                    quantity: prize.quantity,
+                }))
+                : [{ itemName: actionName, quantity: 1 }];
+            const ingredients = [
+                ...expenses.map(expense => {
+                    var _a;
+                    return ({
+                        itemName: expense.itemType.name,
+                        required: -expense.quantity,
+                        owned: Math.max(0, (_a = this.totalQuantities[expense.itemType.name]) !== null && _a !== void 0 ? _a : 0),
+                        reusable: false,
+                    });
+                }),
+                ...action.requirements().map(requirement => {
+                    var _a;
+                    return ({
+                        itemName: requirement.itemType.name,
+                        required: requirement.quantity,
+                        owned: Math.max(0, (_a = this.totalQuantities[requirement.itemType.name]) !== null && _a !== void 0 ? _a : 0),
+                        reusable: true,
+                    });
+                }),
+            ];
+            const ready = ingredients.every(ingredient => ingredient.owned >= ingredient.required);
+            for (const output of outputs) {
+                (_a = recipes[_b = output.itemName]) !== null && _a !== void 0 ? _a : (recipes[_b] = []);
+                recipes[output.itemName].push({
+                    actionName,
+                    outputQuantity: output.quantity,
+                    ingredients: ingredients.map(ingredient => (Object.assign({}, ingredient))),
+                    ready,
+                });
+            }
+        }
+        return recipes;
+    }
+    recipeGroup(itemName) {
+        if (BattleSpell.isBattleSpell(itemName)) {
+            return "Battle spells";
+        }
+        const effects = CardGame.itemCardEffects(itemName);
+        if ((effects === null || effects === void 0 ? void 0 : effects.healing) !== undefined && effects.healing > 0) {
+            return "Healing";
+        }
+        if (effects !== null && effects.block > effects.damage) {
+            return "Shields";
+        }
+        if (effects !== null && effects.damage > 0) {
+            return "Weapons";
+        }
+        return "Tools & materials";
     }
     addOrigins(origins, itemName, quantity, origin) {
         var _a;

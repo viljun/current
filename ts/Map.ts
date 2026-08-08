@@ -35,6 +35,20 @@ export interface MapState {
     takingRangeMeters: number|null;
 }
 
+export interface MapItemLabelVisual {
+    angleDegrees: number;
+    distanceInTiles: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+}
+
+export interface ShopWallVisual {
+    rotationDegrees: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    scale: number;
+}
+
 export class Map {
     private static readonly PROGRESS_ITEM_NAMES = [
         "yarrow poultice",
@@ -68,6 +82,7 @@ export class Map {
     slidingAnimationInProgress: boolean = false;
     interactionLocked: boolean = false;
     private catFacingX = 1;
+    private focusedLabelItemName: string|null = null;
     private catVisualState: {
         rotation: number;
         dimension: number;
@@ -212,8 +227,12 @@ export class Map {
                         if (
                             terrain === "dungeon moonwell water"
                             || terrain === "dungeon wet floor"
+                            || terrain === "dungeon sand floor"
+                            || terrain === "dungeon bone floor"
+                            || terrain === "dungeon bazaar floor"
                             || terrain === "dungeon chapel floor"
                             || terrain === "dungeon web floor"
+                            || terrain === "dungeon moss floor"
                         ) {
                             this.decorateDungeonSoftTerrainCell(
                                 div,
@@ -269,7 +288,10 @@ export class Map {
                     } else {
                         div.classList.add("shop-indoor");
                         if (hasWall) {
-                            div.append(Image.getWithItemTypeName("shop wall", this.tile_size, seed).element());
+                            this.decorateShopWallCell(
+                                div,
+                                cell_coordinates,
+                            );
                         } else {
                             const floor = Image.getWithItemTypeName(
                                 "shop floor",
@@ -470,6 +492,16 @@ export class Map {
                     ).element();
                     itemElement.classList.add("collectible");
                     div.append(itemElement);
+                    if (isTaken === false) {
+                        this.decorateItemLabel(
+                            div,
+                            itemType.name,
+                            cell_coordinates,
+                            x,
+                            y,
+                            takeable === false,
+                        );
+                    }
                 }
 
                 // If a location has been selected and it is the current location.
@@ -527,11 +559,23 @@ export class Map {
                                         : "",
                                 );
                             }
-                            const action = itemType.name.startsWith("cat ")
-                                || itemType.name.startsWith(
+                            const catMerchant = itemType.name.startsWith(
+                                "cat ",
+                            );
+                            const merchantAction =
+                                item_taking_summary.getTakeButtonText();
+                            const action = catMerchant
+                                ? (
+                                    merchantAction.buttonText.toLowerCase()
+                                    + merchantAction.additionalText.split(
+                                        ".",
+                                        1,
+                                    )[0]
+                                ).replace(/\.$/, "")
+                                : itemType.name.startsWith(
                                     "magician selling ",
                                 )
-                                    ? "trade"
+                                    ? "buy a spell"
                                     : "take this " + itemType.name;
                             View.setMessage(
                                 this.messageBox,
@@ -625,6 +669,175 @@ export class Map {
         return references;
     }
 
+    static itemLabelVisualAt(
+        itemName: string,
+        coordinates: Coordinates,
+    ): MapItemLabelVisual {
+        const angleDegrees = Map.itemLabelSeed(
+            itemName,
+            coordinates,
+            0x4d617041,
+        ) % 360;
+        const distanceInTiles = 1.05 + Map.itemLabelSeed(
+            itemName,
+            coordinates,
+            0x4d617044,
+        ) % 31 / 100;
+        const angle = angleDegrees * Math.PI / 180;
+
+        return {
+            angleDegrees,
+            distanceInTiles,
+            offsetXInTiles: Math.cos(angle) * distanceInTiles,
+            offsetYInTiles: Math.sin(angle) * distanceInTiles,
+        };
+    }
+
+    static shopWallVisualAt(coordinates: Coordinates): ShopWallVisual {
+        return {
+            rotationDegrees: (
+                Map.shopWallSeed(coordinates, 0x57616c52) % 81 - 40
+            ) / 10,
+            offsetXInTiles: (
+                Map.shopWallSeed(coordinates, 0x57616c58) % 7 - 3
+            ) / 100,
+            offsetYInTiles: (
+                Map.shopWallSeed(coordinates, 0x57616c59) % 7 - 3
+            ) / 100,
+            // The minimum oversize covers the furthest corner exposed by the
+            // allowed rotation and movement, so adjoining pieces stay joined.
+            scale: (
+                114 + Map.shopWallSeed(coordinates, 0x57616c53) % 9
+            ) / 100,
+        };
+    }
+
+    private static shopWallSeed(
+        coordinates: Coordinates,
+        salt: number,
+    ): number {
+        let hash = salt >>> 0;
+        hash ^= Math.imul(coordinates.latitude | 0, 0x85ebca6b);
+        hash ^= Math.imul(coordinates.longitude | 0, 0xc2b2ae35);
+        hash ^= hash >>> 16;
+        hash = Math.imul(hash, 0x7feb352d) >>> 0;
+        hash ^= hash >>> 15;
+        hash = Math.imul(hash, 0x846ca68b) >>> 0;
+        hash ^= hash >>> 16;
+
+        return hash >>> 0;
+    }
+
+    private static itemLabelSeed(
+        itemName: string,
+        coordinates: Coordinates,
+        salt: number,
+    ): number {
+        let hash = salt >>> 0;
+        hash ^= Math.imul(coordinates.latitude | 0, 0x85ebca6b);
+        hash ^= Math.imul(coordinates.longitude | 0, 0xc2b2ae35);
+        for (let index = 0; index < itemName.length; index++) {
+            hash ^= itemName.charCodeAt(index);
+            hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+        hash ^= hash >>> 16;
+        hash = Math.imul(hash, 0x7feb352d) >>> 0;
+        hash ^= hash >>> 15;
+
+        return hash >>> 0;
+    }
+
+    private decorateItemLabel(
+        cell: HTMLDivElement,
+        itemName: string,
+        coordinates: Coordinates,
+        column: number,
+        row: number,
+        disabled: boolean,
+    ): void {
+        const viewportWidth = this.map.parentElement?.clientWidth
+            ?? this.cols * this.tile_size;
+        const viewportHeight = this.map.parentElement?.clientHeight
+            ?? this.rows * this.tile_size;
+        const hiddenColumns = Math.max(
+            0,
+            (this.cols - viewportWidth / this.tile_size) / 2,
+        );
+        const hiddenRows = Math.max(
+            0,
+            (this.rows - viewportHeight / this.tile_size) / 2,
+        );
+        const firstVisibleColumn = Math.ceil(hiddenColumns + .5);
+        const lastVisibleColumn = Math.floor(
+            hiddenColumns + viewportWidth / this.tile_size + .5,
+        );
+        const firstVisibleRow = Math.ceil(hiddenRows + .5);
+        const lastVisibleRow = Math.floor(
+            hiddenRows + viewportHeight / this.tile_size + .5,
+        );
+        if (
+            column < firstVisibleColumn
+            || column > lastVisibleColumn
+            || row < firstVisibleRow
+            || row > lastVisibleRow
+        ) {
+            return;
+        }
+        const visual = Map.itemLabelVisualAt(itemName, coordinates);
+        const edgeBuffer = 3;
+        let offsetX = visual.offsetXInTiles;
+        let offsetY = visual.offsetYInTiles;
+        if (column < firstVisibleColumn + edgeBuffer) {
+            offsetX = Math.abs(offsetX);
+        } else if (column > lastVisibleColumn - edgeBuffer) {
+            offsetX = -Math.abs(offsetX);
+        }
+        if (row < firstVisibleRow + edgeBuffer) {
+            offsetY = Math.abs(offsetY);
+        } else if (row > lastVisibleRow - edgeBuffer) {
+            offsetY = -Math.abs(offsetY);
+        }
+        const angleDegrees = (
+            Math.atan2(offsetY, offsetX) * 180 / Math.PI + 360
+        ) % 360;
+        const distance = visual.distanceInTiles * this.tile_size;
+        const label = document.createElement("span");
+        label.className = "map-item-label";
+        label.dataset.itemName = itemName;
+        label.classList.toggle(
+            "map-item-label--item-focus",
+            itemName === this.focusedLabelItemName,
+        );
+        if (disabled) {
+            label.classList.add("map-item-label--disabled");
+        }
+        label.setAttribute("aria-hidden", "true");
+        label.style.setProperty(
+            "--map-item-label-angle",
+            angleDegrees + "deg",
+        );
+        label.style.setProperty(
+            "--map-item-label-distance",
+            distance + "px",
+        );
+        label.style.setProperty(
+            "--map-item-label-x",
+            offsetX * this.tile_size + "px",
+        );
+        label.style.setProperty(
+            "--map-item-label-y",
+            offsetY * this.tile_size + "px",
+        );
+        const arrow = document.createElement("span");
+        arrow.className = "map-item-label-arrow";
+        const text = document.createElement("span");
+        text.className = "map-item-label-text";
+        text.textContent = ItemExplanation.displayName(itemName);
+        label.append(arrow, text);
+        cell.classList.add("map-item-labelled");
+        cell.append(label);
+    }
+
     private progressStatusElement(): HTMLDivElement {
         const text = this.inventory.getText();
         const status = document.createElement("div");
@@ -639,6 +852,7 @@ export class Map {
             const button = document.createElement("button");
             button.type = "button";
             button.className = "status-item-link";
+            button.dataset.itemName = reference.itemName;
             button.setAttribute("aria-controls", EncounterCard.ID);
             button.setAttribute("aria-expanded", "false");
             button.textContent = text.slice(
@@ -665,6 +879,22 @@ export class Map {
         status.append(document.createTextNode(text.slice(position)));
 
         return status;
+    }
+
+    focusItemLabels(itemName: string|null): void {
+        this.focusedLabelItemName = itemName;
+        this.map.parentElement?.classList.toggle(
+            "map-labels-item-focus",
+            itemName !== null,
+        );
+        this.map.querySelectorAll<HTMLElement>(".map-item-label").forEach(
+            label => {
+                label.classList.toggle(
+                    "map-item-label--item-focus",
+                    itemName !== null && label.dataset.itemName === itemName,
+                );
+            },
+        );
     }
 
     private animateCatVisual(cat: HTMLImageElement, image: Image): void {
@@ -740,20 +970,28 @@ export class Map {
         terrain:
             | "dungeon moonwell water"
             | "dungeon wet floor"
+            | "dungeon sand floor"
+            | "dungeon bone floor"
+            | "dungeon bazaar floor"
             | "dungeon chapel floor"
-            | "dungeon web floor",
+            | "dungeon web floor"
+            | "dungeon moss floor",
     ): void {
         const variants: Readonly<Record<typeof terrain, string>> = {
             "dungeon moonwell water": "deep",
             "dungeon wet floor": "shallow",
+            "dungeon sand floor": "sand",
+            "dungeon bone floor": "bone",
+            "dungeon bazaar floor": "bazaar",
             "dungeon chapel floor": "chapel-soil",
             "dungeon web floor": "spider-soil",
+            "dungeon moss floor": "moss",
         };
         const patch = document.createElement("span");
         patch.className = "dungeon-soft-terrain-patch "
             + "dungeon-soft-terrain-patch--" + variants[terrain];
-        const textureCells = terrain === "dungeon chapel floor"
-            || terrain === "dungeon web floor"
+        const textureCells = terrain !== "dungeon moonwell water"
+            && terrain !== "dungeon wet floor"
             ? 8
             : 10;
         const textureSize = this.tile_size * textureCells;
@@ -813,6 +1051,47 @@ export class Map {
         );
     }
 
+    private decorateShopWallCell(
+        div: HTMLDivElement,
+        coordinates: Coordinates,
+    ): void {
+        const textureCells = 8;
+        const visual = Map.shopWallVisualAt(coordinates);
+        div.classList.add("shop-wall");
+        div.style.setProperty(
+            "--shop-wall-offset-x",
+            visual.offsetXInTiles * this.tile_size + "px",
+        );
+        div.style.setProperty(
+            "--shop-wall-offset-y",
+            visual.offsetYInTiles * this.tile_size + "px",
+        );
+        div.style.setProperty(
+            "--shop-wall-rotation",
+            visual.rotationDegrees + "deg",
+        );
+        div.style.setProperty("--shop-wall-scale", String(visual.scale));
+        div.style.setProperty(
+            "--shop-wall-texture-size",
+            this.tile_size * textureCells + "px",
+        );
+        div.style.setProperty(
+            "--shop-wall-texture-position",
+            (
+                -Map.positiveModulo(
+                    coordinates.latitude,
+                    textureCells,
+                ) * this.tile_size + 1
+            ) + "px "
+            + (
+                -Map.positiveModulo(
+                    coordinates.longitude,
+                    textureCells,
+                ) * this.tile_size + 1
+            ) + "px",
+        );
+    }
+
     private decorateRoadCell(
         div: HTMLDivElement,
         coordinates: Coordinates,
@@ -827,8 +1106,16 @@ export class Map {
         const visual = SurfaceMap.roadVisualAt(coordinates, road);
         const diameter = visual.diameterInTiles * this.tile_size;
         const inset = (diameter - this.tile_size) / 2;
-        const textureSize = this.tile_size * 8;
+        const textureSize = this.tile_size * visual.textureSizeInTiles;
         div.style.setProperty("--surface-road-size", diameter + "px");
+        div.style.setProperty(
+            "--surface-road-offset-x",
+            visual.offsetXInTiles * this.tile_size + "px",
+        );
+        div.style.setProperty(
+            "--surface-road-offset-y",
+            visual.offsetYInTiles * this.tile_size + "px",
+        );
         div.style.setProperty(
             "--surface-road-rotation",
             visual.rotationDegrees + "deg",

@@ -125,7 +125,7 @@ test("fish live in rivers, worms on land, and campfires stay rare on banks", () 
     assert.ok(fish >= 250 && fish <= 320, fish);
     assert.ok(campfires > 10 && campfires < 100, campfires);
     assert.ok(campfires * 3 < fish);
-    assert.ok(worms >= 150 && worms <= 210, worms);
+    assert.ok(worms >= 1_900 && worms <= 2_000, worms);
 });
 
 test("chests are absent from surface and shop pools but present in dungeon", () => {
@@ -227,6 +227,7 @@ test("surface resource tuning keeps hay and stone sparse", () => {
     );
     let bindingRopes = 0;
     let clubs = 0;
+    let woodenShields = 0;
     let stoneAxes = 0;
     let surfaceHay = 0;
     let shopOutsideHay = 0;
@@ -243,6 +244,8 @@ test("surface resource tuning keeps hay and stone sparse", () => {
             bindingRopes++;
         } else if (name === "club") {
             clubs++;
+        } else if (name === "wooden shield") {
+            woodenShields++;
         } else if (name === "stone axe") {
             stoneAxes++;
         }
@@ -265,7 +268,11 @@ test("surface resource tuning keeps hay and stone sparse", () => {
         shopOutsideStone,
     );
     assert.ok(bindingRopes >= 2_000, bindingRopes);
-    assert.ok(clubs >= 1_580 && clubs <= 1_650, clubs);
+    assert.ok(clubs >= 790 && clubs <= 840, clubs);
+    assert.ok(
+        woodenShields >= 990 && woodenShields <= 1_040,
+        woodenShields,
+    );
     assert.ok(stoneAxes >= 1_400 && stoneAxes <= 1_470, stoneAxes);
     assert.ok(stoneAxes >= clubs * 0.85, { clubs, stoneAxes });
 });

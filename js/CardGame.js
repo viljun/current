@@ -1,4 +1,5 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
+import { BattleSpell } from "./BattleSpell.js";
 export class CardGame {
     constructor(monster, inventory, seed, itemOrigins, playerHealth, playerEnchantments = {
         damage: 0,
@@ -34,6 +35,17 @@ export class CardGame {
             playerPlayedCount: 0,
             monsterPlayedCount: 0,
             playerEnchantments: Object.assign({}, this.playerEnchantments),
+            modifiers: {
+                monsterFrozenRound: 0,
+                monsterActionsPerRound: CardGame.CARDS_PER_ROUND,
+                monsterBlockDivisor: 1,
+                monsterHealingPoisoned: false,
+                monsterDamageDivisor: 1,
+                playerKeepsBlock: false,
+                playerLifeStealPercent: 0,
+                playerEchoCharges: 0,
+                monsterVulnerability: 0,
+            },
         };
         this.drawCards(CardGame.HAND_SIZE);
         this.dealMonsterCards();
@@ -58,7 +70,7 @@ export class CardGame {
         return this.monster.health;
     }
     getState() {
-        return Object.assign(Object.assign({}, this.state), { playerShields: this.state.playerShields.map(shield => (Object.assign({}, shield))), monsterShields: this.state.monsterShields.map(shield => (Object.assign({}, shield))), hand: this.state.hand.map(card => (Object.assign({}, card))), playerEnchantments: Object.assign({}, this.state.playerEnchantments) });
+        return Object.assign(Object.assign({}, this.state), { playerShields: this.state.playerShields.map(shield => (Object.assign({}, shield))), monsterShields: this.state.monsterShields.map(shield => (Object.assign({}, shield))), hand: this.state.hand.map(card => (Object.assign({}, card))), playerEnchantments: Object.assign({}, this.state.playerEnchantments), modifiers: Object.assign({}, this.state.modifiers) });
     }
     getSelectedDeck() {
         return this.selectedDeck.map(card => (Object.assign({}, card)));
@@ -76,6 +88,10 @@ export class CardGame {
             };
         }
         return null;
+    }
+    static itemCardSpecialEffect(itemName) {
+        var _a, _b;
+        return (_b = (_a = BattleSpell.get(itemName)) === null || _a === void 0 ? void 0 : _a.effect) !== null && _b !== void 0 ? _b : null;
     }
     playPlayerCard(cardId) {
         if (this.state.status !== "playing" || this.state.phase !== "player") {
@@ -98,6 +114,13 @@ export class CardGame {
         if (this.state.status !== "playing" || this.state.phase !== "monster") {
             return null;
         }
+        const skipped = this.skippedMonsterAction();
+        if (skipped !== null) {
+            this.state.monsterPlayedCount++;
+            const resolution = this.skippedMonsterResolution(skipped);
+            this.finishMonsterAction(resolution);
+            return resolution;
+        }
         const card = this.chooseMonsterCard();
         if (card === null) {
             return null;
@@ -106,16 +129,7 @@ export class CardGame {
         this.state.monsterHandSize = this.monsterHand.length;
         this.state.monsterPlayedCount++;
         const resolution = this.resolveCard("monster", card);
-        if (this.state.status === "playing") {
-            if (this.state.playerPlayedCount === CardGame.CARDS_PER_ROUND
-                && this.state.monsterPlayedCount === CardGame.CARDS_PER_ROUND) {
-                this.state.phase = "dealing";
-                resolution.roundComplete = true;
-            }
-            else {
-                this.state.phase = "player";
-            }
-        }
+        this.finishMonsterAction(resolution);
         return resolution;
     }
     dealNextRound() {
@@ -123,7 +137,9 @@ export class CardGame {
             return;
         }
         this.state.hand = [];
-        this.state.playerShields = [];
+        if (!this.state.modifiers.playerKeepsBlock) {
+            this.state.playerShields = [];
+        }
         this.state.monsterShields = [];
         this.state.playerPlayedCount = 0;
         this.state.monsterPlayedCount = 0;
@@ -135,8 +151,15 @@ export class CardGame {
     resolveCard(actor, card) {
         const effects = [];
         const target = actor === "player" ? "monster" : "player";
-        if (card.damage > 0) {
-            const damage = this.applyDamage(target, card.damage);
+        const resolvedCard = this.modifiedCard(actor, card, true);
+        if (resolvedCard.special !== undefined) {
+            this.applySpecialEffect(resolvedCard.special, effects);
+        }
+        if (resolvedCard.damage > 0) {
+            const vulnerability = actor === "player"
+                ? this.state.modifiers.monsterVulnerability
+                : 0;
+            const damage = this.applyDamage(target, resolvedCard.damage + vulnerability);
             effects.push({
                 type: "damage",
                 actor,
@@ -145,6 +168,24 @@ export class CardGame {
                 blocked: damage.blocked,
                 shieldHits: damage.shieldHits,
             });
+            if (actor === "player"
+                && damage.healthDamage > 0
+                && this.state.modifiers.playerLifeStealPercent > 0) {
+                const healing = Math.max(1, Math.floor(damage.healthDamage
+                    * this.state.modifiers.playerLifeStealPercent
+                    / 100));
+                const healed = this.applyHealing("player", healing);
+                if (healed > 0) {
+                    effects.push({
+                        type: "healing",
+                        actor: "player",
+                        target: "player",
+                        amount: healed,
+                        blocked: 0,
+                        shieldHits: [],
+                    });
+                }
+            }
             if (this.healthOf(target) === 0) {
                 this.finishFight(target);
                 effects.push({
@@ -155,33 +196,61 @@ export class CardGame {
                     blocked: 0,
                     shieldHits: [],
                 });
-                return this.resolution(actor, card, effects);
+                return this.resolution(actor, resolvedCard, effects);
             }
         }
-        if (card.healing > 0) {
-            const healed = this.applyHealing(actor, card.healing);
-            if (healed > 0) {
+        if (resolvedCard.healing > 0) {
+            if (actor === "monster"
+                && this.state.modifiers.monsterHealingPoisoned) {
+                const healthBefore = this.state.monsterHealth;
+                this.state.monsterHealth = Math.max(0, this.state.monsterHealth - resolvedCard.healing);
                 effects.push({
-                    type: "healing",
+                    type: "damage",
                     actor,
-                    target: actor,
-                    amount: healed,
+                    target: "monster",
+                    amount: healthBefore - this.state.monsterHealth,
                     blocked: 0,
                     shieldHits: [],
+                    special: "curse",
                 });
+                if (this.state.monsterHealth === 0) {
+                    this.finishFight("monster");
+                    effects.push({
+                        type: "defeated",
+                        actor: "player",
+                        target: "monster",
+                        amount: 0,
+                        blocked: 0,
+                        shieldHits: [],
+                    });
+                    return this.resolution(actor, resolvedCard, effects);
+                }
+            }
+            else {
+                const healed = this.applyHealing(actor, resolvedCard.healing);
+                if (healed > 0) {
+                    effects.push({
+                        type: "healing",
+                        actor,
+                        target: actor,
+                        amount: healed,
+                        blocked: 0,
+                        shieldHits: [],
+                    });
+                }
             }
         }
-        if (card.block > 0) {
+        if (resolvedCard.block > 0) {
             this.shieldsOf(actor).push({
-                id: card.id,
-                title: card.title,
-                remainingBlock: card.block,
+                id: resolvedCard.id,
+                title: resolvedCard.title,
+                remainingBlock: resolvedCard.block,
             });
             effects.push({
                 type: "block",
                 actor,
                 target: actor,
-                amount: card.block,
+                amount: resolvedCard.block,
                 blocked: 0,
                 shieldHits: [],
             });
@@ -196,7 +265,7 @@ export class CardGame {
                 shieldHits: [],
             });
         }
-        return this.resolution(actor, card, effects);
+        return this.resolution(actor, resolvedCard, effects);
     }
     resolution(actor, card, effects) {
         return {
@@ -207,6 +276,121 @@ export class CardGame {
             playerDefeated: this.state.status === "lost",
             roundComplete: false,
         };
+    }
+    applySpecialEffect(special, effects) {
+        let amount = 0;
+        if (special === "freeze") {
+            this.state.modifiers.monsterFrozenRound = this.state.round;
+        }
+        else if (special === "slow") {
+            this.state.modifiers.monsterActionsPerRound = 1;
+        }
+        else if (special === "sunder") {
+            this.state.modifiers.monsterBlockDivisor *= 2;
+            const shields = this.state.monsterShields;
+            const previous = this.totalShield("monster");
+            for (const shield of shields) {
+                shield.remainingBlock = Math.floor(shield.remainingBlock / 2);
+            }
+            this.state.monsterShields = shields.filter(shield => shield.remainingBlock > 0);
+            amount = previous - this.totalShield("monster");
+        }
+        else if (special === "curse") {
+            this.state.modifiers.monsterHealingPoisoned = true;
+        }
+        else if (special === "weaken") {
+            this.state.modifiers.monsterDamageDivisor *= 2;
+        }
+        else if (special === "unravel") {
+            amount = this.totalShield("monster");
+            this.state.monsterShields = [];
+        }
+        else if (special === "stoneward") {
+            this.state.modifiers.playerKeepsBlock = true;
+        }
+        else if (special === "lifesteal") {
+            this.state.modifiers.playerLifeStealPercent = Math.min(100, this.state.modifiers.playerLifeStealPercent + 50);
+        }
+        else if (special === "echo") {
+            this.state.modifiers.playerEchoCharges++;
+        }
+        else if (special === "doom") {
+            this.state.modifiers.monsterVulnerability += 2;
+        }
+        effects.push({
+            type: "special",
+            actor: "player",
+            target: ["stoneward", "lifesteal", "echo"].includes(special)
+                ? "player"
+                : "monster",
+            amount,
+            blocked: 0,
+            shieldHits: [],
+            special,
+        });
+    }
+    modifiedCard(actor, card, consumeEcho) {
+        const modified = Object.assign({}, card);
+        if (actor === "monster") {
+            modified.damage = Math.floor(modified.damage / this.state.modifiers.monsterDamageDivisor);
+            modified.block = Math.floor(modified.block / this.state.modifiers.monsterBlockDivisor);
+            return modified;
+        }
+        if (modified.special === undefined
+            && this.state.modifiers.playerEchoCharges > 0) {
+            modified.damage *= 2;
+            modified.block *= 2;
+            modified.healing *= 2;
+            if (consumeEcho) {
+                this.state.modifiers.playerEchoCharges--;
+            }
+        }
+        return modified;
+    }
+    skippedMonsterAction() {
+        if (this.state.modifiers.monsterFrozenRound === this.state.round) {
+            return "freeze-skip";
+        }
+        if (this.state.modifiers.monsterActionsPerRound === 1
+            && this.state.monsterPlayedCount >= 1) {
+            return "slow-skip";
+        }
+        return null;
+    }
+    skippedMonsterResolution(special) {
+        const title = special === "freeze-skip" ? "Frozen" : "Slowed";
+        const card = {
+            id: "monster-skip-" + this.state.round + "-"
+                + this.state.monsterPlayedCount,
+            itemName: special === "freeze-skip" ? "frozen turn" : "slowed turn",
+            title,
+            damage: 0,
+            block: 0,
+            healing: 0,
+            origin: null,
+        };
+        return this.resolution("monster", card, [{
+                type: "special",
+                actor: "monster",
+                target: "monster",
+                amount: 0,
+                blocked: 0,
+                shieldHits: [],
+                special,
+            }]);
+    }
+    finishMonsterAction(resolution) {
+        if (this.state.status !== "playing") {
+            return;
+        }
+        if (this.state.playerPlayedCount === CardGame.CARDS_PER_ROUND
+            && this.state.monsterPlayedCount === CardGame.CARDS_PER_ROUND) {
+            this.state.phase = "dealing";
+            resolution.roundComplete = true;
+        }
+        else {
+            this.state.phase = "player";
+        }
     }
     applyDamage(target, damage) {
         const shields = this.shieldsOf(target);
@@ -325,7 +509,8 @@ export class CardGame {
             return null;
         }
         const lethalCards = this.monsterHand.filter(card => {
-            return Math.max(0, card.damage - this.totalShield("player"))
+            const modified = this.modifiedCard("monster", card, false);
+            return Math.max(0, modified.damage - this.totalShield("player"))
                 >= this.state.playerHealth;
         });
         const candidates = lethalCards.length > 0 ? lethalCards : this.monsterHand;
@@ -343,27 +528,36 @@ export class CardGame {
         return best;
     }
     monsterCardScore(card) {
+        const modified = this.modifiedCard("monster", card, false);
         const playerShield = this.totalShield("player");
-        const effectiveDamage = Math.min(this.state.playerHealth, Math.max(0, card.damage - playerShield));
+        const effectiveDamage = Math.min(this.state.playerHealth, Math.max(0, modified.damage - playerShield));
         const missingHealth = this.state.monsterMaxHealth - this.state.monsterHealth;
-        const effectiveHealing = Math.min(missingHealth, card.healing);
+        const effectiveHealing = this.state.modifiers.monsterHealingPoisoned
+            ? -modified.healing
+            : Math.min(missingHealth, modified.healing);
         const likelyPlayerDamage = this.state.hand
-            .map(playerCard => playerCard.damage)
+            .map(playerCard => {
+            const modified = this.modifiedCard("player", playerCard, false);
+            return modified.damage > 0
+                ? modified.damage
+                    + this.state.modifiers.monsterVulnerability
+                : 0;
+        })
             .sort((first, second) => second - first)
             .slice(0, CardGame.CARDS_PER_ROUND - this.state.playerPlayedCount)
             .reduce((total, damage) => total + damage, 0);
-        const effectiveBlock = Math.min(card.block, likelyPlayerDamage);
+        const effectiveBlock = Math.min(modified.block, likelyPlayerDamage);
         const dangerMultiplier = this.state.monsterHealth <= this.state.monsterMaxHealth / 3
             ? 1.7
             : 1;
         let score = effectiveDamage * 5
             + effectiveHealing * 3 * dangerMultiplier
             + effectiveBlock * 2.5 * dangerMultiplier;
-        if (card.damage > 0 && effectiveDamage === 0)
+        if (modified.damage > 0 && effectiveDamage === 0)
             score -= 3;
-        if (card.healing > 0 && effectiveHealing === 0)
+        if (modified.healing > 0 && effectiveHealing <= 0)
             score -= 4;
-        if (card.block > 0 && effectiveBlock === 0)
+        if (modified.block > 0 && effectiveBlock === 0)
             score -= 2;
         return score + this.deterministicBias(card.id);
     }
@@ -450,49 +644,14 @@ CardGame.ITEM_QUALITY = {
     sword: 5,
     troll: 5.5,
 };
-CardGame.CARD_TYPES = {
-    "bare fist": { itemName: "bare fist", title: "Bare Fist", damage: 1, block: 0, healing: 0 },
-    "wooden shield": { itemName: "wooden shield", title: "Wooden shield", damage: 0, block: 4, healing: 0 },
-    "reinforced shield": { itemName: "reinforced shield", title: "Reinforced shield", damage: 0, block: 6, healing: 0 },
-    club: { itemName: "club", title: "Club", damage: 3, block: 0, healing: 0 },
-    "stone axe": { itemName: "stone axe", title: "Stone axe", damage: 4, block: 0, healing: 0 },
-    sword: { itemName: "sword", title: "Sword", damage: 6, block: 0, healing: 0 },
-    "iron-spiked club": { itemName: "iron-spiked club", title: "Iron-spiked club", damage: 4, block: 0, healing: 0 },
-    "iron hand axe": { itemName: "iron hand axe", title: "Iron hand axe", damage: 5, block: 0, healing: 0 },
-    "flanged mace": { itemName: "flanged mace", title: "Flanged mace", damage: 6, block: 0, healing: 0 },
-    "bearded battle axe": { itemName: "bearded battle axe", title: "Bearded battle axe", damage: 7, block: 0, healing: 0 },
-    "arming sword": { itemName: "arming sword", title: "Arming sword", damage: 8, block: 0, healing: 0 },
-    "war hammer": { itemName: "war hammer", title: "War hammer", damage: 9, block: 0, healing: 0 },
-    longsword: { itemName: "longsword", title: "Longsword", damage: 10, block: 0, healing: 0 },
-    "two-handed battle axe": { itemName: "two-handed battle axe", title: "Two-handed battle axe", damage: 11, block: 0, healing: 0 },
-    poleaxe: { itemName: "poleaxe", title: "Poleaxe", damage: 12, block: 0, healing: 0 },
-    "masterwork greatsword": { itemName: "masterwork greatsword", title: "Masterwork greatsword", damage: 14, block: 0, healing: 0 },
-    "healing potion": { itemName: "healing potion", title: "Healing potion", damage: 0, block: 0, healing: 10 },
-    "river feast": { itemName: "river feast", title: "River feast", damage: 0, block: 0, healing: 7 },
-    "poison potion": { itemName: "poison potion", title: "Poison potion", damage: 10, block: 0, healing: 0 },
-    "poisoned masterwork greatsword": { itemName: "poisoned masterwork greatsword", title: "Poisoned masterwork greatsword", damage: 18, block: 0, healing: 0 },
-    "bone knife": { itemName: "bone knife", title: "Bone knife", damage: 3, block: 0, healing: 0 },
-    "spiked cudgel": { itemName: "spiked cudgel", title: "Spiked cudgel", damage: 4, block: 0, healing: 0 },
-    "iron dagger": { itemName: "iron dagger", title: "Iron dagger", damage: 5, block: 0, healing: 0 },
-    falchion: { itemName: "falchion", title: "Falchion", damage: 6, block: 0, healing: 0 },
-    "morning star": { itemName: "morning star", title: "Morning star", damage: 7, block: 0, healing: 0 },
-    "war pick": { itemName: "war pick", title: "War pick", damage: 8, block: 0, healing: 0 },
-    "heavy crossbow": { itemName: "heavy crossbow", title: "Heavy crossbow", damage: 9, block: 0, healing: 0 },
-    zweihander: { itemName: "zweihander", title: "Zweihander", damage: 10, block: 0, healing: 0 },
-    halberd: { itemName: "halberd", title: "Halberd", damage: 11, block: 0, healing: 0 },
-    "executioner's axe": { itemName: "executioner's axe", title: "Executioner's axe", damage: 12, block: 0, healing: 0 },
-    estoc: { itemName: "estoc", title: "Estoc", damage: 13, block: 0, healing: 0 },
-    "bec de corbin": { itemName: "bec de corbin", title: "Bec de corbin", damage: 14, block: 0, healing: 0 },
-    "gothic mace": { itemName: "gothic mace", title: "Gothic mace", damage: 15, block: 0, healing: 0 },
-    "runed longsword": { itemName: "runed longsword", title: "Runed longsword", damage: 16, block: 0, healing: 0 },
-    "blacksteel glaive": { itemName: "blacksteel glaive", title: "Blacksteel glaive", damage: 17, block: 0, healing: 0 },
-    "relic warhammer": { itemName: "relic warhammer", title: "Relic warhammer", damage: 18, block: 0, healing: 0 },
-    "dragonbone axe": { itemName: "dragonbone axe", title: "Dragonbone axe", damage: 19, block: 0, healing: 0 },
-    "royal claymore": { itemName: "royal claymore", title: "Royal claymore", damage: 20, block: 0, healing: 0 },
-    "obsidian polearm": { itemName: "obsidian polearm", title: "Obsidian polearm", damage: 21, block: 0, healing: 0 },
-    "dungeon-forged greatblade": { itemName: "dungeon-forged greatblade", title: "Dungeon-forged greatblade", damage: 22, block: 0, healing: 0 },
-    "yarrow poultice": { itemName: "yarrow poultice", title: "Yarrow poultice", damage: 0, block: 0, healing: 3 },
-    rat: { itemName: "rat", title: "Rat", damage: 2, block: 0, healing: 0 },
-    orc: { itemName: "orc", title: "Orc", damage: 4, block: 2, healing: 0 },
-    troll: { itemName: "troll", title: "Troll", damage: 7, block: 2, healing: 0 },
-};
+CardGame.CARD_TYPES = Object.assign({ "bare fist": { itemName: "bare fist", title: "Bare Fist", damage: 1, block: 0, healing: 0 }, "wooden shield": { itemName: "wooden shield", title: "Wooden shield", damage: 0, block: 4, healing: 0 }, "reinforced shield": { itemName: "reinforced shield", title: "Reinforced shield", damage: 0, block: 6, healing: 0 }, club: { itemName: "club", title: "Club", damage: 3, block: 0, healing: 0 }, "stone axe": { itemName: "stone axe", title: "Stone axe", damage: 4, block: 0, healing: 0 }, sword: { itemName: "sword", title: "Sword", damage: 6, block: 0, healing: 0 }, "iron-spiked club": { itemName: "iron-spiked club", title: "Iron-spiked club", damage: 4, block: 0, healing: 0 }, "iron hand axe": { itemName: "iron hand axe", title: "Iron hand axe", damage: 5, block: 0, healing: 0 }, "flanged mace": { itemName: "flanged mace", title: "Flanged mace", damage: 6, block: 0, healing: 0 }, "bearded battle axe": { itemName: "bearded battle axe", title: "Bearded battle axe", damage: 7, block: 0, healing: 0 }, "arming sword": { itemName: "arming sword", title: "Arming sword", damage: 8, block: 0, healing: 0 }, "war hammer": { itemName: "war hammer", title: "War hammer", damage: 9, block: 0, healing: 0 }, longsword: { itemName: "longsword", title: "Longsword", damage: 10, block: 0, healing: 0 }, "two-handed battle axe": { itemName: "two-handed battle axe", title: "Two-handed battle axe", damage: 11, block: 0, healing: 0 }, poleaxe: { itemName: "poleaxe", title: "Poleaxe", damage: 12, block: 0, healing: 0 }, "masterwork greatsword": { itemName: "masterwork greatsword", title: "Masterwork greatsword", damage: 14, block: 0, healing: 0 }, "healing potion": { itemName: "healing potion", title: "Healing potion", damage: 0, block: 0, healing: 10 }, "river feast": { itemName: "river feast", title: "River feast", damage: 0, block: 0, healing: 7 }, "poison potion": { itemName: "poison potion", title: "Poison potion", damage: 10, block: 0, healing: 0 }, "poisoned masterwork greatsword": { itemName: "poisoned masterwork greatsword", title: "Poisoned masterwork greatsword", damage: 18, block: 0, healing: 0 }, "bone knife": { itemName: "bone knife", title: "Bone knife", damage: 3, block: 0, healing: 0 }, "spiked cudgel": { itemName: "spiked cudgel", title: "Spiked cudgel", damage: 4, block: 0, healing: 0 }, "iron dagger": { itemName: "iron dagger", title: "Iron dagger", damage: 5, block: 0, healing: 0 }, falchion: { itemName: "falchion", title: "Falchion", damage: 6, block: 0, healing: 0 }, "morning star": { itemName: "morning star", title: "Morning star", damage: 7, block: 0, healing: 0 }, "war pick": { itemName: "war pick", title: "War pick", damage: 8, block: 0, healing: 0 }, "heavy crossbow": { itemName: "heavy crossbow", title: "Heavy crossbow", damage: 9, block: 0, healing: 0 }, zweihander: { itemName: "zweihander", title: "Zweihander", damage: 10, block: 0, healing: 0 }, halberd: { itemName: "halberd", title: "Halberd", damage: 11, block: 0, healing: 0 }, "executioner's axe": { itemName: "executioner's axe", title: "Executioner's axe", damage: 12, block: 0, healing: 0 }, estoc: { itemName: "estoc", title: "Estoc", damage: 13, block: 0, healing: 0 }, "bec de corbin": { itemName: "bec de corbin", title: "Bec de corbin", damage: 14, block: 0, healing: 0 }, "gothic mace": { itemName: "gothic mace", title: "Gothic mace", damage: 15, block: 0, healing: 0 }, "runed longsword": { itemName: "runed longsword", title: "Runed longsword", damage: 16, block: 0, healing: 0 }, "blacksteel glaive": { itemName: "blacksteel glaive", title: "Blacksteel glaive", damage: 17, block: 0, healing: 0 }, "relic warhammer": { itemName: "relic warhammer", title: "Relic warhammer", damage: 18, block: 0, healing: 0 }, "dragonbone axe": { itemName: "dragonbone axe", title: "Dragonbone axe", damage: 19, block: 0, healing: 0 }, "royal claymore": { itemName: "royal claymore", title: "Royal claymore", damage: 20, block: 0, healing: 0 }, "obsidian polearm": { itemName: "obsidian polearm", title: "Obsidian polearm", damage: 21, block: 0, healing: 0 }, "dungeon-forged greatblade": { itemName: "dungeon-forged greatblade", title: "Dungeon-forged greatblade", damage: 22, block: 0, healing: 0 }, "yarrow poultice": { itemName: "yarrow poultice", title: "Yarrow poultice", damage: 0, block: 0, healing: 3 }, rat: { itemName: "rat", title: "Rat", damage: 2, block: 0, healing: 0 }, orc: { itemName: "orc", title: "Orc", damage: 4, block: 2, healing: 0 }, troll: { itemName: "troll", title: "Troll", damage: 7, block: 2, healing: 0 } }, BattleSpell.DEFINITIONS.reduce((cards, spell) => {
+    cards[spell.itemName] = {
+        itemName: spell.itemName,
+        title: spell.title,
+        damage: 0,
+        block: 0,
+        healing: 0,
+        special: spell.effect,
+    };
+    return cards;
+}, {}));

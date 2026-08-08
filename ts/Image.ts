@@ -1,4 +1,5 @@
 import { ItemType } from "./ItemType.js";
+import { BattleSpell } from "./BattleSpell.js";
 
 export class Image {
     dimension: number;
@@ -368,6 +369,8 @@ export class Image {
         ].includes(name)) {
             srcs = name === "highland jungle ground"
                 ? ["highland-jungle-floor-medieval-photoreal-v1.png"]
+                : name === "highland rugged ground"
+                    ? ["dungeon-sand-vault-floor-medieval-photoreal-v1.png"]
                 : name === "highland castle floor"
                     ? ["floor1.png", "floor2.png", "floor3.png", "floor4.png"]
                     : ["dirt2.png"];
@@ -375,7 +378,7 @@ export class Image {
             dimension *= 1.42;
             const highlandFilters: Readonly<Record<string, string>> = {
                 "highland rugged ground":
-                    "brightness(.72) saturate(.7) sepia(.18)",
+                    "brightness(.42) saturate(.68) sepia(.34) contrast(1.06)",
                 "highland jungle ground":
                     "brightness(.7) saturate(.72)",
                 "highland mountain ground":
@@ -423,17 +426,24 @@ export class Image {
             "spell of force",
             "spell of mending",
             "spell of warding",
-        ].includes(name)) {
+        ].includes(name) || BattleSpell.isBattleSpell(name)) {
             srcs = [
                 "highland-permanent-spellbook-medieval-photoreal-transparent-v1.png",
             ];
             rotate = 0;
             dimension = 1.45;
-            const spellHue = name === "spell of mending"
-                ? 35
-                : name === "spell of warding"
-                    ? 190
-                    : 0;
+            const battleSpellIndex = BattleSpell.DEFINITIONS.findIndex(
+                definition => definition.itemName === name,
+            );
+            const spellHue = battleSpellIndex >= 0
+                ? [205, 82, 18, 304, 148, 260, 36, 338, 186, 278][
+                    battleSpellIndex
+                ] ?? 0
+                : name === "spell of mending"
+                    ? 35
+                    : name === "spell of warding"
+                        ? 190
+                        : 0;
             style = "filter:brightness(.9) saturate(.72) hue-rotate("
                 + spellHue + "deg);opacity:.98;";
             zIndex = 24;
@@ -458,7 +468,10 @@ export class Image {
                 + ";";
             dimension = 1.15 + (dimensionSeed % 186) / 100;
             rotate = (Image.visualSeed(seed, name, 8) % 33) - 16;
-            zIndex = 1;
+            // These oversized tiles overlap neighbouring cells. Keep the
+            // ordinary pale floor beneath every special-area terrain patch,
+            // regardless of cell creation order.
+            zIndex = 0;
         } else if (name === "dungeon moonwell water") {
             srcs = [
                 "dungeon-deep-water-round-medieval-photoreal-transparent-v3.png",
@@ -467,10 +480,14 @@ export class Image {
             dimension = 2 + (dimensionSeed % 21) / 100;
             style = "background:#123e62;border-radius:50%;"
                 + "filter:brightness(.78) saturate(.88);opacity:.98;"
-                + "mask-image:radial-gradient(circle,#000 0 68%,"
-                + "transparent 75%);"
-                + "-webkit-mask-image:radial-gradient(circle,#000 0 68%,"
-                + "transparent 75%);";
+                + "mask-image:radial-gradient(circle,#000 0 48%,"
+                + "rgba(0,0,0,.95) 52%,rgba(0,0,0,.78) 57%,"
+                + "rgba(0,0,0,.5) 62%,rgba(0,0,0,.24) 66%,"
+                + "rgba(0,0,0,.08) 69%,transparent 70%);"
+                + "-webkit-mask-image:radial-gradient(circle,#000 0 48%,"
+                + "rgba(0,0,0,.95) 52%,rgba(0,0,0,.78) 57%,"
+                + "rgba(0,0,0,.5) 62%,rgba(0,0,0,.24) 66%,"
+                + "rgba(0,0,0,.08) 69%,transparent 70%);";
             zIndex = 1;
         } else if (name === "dungeon wet floor") {
             srcs = [
@@ -480,10 +497,14 @@ export class Image {
             dimension = 2 + (dimensionSeed % 21) / 100;
             style = "background:#397b88;border-radius:50%;"
                 + "filter:brightness(.82) saturate(.8);opacity:.98;"
-                + "mask-image:radial-gradient(circle,#000 0 68%,"
-                + "transparent 75%);"
-                + "-webkit-mask-image:radial-gradient(circle,#000 0 68%,"
-                + "transparent 75%);";
+                + "mask-image:radial-gradient(circle,#000 0 48%,"
+                + "rgba(0,0,0,.95) 52%,rgba(0,0,0,.78) 57%,"
+                + "rgba(0,0,0,.5) 62%,rgba(0,0,0,.24) 66%,"
+                + "rgba(0,0,0,.08) 69%,transparent 70%);"
+                + "-webkit-mask-image:radial-gradient(circle,#000 0 48%,"
+                + "rgba(0,0,0,.95) 52%,rgba(0,0,0,.78) 57%,"
+                + "rgba(0,0,0,.5) 62%,rgba(0,0,0,.24) 66%,"
+                + "rgba(0,0,0,.08) 69%,transparent 70%);";
             zIndex = 1;
         } else if (name === "dungeon sand floor") {
             srcs = [
@@ -911,10 +932,12 @@ export class Image {
             style = "opacity:" + ((opacitySeed % 13) / 50 + 0.25).toFixed(2) + ";";
             zIndex = 1;
         } else if (name === "shop wall") {
-            srcs = ["wall1", "wall2", "wall3", "wall4", "wall5"];
+            srcs = [
+                "shop-wall-aged-oak-seamless-topdown-photoreal-v3.png",
+            ];
             rotate = 0;
-            dimension *= 1.41;
-            style = "filter:sepia(.3) brightness(.9);";
+            dimension *= 1.04;
+            style = "filter:brightness(.92) saturate(.82) contrast(1.04);";
             zIndex = 2;
         } else if (name === "shop table") {
             srcs = ["shop-table-medieval-photoreal-v1.png"];
@@ -973,10 +996,10 @@ export class Image {
                 + (Image.visualSeed(seed, name, 5) % 21) / 100;
             dimension = (
                 .68 + (dimensionSeed % 14) / 100
-            ) * sizeMultiplier;
+            ) * sizeMultiplier * 1.1;
             style = "filter:brightness(.5) saturate(.3) contrast(.92);"
                 + "opacity:"
-                + (.48 + (opacitySeed % 13) / 100).toFixed(2)
+                + (.72 + (opacitySeed % 13) * .015).toFixed(2)
                 + ";";
         } else if (name === "torch") {
             srcs = [

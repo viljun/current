@@ -214,7 +214,7 @@ EncounterText.CAT_QUIRKS = [
     "offers terrible advice with wonderful confidence",
     "takes payment seriously and gravity as a suggestion",
     "once sold silence to a very talkative monk",
-    "will not trade during an eclipse without extra biscuits",
+    "will neither buy nor sell during an eclipse without extra biscuits",
 ];
 EncounterText.CAT_TRADE_CLAIMS = [
     "calls {item} the backbone of civilization",

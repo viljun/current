@@ -11,6 +11,25 @@ export interface ItemOrigin {
     longitude: number;
     areaId: number;
 }
+export interface InventoryRecipeIngredient {
+    itemName: string;
+    required: number;
+    owned: number;
+    reusable: boolean;
+}
+export interface InventoryRecipeVariant {
+    actionName: string;
+    outputQuantity: number;
+    ingredients: InventoryRecipeIngredient[];
+    ready: boolean;
+}
+export interface InventoryRecipe {
+    itemName: string;
+    origin: ItemOrigin;
+    group: "Weapons" | "Shields" | "Healing" | "Battle spells" | "Tools & materials";
+    variants: InventoryRecipeVariant[];
+    ready: boolean;
+}
 export declare class Inventory {
     private static readonly STORAGE_KEY;
     private static readonly SAVE_VERSION;
@@ -30,6 +49,7 @@ export declare class Inventory {
     countItemTypes(): number;
     onChange(listener: () => void): void;
     getItemOrigins(itemName: string): ItemOrigin[];
+    getKnownRecipes(): InventoryRecipe[];
     getText(): string;
     getProgressHint(): string;
     private bindingRopeHayHint;
@@ -38,6 +58,13 @@ export declare class Inventory {
     private has;
     private quantity;
     openDialog(): void;
+    private dialogTab;
+    private createInventoryList;
+    private createRecipeView;
+    private createRecipeEntry;
+    private createRecipeVariant;
+    private recipeSummary;
+    private emptyDialogMessage;
     isItemTypeTaken(itemType: ItemType): boolean;
     coordinatesToString(coordinates: Coordinates): string;
     isItemTaken(coordinates: Coordinates): boolean;
@@ -48,6 +75,9 @@ export declare class Inventory {
     private isQuantityRecord;
     private isUsedCoordinatesRecord;
     private reconstructItemOrigins;
+    private reconstructDiscoveryOrigins;
+    private recipeVariantsByOutput;
+    private recipeGroup;
     private addOrigins;
     private parseOrigin;
     private entries;

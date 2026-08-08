@@ -4,6 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { Image } from "../js/Image.js";
+import { BattleSpell } from "../js/BattleSpell.js";
 
 const IMAGES_DIRECTORY = fileURLToPath(new URL("../images/", import.meta.url));
 const CRITICAL_IMAGES = [
@@ -40,6 +41,7 @@ const CRITICAL_IMAGES = [
     "magician selling force spell", "magician selling mending spell",
     "magician selling warding spell", "spell of force",
     "spell of mending", "spell of warding",
+    ...BattleSpell.names(),
 ];
 const SURFACE_TERRAIN_IMAGES = [
     "surface-river-water-medieval-photoreal-v1.png",
@@ -63,4 +65,11 @@ test("surface terrain images are present and nonempty", () => {
             fileName + " is empty",
         );
     }
+});
+
+test("shop walls use the generated seamless oak texture", () => {
+    assert.equal(
+        Image.getWithItemTypeName("shop wall", 42, 24680).src,
+        "shop-wall-aged-oak-seamless-topdown-photoreal-v3.png",
+    );
 });

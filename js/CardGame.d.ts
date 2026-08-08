@@ -1,5 +1,6 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
 import type { ItemOrigin } from "./Inventory.js";
+import type { BattleSpellEffect } from "./BattleSpell.js";
 export interface CardDefinition {
     id: string;
     itemName: string;
@@ -8,6 +9,7 @@ export interface CardDefinition {
     block: number;
     healing: number;
     origin: ItemOrigin | null;
+    special?: BattleSpellEffect;
 }
 export interface ShieldCard {
     id: string;
@@ -32,19 +34,32 @@ export interface CardGameState {
     playerPlayedCount: number;
     monsterPlayedCount: number;
     playerEnchantments: PlayerEnchantments;
+    modifiers: FightModifiers;
 }
 export interface PlayerEnchantments {
     damage: number;
     healing: number;
     block: number;
 }
+export interface FightModifiers {
+    monsterFrozenRound: number;
+    monsterActionsPerRound: number;
+    monsterBlockDivisor: number;
+    monsterHealingPoisoned: boolean;
+    monsterDamageDivisor: number;
+    playerKeepsBlock: boolean;
+    playerLifeStealPercent: number;
+    playerEchoCharges: number;
+    monsterVulnerability: number;
+}
 export interface CombatEffect {
-    type: "damage" | "healing" | "block" | "wait" | "defeated";
+    type: "damage" | "healing" | "block" | "wait" | "defeated" | "special";
     actor: Combatant;
     target: Combatant;
     amount: number;
     blocked: number;
     shieldHits: ShieldHit[];
+    special?: BattleSpellEffect | "freeze-skip" | "slow-skip";
 }
 export interface ShieldHit {
     id: string;
@@ -83,11 +98,17 @@ export declare class CardGame {
         block: number;
         healing: number;
     } | null;
+    static itemCardSpecialEffect(itemName: string): BattleSpellEffect | null;
     playPlayerCard(cardId: string): CardPlayResolution | null;
     playMonsterCard(): CardPlayResolution | null;
     dealNextRound(): void;
     private resolveCard;
     private resolution;
+    private applySpecialEffect;
+    private modifiedCard;
+    private skippedMonsterAction;
+    private skippedMonsterResolution;
+    private finishMonsterAction;
     private applyDamage;
     private applyHealing;
     private finishFight;

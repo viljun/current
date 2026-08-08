@@ -1,5 +1,7 @@
 import { MonsterDefinition } from "./MonsterDefinition.js";
 import type { ItemOrigin } from "./Inventory.js";
+import { BattleSpell } from "./BattleSpell.js";
+import type { BattleSpellEffect } from "./BattleSpell.js";
 
 export interface CardDefinition {
     id: string;
@@ -9,6 +11,7 @@ export interface CardDefinition {
     block: number;
     healing: number;
     origin: ItemOrigin|null;
+    special?: BattleSpellEffect;
 }
 
 export interface ShieldCard {
@@ -36,6 +39,7 @@ export interface CardGameState {
     playerPlayedCount: number;
     monsterPlayedCount: number;
     playerEnchantments: PlayerEnchantments;
+    modifiers: FightModifiers;
 }
 
 export interface PlayerEnchantments {
@@ -44,13 +48,26 @@ export interface PlayerEnchantments {
     block: number;
 }
 
+export interface FightModifiers {
+    monsterFrozenRound: number;
+    monsterActionsPerRound: number;
+    monsterBlockDivisor: number;
+    monsterHealingPoisoned: boolean;
+    monsterDamageDivisor: number;
+    playerKeepsBlock: boolean;
+    playerLifeStealPercent: number;
+    playerEchoCharges: number;
+    monsterVulnerability: number;
+}
+
 export interface CombatEffect {
-    type: "damage"|"healing"|"block"|"wait"|"defeated";
+    type: "damage"|"healing"|"block"|"wait"|"defeated"|"special";
     actor: Combatant;
     target: Combatant;
     amount: number;
     blocked: number;
     shieldHits: ShieldHit[];
+    special?: BattleSpellEffect|"freeze-skip"|"slow-skip";
 }
 
 export interface ShieldHit {
@@ -131,6 +148,21 @@ export class CardGame {
         rat:        { itemName: "rat",        title: "Rat",       damage: 2, block: 0, healing: 0 },
         orc:        { itemName: "orc",        title: "Orc",       damage: 4, block: 2, healing: 0 },
         troll:      { itemName: "troll",      title: "Troll",     damage: 7, block: 2, healing: 0 },
+        ...BattleSpell.DEFINITIONS.reduce<Record<
+            string,
+            Omit<CardDefinition, "id"|"origin">
+        >>((cards, spell) => {
+            cards[spell.itemName] = {
+                itemName: spell.itemName,
+                title: spell.title,
+                damage: 0,
+                block: 0,
+                healing: 0,
+                special: spell.effect,
+            };
+
+            return cards;
+        }, {}),
     };
 
     private readonly monster: MonsterDefinition;
@@ -185,6 +217,17 @@ export class CardGame {
             playerPlayedCount: 0,
             monsterPlayedCount: 0,
             playerEnchantments: { ...this.playerEnchantments },
+            modifiers: {
+                monsterFrozenRound: 0,
+                monsterActionsPerRound: CardGame.CARDS_PER_ROUND,
+                monsterBlockDivisor: 1,
+                monsterHealingPoisoned: false,
+                monsterDamageDivisor: 1,
+                playerKeepsBlock: false,
+                playerLifeStealPercent: 0,
+                playerEchoCharges: 0,
+                monsterVulnerability: 0,
+            },
         };
         this.drawCards(CardGame.HAND_SIZE);
         this.dealMonsterCards();
@@ -229,6 +272,7 @@ export class CardGame {
             monsterShields: this.state.monsterShields.map(shield => ({ ...shield })),
             hand: this.state.hand.map(card => ({ ...card })),
             playerEnchantments: { ...this.state.playerEnchantments },
+            modifiers: { ...this.state.modifiers },
         };
     }
 
@@ -255,6 +299,10 @@ export class CardGame {
         return null;
     }
 
+    static itemCardSpecialEffect(itemName: string): BattleSpellEffect|null {
+        return BattleSpell.get(itemName)?.effect ?? null;
+    }
+
     playPlayerCard(cardId: string): CardPlayResolution|null {
         if (this.state.status !== "playing" || this.state.phase !== "player") {
             return null;
@@ -278,6 +326,14 @@ export class CardGame {
         if (this.state.status !== "playing" || this.state.phase !== "monster") {
             return null;
         }
+        const skipped = this.skippedMonsterAction();
+        if (skipped !== null) {
+            this.state.monsterPlayedCount++;
+            const resolution = this.skippedMonsterResolution(skipped);
+            this.finishMonsterAction(resolution);
+
+            return resolution;
+        }
         const card = this.chooseMonsterCard();
         if (card === null) {
             return null;
@@ -286,17 +342,7 @@ export class CardGame {
         this.state.monsterHandSize = this.monsterHand.length;
         this.state.monsterPlayedCount++;
         const resolution = this.resolveCard("monster", card);
-        if (this.state.status === "playing") {
-            if (
-                this.state.playerPlayedCount === CardGame.CARDS_PER_ROUND
-                && this.state.monsterPlayedCount === CardGame.CARDS_PER_ROUND
-            ) {
-                this.state.phase = "dealing";
-                resolution.roundComplete = true;
-            } else {
-                this.state.phase = "player";
-            }
-        }
+        this.finishMonsterAction(resolution);
 
         return resolution;
     }
@@ -306,7 +352,9 @@ export class CardGame {
             return;
         }
         this.state.hand = [];
-        this.state.playerShields = [];
+        if (!this.state.modifiers.playerKeepsBlock) {
+            this.state.playerShields = [];
+        }
         this.state.monsterShields = [];
         this.state.playerPlayedCount = 0;
         this.state.monsterPlayedCount = 0;
@@ -319,9 +367,20 @@ export class CardGame {
     private resolveCard(actor: Combatant, card: CardDefinition): CardPlayResolution {
         const effects: CombatEffect[] = [];
         const target: Combatant = actor === "player" ? "monster" : "player";
+        const resolvedCard = this.modifiedCard(actor, card, true);
 
-        if (card.damage > 0) {
-            const damage = this.applyDamage(target, card.damage);
+        if (resolvedCard.special !== undefined) {
+            this.applySpecialEffect(resolvedCard.special, effects);
+        }
+
+        if (resolvedCard.damage > 0) {
+            const vulnerability = actor === "player"
+                ? this.state.modifiers.monsterVulnerability
+                : 0;
+            const damage = this.applyDamage(
+                target,
+                resolvedCard.damage + vulnerability,
+            );
             effects.push({
                 type: "damage",
                 actor,
@@ -330,6 +389,31 @@ export class CardGame {
                 blocked: damage.blocked,
                 shieldHits: damage.shieldHits,
             });
+            if (
+                actor === "player"
+                && damage.healthDamage > 0
+                && this.state.modifiers.playerLifeStealPercent > 0
+            ) {
+                const healing = Math.max(
+                    1,
+                    Math.floor(
+                        damage.healthDamage
+                            * this.state.modifiers.playerLifeStealPercent
+                            / 100,
+                    ),
+                );
+                const healed = this.applyHealing("player", healing);
+                if (healed > 0) {
+                    effects.push({
+                        type: "healing",
+                        actor: "player",
+                        target: "player",
+                        amount: healed,
+                        blocked: 0,
+                        shieldHits: [],
+                    });
+                }
+            }
             if (this.healthOf(target) === 0) {
                 this.finishFight(target);
                 effects.push({
@@ -341,35 +425,68 @@ export class CardGame {
                     shieldHits: [],
                 });
 
-                return this.resolution(actor, card, effects);
+                return this.resolution(actor, resolvedCard, effects);
             }
         }
 
-        if (card.healing > 0) {
-            const healed = this.applyHealing(actor, card.healing);
-            if (healed > 0) {
+        if (resolvedCard.healing > 0) {
+            if (
+                actor === "monster"
+                && this.state.modifiers.monsterHealingPoisoned
+            ) {
+                const healthBefore = this.state.monsterHealth;
+                this.state.monsterHealth = Math.max(
+                    0,
+                    this.state.monsterHealth - resolvedCard.healing,
+                );
                 effects.push({
-                    type: "healing",
+                    type: "damage",
                     actor,
-                    target: actor,
-                    amount: healed,
+                    target: "monster",
+                    amount: healthBefore - this.state.monsterHealth,
                     blocked: 0,
                     shieldHits: [],
+                    special: "curse",
                 });
+                if (this.state.monsterHealth === 0) {
+                    this.finishFight("monster");
+                    effects.push({
+                        type: "defeated",
+                        actor: "player",
+                        target: "monster",
+                        amount: 0,
+                        blocked: 0,
+                        shieldHits: [],
+                    });
+
+                    return this.resolution(actor, resolvedCard, effects);
+                }
+            } else {
+                const healed = this.applyHealing(actor, resolvedCard.healing);
+                if (healed > 0) {
+                    effects.push({
+                        type: "healing",
+                        actor,
+                        target: actor,
+                        amount: healed,
+                        blocked: 0,
+                        shieldHits: [],
+                    });
+                }
             }
         }
 
-        if (card.block > 0) {
+        if (resolvedCard.block > 0) {
             this.shieldsOf(actor).push({
-                id: card.id,
-                title: card.title,
-                remainingBlock: card.block,
+                id: resolvedCard.id,
+                title: resolvedCard.title,
+                remainingBlock: resolvedCard.block,
             });
             effects.push({
                 type: "block",
                 actor,
                 target: actor,
-                amount: card.block,
+                amount: resolvedCard.block,
                 blocked: 0,
                 shieldHits: [],
             });
@@ -386,7 +503,7 @@ export class CardGame {
             });
         }
 
-        return this.resolution(actor, card, effects);
+        return this.resolution(actor, resolvedCard, effects);
     }
 
     private resolution(
@@ -402,6 +519,144 @@ export class CardGame {
             playerDefeated: this.state.status === "lost",
             roundComplete: false,
         };
+    }
+
+    private applySpecialEffect(
+        special: BattleSpellEffect,
+        effects: CombatEffect[],
+    ): void {
+        let amount = 0;
+        if (special === "freeze") {
+            this.state.modifiers.monsterFrozenRound = this.state.round;
+        } else if (special === "slow") {
+            this.state.modifiers.monsterActionsPerRound = 1;
+        } else if (special === "sunder") {
+            this.state.modifiers.monsterBlockDivisor *= 2;
+            const shields = this.state.monsterShields;
+            const previous = this.totalShield("monster");
+            for (const shield of shields) {
+                shield.remainingBlock = Math.floor(shield.remainingBlock / 2);
+            }
+            this.state.monsterShields = shields.filter(
+                shield => shield.remainingBlock > 0,
+            );
+            amount = previous - this.totalShield("monster");
+        } else if (special === "curse") {
+            this.state.modifiers.monsterHealingPoisoned = true;
+        } else if (special === "weaken") {
+            this.state.modifiers.monsterDamageDivisor *= 2;
+        } else if (special === "unravel") {
+            amount = this.totalShield("monster");
+            this.state.monsterShields = [];
+        } else if (special === "stoneward") {
+            this.state.modifiers.playerKeepsBlock = true;
+        } else if (special === "lifesteal") {
+            this.state.modifiers.playerLifeStealPercent = Math.min(
+                100,
+                this.state.modifiers.playerLifeStealPercent + 50,
+            );
+        } else if (special === "echo") {
+            this.state.modifiers.playerEchoCharges++;
+        } else if (special === "doom") {
+            this.state.modifiers.monsterVulnerability += 2;
+        }
+        effects.push({
+            type: "special",
+            actor: "player",
+            target: ["stoneward", "lifesteal", "echo"].includes(special)
+                ? "player"
+                : "monster",
+            amount,
+            blocked: 0,
+            shieldHits: [],
+            special,
+        });
+    }
+
+    private modifiedCard(
+        actor: Combatant,
+        card: CardDefinition,
+        consumeEcho: boolean,
+    ): CardDefinition {
+        const modified = { ...card };
+        if (actor === "monster") {
+            modified.damage = Math.floor(
+                modified.damage / this.state.modifiers.monsterDamageDivisor,
+            );
+            modified.block = Math.floor(
+                modified.block / this.state.modifiers.monsterBlockDivisor,
+            );
+
+            return modified;
+        }
+        if (
+            modified.special === undefined
+            && this.state.modifiers.playerEchoCharges > 0
+        ) {
+            modified.damage *= 2;
+            modified.block *= 2;
+            modified.healing *= 2;
+            if (consumeEcho) {
+                this.state.modifiers.playerEchoCharges--;
+            }
+        }
+
+        return modified;
+    }
+
+    private skippedMonsterAction(): "freeze-skip"|"slow-skip"|null {
+        if (this.state.modifiers.monsterFrozenRound === this.state.round) {
+            return "freeze-skip";
+        }
+        if (
+            this.state.modifiers.monsterActionsPerRound === 1
+            && this.state.monsterPlayedCount >= 1
+        ) {
+            return "slow-skip";
+        }
+
+        return null;
+    }
+
+    private skippedMonsterResolution(
+        special: "freeze-skip"|"slow-skip",
+    ): CardPlayResolution {
+        const title = special === "freeze-skip" ? "Frozen" : "Slowed";
+        const card: CardDefinition = {
+            id: "monster-skip-" + this.state.round + "-"
+                + this.state.monsterPlayedCount,
+            itemName: special === "freeze-skip" ? "frozen turn" : "slowed turn",
+            title,
+            damage: 0,
+            block: 0,
+            healing: 0,
+            origin: null,
+        };
+
+        return this.resolution("monster", card, [{
+            type: "special",
+            actor: "monster",
+            target: "monster",
+            amount: 0,
+            blocked: 0,
+            shieldHits: [],
+            special,
+        }]);
+    }
+
+    private finishMonsterAction(resolution: CardPlayResolution): void {
+        if (this.state.status !== "playing") {
+            return;
+        }
+        if (
+            this.state.playerPlayedCount === CardGame.CARDS_PER_ROUND
+            && this.state.monsterPlayedCount === CardGame.CARDS_PER_ROUND
+        ) {
+            this.state.phase = "dealing";
+            resolution.roundComplete = true;
+        } else {
+            this.state.phase = "player";
+        }
     }
 
     private applyDamage(
@@ -557,7 +812,8 @@ export class CardGame {
             return null;
         }
         const lethalCards = this.monsterHand.filter(card => {
-            return Math.max(0, card.damage - this.totalShield("player"))
+            const modified = this.modifiedCard("monster", card, false);
+            return Math.max(0, modified.damage - this.totalShield("player"))
                 >= this.state.playerHealth;
         });
         const candidates = lethalCards.length > 0 ? lethalCards : this.monsterHand;
@@ -582,28 +838,42 @@ export class CardGame {
     }
 
     private monsterCardScore(card: CardDefinition): number {
+        const modified = this.modifiedCard("monster", card, false);
         const playerShield = this.totalShield("player");
         const effectiveDamage = Math.min(
             this.state.playerHealth,
-            Math.max(0, card.damage - playerShield),
+            Math.max(0, modified.damage - playerShield),
         );
         const missingHealth = this.state.monsterMaxHealth - this.state.monsterHealth;
-        const effectiveHealing = Math.min(missingHealth, card.healing);
+        const effectiveHealing = this.state.modifiers.monsterHealingPoisoned
+            ? -modified.healing
+            : Math.min(missingHealth, modified.healing);
         const likelyPlayerDamage = this.state.hand
-            .map(playerCard => playerCard.damage)
+            .map(playerCard => {
+                const modified = this.modifiedCard(
+                    "player",
+                    playerCard,
+                    false,
+                );
+
+                return modified.damage > 0
+                    ? modified.damage
+                        + this.state.modifiers.monsterVulnerability
+                    : 0;
+            })
             .sort((first, second) => second - first)
             .slice(0, CardGame.CARDS_PER_ROUND - this.state.playerPlayedCount)
             .reduce((total, damage) => total + damage, 0);
-        const effectiveBlock = Math.min(card.block, likelyPlayerDamage);
+        const effectiveBlock = Math.min(modified.block, likelyPlayerDamage);
         const dangerMultiplier = this.state.monsterHealth <= this.state.monsterMaxHealth / 3
             ? 1.7
             : 1;
         let score = effectiveDamage * 5
             + effectiveHealing * 3 * dangerMultiplier
             + effectiveBlock * 2.5 * dangerMultiplier;
-        if (card.damage > 0 && effectiveDamage === 0) score -= 3;
-        if (card.healing > 0 && effectiveHealing === 0) score -= 4;
-        if (card.block > 0 && effectiveBlock === 0) score -= 2;
+        if (modified.damage > 0 && effectiveDamage === 0) score -= 3;
+        if (modified.healing > 0 && effectiveHealing <= 0) score -= 4;
+        if (modified.block > 0 && effectiveBlock === 0) score -= 2;
 
         return score + this.deterministicBias(card.id);
     }

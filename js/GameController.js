@@ -1,6 +1,7 @@
 import { Coordinates } from "./Coordinates.js";
 import { HIGHLAND_AREA } from "./Area.js";
 import { Effects } from "./Effects.js";
+import { EncounterCard } from "./EncounterCard.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
 import { View } from "./View.js";
@@ -51,6 +52,7 @@ export class GameController {
         this.messageBox = this.element("messageBox");
         this.exploreSwitch = this.element("exploreSwitch");
         this.soundSwitch = this.element("soundSwitch");
+        this.labelsSwitch = this.element("labelsSwitch");
         this.inventoryControl = this.element("inventoryControl");
         this.restartControl = this.element("restartControl");
         this.compassIndicator = this.element("compassIndicator");
@@ -73,7 +75,9 @@ export class GameController {
             takingRangeMeters: null,
         };
         this.exploreSwitch.checked = this.state.exploreMode;
+        this.labelsSwitch.checked = this.loadLabelsEnabled();
         this.mapContainer.classList.toggle("explore-mode", this.state.exploreMode);
+        this.mapContainer.classList.toggle("map-labels-enabled", this.labelsSwitch.checked);
         Effects.initialize(this.soundSwitch);
         document.head.append(this.mapDimensionStyle);
         const dimensions = this.configureMapDimensions();
@@ -110,8 +114,17 @@ export class GameController {
     }
     bindControls() {
         var _a;
+        document.addEventListener(EncounterCard.ITEM_FOCUS_EVENT, event => {
+            const detail = event.detail;
+            this.map.focusItemLabels(detail.itemName);
+        });
         this.exploreSwitch.addEventListener("change", () => {
             this.setExploreMode(this.exploreSwitch.checked);
+        });
+        this.labelsSwitch.addEventListener("change", () => {
+            const enabled = this.labelsSwitch.checked;
+            this.mapContainer.classList.toggle("map-labels-enabled", enabled);
+            this.save(GameController.LABELS_STORAGE_KEY, String(enabled));
         });
         this.inventoryControl.addEventListener("click", () => this.inventory.openDialog());
         this.inventory.onChange(() => this.updateInventoryControl());
@@ -333,6 +346,15 @@ export class GameController {
             return false;
         }
     }
+    loadLabelsEnabled() {
+        try {
+            return localStorage.getItem(GameController.LABELS_STORAGE_KEY)
+                === "true";
+        }
+        catch (_a) {
+            return false;
+        }
+    }
     loadExploreCoordinates() {
         var _a;
         try {
@@ -386,6 +408,7 @@ export class GameController {
 }
 GameController.EXPLORE_STORAGE_KEY = "gpsgame.exploreMode";
 GameController.EXPLORE_LOCATION_STORAGE_KEY = "gpsgame.exploreLocation";
+GameController.LABELS_STORAGE_KEY = "gpsgame.mapLabels";
 GameController.INVENTORY_STORAGE_KEY = "gpsgame.inventory";
 GameController.SAFETY_MARGIN = 6;
 GameController.TILE_SIZE = 42;

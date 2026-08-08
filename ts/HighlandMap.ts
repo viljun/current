@@ -1,5 +1,6 @@
 import { Coordinates } from "./Coordinates.js";
 import { ItemType } from "./ItemType.js";
+import { BattleSpell } from "./BattleSpell.js";
 
 export interface HighlandCastle {
     centerX: number;
@@ -174,6 +175,15 @@ export class HighlandMap {
             coordinates.longitude,
             0x9e5f1743,
         );
+        const spellPlacement = HighlandMap.hash(
+            coordinates.latitude,
+            coordinates.longitude,
+            0x73bca841,
+        ) % 2357;
+        const battleSpells = BattleSpell.DEFINITIONS;
+        if (spellPlacement < battleSpells.length) {
+            return new ItemType(battleSpells[spellPlacement]!.itemName);
+        }
         if (placement % 257 === 0) {
             return new ItemType("troll");
         }

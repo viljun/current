@@ -43,6 +43,80 @@ body {
     position: absolute;
     pointer-events: none;
 }
+.cell.map-item-labelled {
+    position: relative;
+    overflow: visible;
+}
+.map-item-label {
+    position: absolute;
+    z-index: 200;
+    inset: 0;
+    display: none;
+    overflow: visible;
+    color: #f6edcf;
+    font: 700 0.7rem/1.1 sans-serif;
+    letter-spacing: 0.01em;
+    pointer-events: none;
+    text-shadow: 0 1px 2px #000;
+}
+.map-labels-enabled:not(.map-labels-item-focus) .map-item-label,
+.map-labels-item-focus .map-item-label--item-focus {
+    display: block;
+}
+.map-item-label-arrow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--map-item-label-distance);
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(244, 211, 120, 0.94);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    transform:
+        translateY(-50%)
+        rotate(var(--map-item-label-angle));
+    transform-origin: 0 50%;
+}
+.map-item-label-arrow::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -1px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-right: 7px solid rgba(244, 211, 120, 0.98);
+    border-bottom: 4px solid transparent;
+    transform: translateY(-50%);
+}
+.map-item-label-text {
+    position: absolute;
+    z-index: 1;
+    top: calc(50% + var(--map-item-label-y));
+    left: calc(50% + var(--map-item-label-x));
+    max-width: 8rem;
+    padding: 0.22rem 0.38rem;
+    border: 1px solid rgba(244, 211, 120, 0.78);
+    border-radius: 0.35rem;
+    background: rgba(22, 20, 15, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.72);
+    text-align: center;
+    white-space: normal;
+    transform: translate(-50%, -50%);
+}
+.map-item-label--disabled .map-item-label-text {
+    color: #aaa69b;
+    border-color: rgba(157, 153, 143, 0.58);
+    background: rgba(31, 30, 27, 0.88);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.54);
+}
+.map-item-label--disabled .map-item-label-arrow {
+    background: rgba(157, 153, 143, 0.58);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+.map-item-label--disabled .map-item-label-arrow::before {
+    border-right-color: rgba(157, 153, 143, 0.65);
+}
 .cell {
     border: 1px solid rgba(0, 0, 0, 0.0);
 }
@@ -112,8 +186,8 @@ body {
     content: "";
     position: absolute;
     z-index: 14;
-    top: 50%;
-    left: 50%;
+    top: calc(50% + var(--surface-road-offset-y, 0px));
+    left: calc(50% + var(--surface-road-offset-x, 0px));
     width: calc(var(--surface-road-size) * 1.3);
     height: var(--surface-road-size);
     border-radius: 999px;
@@ -151,7 +225,7 @@ body {
     z-index: 14;
     background-size: var(--surface-road-texture-size, 336px) !important;
     background-blend-mode: multiply;
-    opacity: .24;
+    opacity: .5;
 }
 .surface-road--path::after {
     display: none;
@@ -300,7 +374,7 @@ body {
 }
 .surface-road-crossing--ford::after {
     z-index: 14;
-    opacity: .24;
+    opacity: .5;
 }
 .surface-road-crossing--bridge::after {
     opacity: 0;
@@ -322,7 +396,29 @@ body {
     pointer-events: none;
     border-radius: 50%;
     background-repeat: repeat;
-    clip-path: circle(49.5%);
+    clip-path: none;
+    -webkit-mask-image:
+        radial-gradient(
+            circle,
+            #000 0 48%,
+            rgba(0, 0, 0, .95) 52%,
+            rgba(0, 0, 0, .78) 57%,
+            rgba(0, 0, 0, .5) 62%,
+            rgba(0, 0, 0, .24) 66%,
+            rgba(0, 0, 0, .08) 69%,
+            transparent 70%
+        );
+    mask-image:
+        radial-gradient(
+            circle,
+            #000 0 48%,
+            rgba(0, 0, 0, .95) 52%,
+            rgba(0, 0, 0, .78) 57%,
+            rgba(0, 0, 0, .5) 62%,
+            rgba(0, 0, 0, .24) 66%,
+            rgba(0, 0, 0, .08) 69%,
+            transparent 70%
+        );
 }
 .dungeon-soft-terrain-patch--deep {
     z-index: 2;
@@ -337,6 +433,33 @@ body {
     background-image:
         url(images/dungeon-shallow-water-seamless-medieval-photoreal-v1.png);
     filter: brightness(.82) saturate(.78);
+}
+.dungeon-soft-terrain-patch--sand {
+    z-index: 1;
+    background-color: #826943;
+    background-image:
+        url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png);
+    filter: brightness(.72) saturate(.68);
+}
+.dungeon-soft-terrain-patch--bone {
+    z-index: 1;
+    background-color: #6f6859;
+    background-image: url(images/dirt2.png);
+    filter: grayscale(.7) sepia(.25) brightness(.58);
+}
+.dungeon-soft-terrain-patch--bazaar {
+    z-index: 1;
+    background-color: #6a5138;
+    background-image:
+        url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png);
+    filter: sepia(.5) brightness(.58) saturate(.65);
+}
+.dungeon-soft-terrain-patch--moss {
+    z-index: 1;
+    background-color: #78935b;
+    background-image:
+        url(images/highland-jungle-floor-medieval-photoreal-v1.png);
+    filter: brightness(1.4) saturate(1.35) hue-rotate(8deg) contrast(.9);
 }
 .dungeon-soft-terrain-patch--chapel-soil {
     z-index: 1;
@@ -370,6 +493,35 @@ body {
 }
 #map .shop-floor {
     z-index: 0 !important;
+}
+.cell.shop-wall {
+    position: relative;
+    overflow: visible;
+}
+.cell.shop-wall::before {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background-color: #332218;
+    background-image:
+        url(images/shop-wall-aged-oak-seamless-topdown-photoreal-v3.png);
+    background-position: var(--shop-wall-texture-position);
+    background-repeat: repeat;
+    background-size: var(--shop-wall-texture-size);
+    filter: brightness(.92) saturate(.82) contrast(1.04);
+    transform:
+        translate(
+            calc(-50% + var(--shop-wall-offset-x)),
+            calc(-50% + var(--shop-wall-offset-y))
+        )
+        rotate(var(--shop-wall-rotation))
+        scale(var(--shop-wall-scale));
+    transform-origin: center;
+    pointer-events: none;
 }
 #map .shop-outside-decoration {
     z-index: 35 !important;
@@ -413,6 +565,7 @@ body {
 }
 #exploreControl,
 #soundControl,
+#labelsControl,
 #inventoryControl,
 #restartControl {
     position: absolute;
@@ -435,11 +588,14 @@ body {
 #soundControl {
     bottom: 4.1rem;
 }
-#restartControl {
+#labelsControl {
     bottom: 7.45rem;
 }
-#inventoryControl {
+#restartControl {
     bottom: 10.8rem;
+}
+#inventoryControl {
+    bottom: 14.15rem;
 }
 #inventoryControl,
 #restartControl {
@@ -462,13 +618,19 @@ body {
     background: rgba(75, 24, 30, 0.9);
 }
 #exploreControl input,
-#soundControl input {
+#soundControl input,
+#labelsControl input {
     margin-right: 0.35rem;
 }
 .explore-mode #exploreControl {
     border-color: #ffd65a;
     background: rgba(80, 55, 0, 0.9);
     color: #ffd65a;
+}
+.map-labels-enabled #labelsControl {
+    border-color: #ffe173;
+    background: rgba(80, 55, 0, 0.9);
+    color: #ffe173;
 }
 #gpsStatus {
     position: absolute;
@@ -861,6 +1023,43 @@ body {
 }
 .fight-enchantment--block {
     color: #a9bfd0;
+}
+.fight-modifiers {
+    position: absolute;
+    top: 50%;
+    right: calc(50% + 10.4rem);
+    z-index: 4;
+    display: flex;
+    max-width: 12rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.3rem;
+    transform: translateY(-50%);
+}
+.fight-modifier {
+    box-sizing: border-box;
+    display: inline-grid;
+    width: 2.15rem;
+    height: 2.15rem;
+    place-items: center;
+    border: 1px solid rgba(152, 190, 213, .7);
+    border-radius: 50%;
+    background: rgba(12, 20, 26, .94);
+    box-shadow:
+        0 0.18rem 0.5rem rgba(0, 0, 0, .55),
+        inset 0 0 0.45rem rgba(110, 173, 207, .18);
+    color: #d5e6ed;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.fight-modifiers--player .fight-modifier {
+    border-color: rgba(220, 177, 106, .7);
+    background: rgba(28, 19, 12, .94);
+    box-shadow:
+        0 0.18rem 0.5rem rgba(0, 0, 0, .55),
+        inset 0 0 0.45rem rgba(220, 177, 106, .16);
+    color: #f1dba9;
 }
 .fight-chair {
     position: absolute;
@@ -1437,6 +1636,23 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     clip-path: polygon(50% 95%, 8% 55%, 4% 30%, 14% 10%, 34% 4%, 50% 20%, 66% 4%, 86% 10%, 96% 30%, 92% 55%);
     padding-top: 0.12rem;
 }
+.fight-card-effects .fight-effect--special {
+    width: auto;
+    max-width: 100%;
+    flex: 0 1 auto;
+    padding: 0.18rem 0.34rem;
+    border: 1px solid #8eb8d1;
+    border-radius: 0.55rem;
+    background:
+        radial-gradient(circle at 35% 30%, #45677d, #192733 66%, #0b1117);
+    box-shadow:
+        inset 0 0 0.25rem rgba(225, 241, 249, .34),
+        0 0 0.28rem rgba(108, 175, 211, .42);
+    color: #edf8fc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .effect-fight-badge {
     position: fixed;
     z-index: 10008;
@@ -1545,6 +1761,10 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 }
 .encounter-action .button {
     flex: none;
+}
+.encounter-action .button + .encounter-following-text,
+.encounter-action .button + .fight-reward {
+    margin-left: 0.55rem;
 }
 #encounterCard {
     position: relative;
@@ -1735,6 +1955,40 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 .inventory-dialog::backdrop {
     background: rgba(4, 7, 10, 0.92);
 }
+.inventory-tabs {
+    display: flex;
+    flex: none;
+    align-self: center;
+    gap: 0.2rem;
+    margin: -0.25rem 0 0.75rem;
+    padding: 0.2rem;
+    border: 1px solid rgba(217, 189, 106, 0.48);
+    border-radius: 999px;
+    background: #101319;
+}
+.inventory-tab {
+    min-width: 7.5rem;
+    min-height: 2.6rem;
+    padding: 0.45rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #bbb4a4;
+    font: 700 0.9rem/1 sans-serif;
+    cursor: pointer;
+}
+.inventory-tab--active {
+    background: #66562e;
+    box-shadow: inset 0 0 0 1px rgba(255, 229, 155, 0.44);
+    color: #fff1bd;
+}
+.inventory-tab:focus-visible {
+    outline: 2px solid #ffe173;
+    outline-offset: 2px;
+}
+.inventory-dialog-content {
+    position: relative;
+}
 .inventory-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
@@ -1800,6 +2054,226 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     line-height: 1.4;
     text-align: left;
 }
+.inventory-empty {
+    box-sizing: border-box;
+    width: min(32rem, 100%);
+    margin: 1.5rem auto;
+    padding: 1rem;
+    border: 1px dashed rgba(217, 189, 106, 0.5);
+    border-radius: 0.7rem;
+    color: #cfc7b5;
+}
+.recipe-book {
+    min-width: 0;
+}
+.recipe-toolbar {
+    position: sticky;
+    z-index: 6;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+    padding: 0.15rem 0 0.55rem;
+    background: #171a20;
+}
+.recipe-filter-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #cfc7b5;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.recipe-filter {
+    min-height: 2.45rem;
+    max-width: 14rem;
+    padding: 0.4rem 2rem 0.4rem 0.65rem;
+    border: 1px solid #7b8492;
+    border-radius: 0.5rem;
+    background: #282d36;
+    color: white;
+    font: inherit;
+}
+.recipe-count {
+    color: #aaa391;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+.recipe-book-note {
+    margin: -0.15rem 0 0.65rem;
+    color: #aaa391;
+    font-size: 0.76rem;
+    text-align: left;
+}
+.recipe-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    align-items: start;
+    gap: 0.7rem;
+}
+.recipe-entry {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #6f7886;
+    border-radius: 0.7rem;
+    background: #252a32;
+    text-align: left;
+}
+.recipe-entry--ready {
+    border-color: rgba(118, 187, 128, 0.9);
+    box-shadow: inset 0 0 0.7rem rgba(87, 151, 95, 0.08);
+}
+.recipe-entry-toggle {
+    display: grid;
+    grid-template-columns: 4.35rem minmax(0, 1fr) auto;
+    width: 100%;
+    min-height: 4.35rem;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    background: #303640;
+    color: white;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.recipe-entry-toggle:hover,
+.recipe-entry-toggle:focus-visible {
+    background: #39414d;
+}
+.recipe-entry-toggle:focus-visible {
+    outline: 2px solid #ffe173;
+    outline-offset: -3px;
+}
+.recipe-entry-art {
+    width: 4.35rem;
+    height: 4.35rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.16);
+}
+.recipe-entry-identity {
+    align-self: center;
+    min-width: 0;
+    padding: 0.5rem 0.6rem;
+}
+.recipe-entry-name,
+.recipe-entry-group {
+    display: block;
+}
+.recipe-entry-name {
+    overflow: hidden;
+    color: white;
+    font-size: 0.95rem;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.recipe-entry-group {
+    margin-top: 0.18rem;
+    color: #bcb4a2;
+    font-size: 0.7rem;
+}
+.recipe-status {
+    align-self: center;
+    margin-right: 0.55rem;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid rgba(190, 139, 113, 0.62);
+    border-radius: 999px;
+    color: #e5b8a0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.recipe-entry--ready .recipe-status {
+    border-color: rgba(118, 187, 128, 0.72);
+    color: #b8e5bd;
+}
+.recipe-summary {
+    display: -webkit-box;
+    min-height: 2.45rem;
+    margin: 0;
+    overflow: hidden;
+    padding: 0.55rem 0.65rem 0.35rem;
+    color: #d8d1c0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+.recipe-variants {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem 0.65rem;
+}
+.recipe-variant {
+    min-width: 0;
+}
+.recipe-variant + .recipe-variant {
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.recipe-variant-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0 0 0.3rem;
+    color: #d9c88f;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+.recipe-output-quantity {
+    color: #aaa391;
+    font-size: 0.65rem;
+    white-space: nowrap;
+}
+.recipe-ingredients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.recipe-ingredient {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid rgba(184, 120, 104, 0.56);
+    border-radius: 0.45rem;
+    background: rgba(70, 38, 37, 0.42);
+    color: #e0b4a8;
+    font-size: 0.68rem;
+}
+.recipe-ingredient--owned {
+    border-color: rgba(105, 165, 114, 0.58);
+    background: rgba(38, 69, 43, 0.4);
+    color: #b9dabe;
+}
+.recipe-ingredient--reusable {
+    border-style: dashed;
+}
+.recipe-ingredient-name {
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.recipe-ingredient strong {
+    color: inherit;
+    white-space: nowrap;
+}
+.recipe-entry-details {
+    margin: 0;
+    padding: 0.6rem 0.7rem 0.75rem;
+    border-top: 1px solid rgba(217, 189, 106, 0.34);
+    background: #1d2128;
+    color: #e8e1cf;
+    font-size: 0.8rem;
+}
 .button:disabled {
     color: #333333;
 }
@@ -1833,6 +2307,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     }
     #exploreControl,
     #soundControl,
+    #labelsControl,
     #inventoryControl,
     #restartControl {
         right: max(0.45rem, env(safe-area-inset-right));
@@ -1846,7 +2321,8 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
         justify-content: flex-start;
     }
     #exploreControl,
-    #soundControl {
+    #soundControl,
+    #labelsControl {
         display: flex;
     }
     #exploreControl {
@@ -1855,11 +2331,14 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     #soundControl {
         bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 3.25rem);
     }
-    #restartControl {
+    #labelsControl {
         bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 6.5rem);
     }
-    #inventoryControl {
+    #restartControl {
         bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 9.75rem);
+    }
+    #inventoryControl {
+        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 13rem);
     }
     #gpsStatus {
         left: max(0.45rem, env(safe-area-inset-left));
@@ -1937,6 +2416,20 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     }
     .fight-enchantment-icon {
         font-size: 0.82rem;
+    }
+    .fight-modifiers {
+        top: calc(50% - 2.25rem);
+        right: auto;
+        left: 50%;
+        max-width: 11rem;
+        justify-content: center;
+        gap: 0.18rem;
+        transform: translateX(-50%);
+    }
+    .fight-modifier {
+        width: 1.75rem;
+        height: 1.75rem;
+        font-size: 0.78rem;
     }
     .fight-chair {
         width: 8.5rem;
@@ -2072,9 +2565,35 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     .inventory-entry-description {
         font-size: 0.9rem;
     }
+    .inventory-tabs {
+        width: min(18rem, 100%);
+    }
+    .inventory-tab {
+        min-width: 0;
+        flex: 1;
+    }
+    .recipe-list {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .recipe-toolbar {
+        margin-bottom: 0.5rem;
+    }
 }
 
 @media (max-width: 360px) {
+    .recipe-entry-toggle {
+        grid-template-columns: 3.8rem minmax(0, 1fr);
+    }
+    .recipe-entry-art {
+        width: 3.8rem;
+        height: 3.8rem;
+    }
+    .recipe-status {
+        grid-column: 2;
+        justify-self: start;
+        margin: -0.25rem 0.55rem 0.45rem;
+    }
     .fight-hand {
         grid-template-columns: repeat(2, 4.75rem);
     }

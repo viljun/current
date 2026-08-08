@@ -3,7 +3,6 @@ export interface ItemExplanationSection {
     text: string;
 }
 export declare class ItemExplanation {
-    private static readonly CRAFTING_ACTIONS;
     private static readonly MONSTERS;
     private static readonly MONSTER_COST_FACTS;
     private static readonly MONSTER_REWARD_FACTS;

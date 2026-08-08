@@ -16,6 +16,7 @@ import { Effects } from "../js/Effects.js";
 import { HighlandMap } from "../js/HighlandMap.js";
 import { Image } from "../js/Image.js";
 import { ItemType } from "../js/ItemType.js";
+import { Map as GameMap } from "../js/Map.js";
 import { ShopMap } from "../js/ShopMap.js";
 import { SurfaceMap } from "../js/SurfaceMap.js";
 
@@ -171,20 +172,113 @@ test("map items, walls, and visual properties repeat from stable inputs", () => 
     }
 });
 
-test("worms stay tiny, muted, and broadly rotated", () => {
+test("worms stay compact, visibly varied, naturally muted, and broadly rotated", () => {
     const rotations = new Set();
+    const dimensions = new Set();
     for (let seed = 0; seed < 500; seed++) {
         const first = Image.getWithItemTypeName("worm", 42, seed);
         const replay = Image.getWithItemTypeName("worm", 42, seed);
         assert.equal(first.dimension, replay.dimension);
         assert.equal(first.rotate, replay.rotate);
         assert.equal(first.style, replay.style);
-        assert.ok(first.dimension >= .34 && first.dimension <= .57);
+        assert.ok(first.dimension >= .37 && first.dimension <= .63);
         assert.ok(first.rotate >= 0 && first.rotate < 360);
         assert.match(first.style, /brightness\(\.5\).*saturate\(\.3\)/);
+        const opacity = first.style.match(/opacity:([0-9.]+)/);
+        assert.ok(opacity !== null);
+        assert.ok(Number(opacity[1]) >= .72 && Number(opacity[1]) <= .9);
         rotations.add(first.rotate);
+        dimensions.add(first.dimension);
     }
     assert.ok(rotations.size >= 250);
+    assert.ok(dimensions.size >= 200);
+});
+
+test("map item labels have stable varied nearby pointers", () => {
+    const angles = new Set();
+    const distances = new Set();
+    for (let index = 0; index < 500; index++) {
+        const coordinates = new Coordinates(index - 250, index * 7 - 900);
+        const first = GameMap.itemLabelVisualAt("worm", coordinates);
+        const replay = GameMap.itemLabelVisualAt("worm", coordinates);
+        assert.deepEqual(first, replay);
+        assert.ok(first.angleDegrees >= 0 && first.angleDegrees < 360);
+        assert.ok(
+            first.distanceInTiles >= 1.05
+                && first.distanceInTiles <= 1.35,
+        );
+        assert.ok(Math.abs(
+            Math.hypot(first.offsetXInTiles, first.offsetYInTiles)
+                - first.distanceInTiles,
+        ) < 1e-10);
+        angles.add(first.angleDegrees);
+        distances.add(first.distanceInTiles);
+    }
+    assert.ok(angles.size > 250);
+    assert.ok(distances.size > 25);
+});
+
+test("shop wall pieces have restrained deterministic irregularity", () => {
+    const rotations = new Set();
+    const xOffsets = new Set();
+    const yOffsets = new Set();
+    const scales = new Set();
+    for (let index = 0; index < 500; index++) {
+        const coordinates = new Coordinates(index - 250, index * 7 - 900);
+        const first = GameMap.shopWallVisualAt(coordinates);
+        const replay = GameMap.shopWallVisualAt(coordinates);
+        assert.deepEqual(first, replay);
+        assert.ok(first.rotationDegrees >= -4);
+        assert.ok(first.rotationDegrees <= 4);
+        assert.ok(first.offsetXInTiles >= -.03);
+        assert.ok(first.offsetXInTiles <= .03);
+        assert.ok(first.offsetYInTiles >= -.03);
+        assert.ok(first.offsetYInTiles <= .03);
+        assert.ok(first.scale >= 1.14);
+        assert.ok(first.scale <= 1.22);
+        rotations.add(first.rotationDegrees);
+        xOffsets.add(first.offsetXInTiles);
+        yOffsets.add(first.offsetYInTiles);
+        scales.add(first.scale);
+    }
+    assert.ok(rotations.size > 70);
+    assert.equal(xOffsets.size, 7);
+    assert.equal(yOffsets.size, 7);
+    assert.equal(scales.size, 9);
+});
+
+test("shop walls bridge diagonal joins instead of touching at corners", () => {
+    let diagonalJoins = 0;
+    for (let latitude = -190; latitude <= -130; latitude++) {
+        for (let longitude = -185; longitude <= -120; longitude++) {
+            const corner = new Coordinates(latitude, longitude);
+            for (const direction of [-1, 1]) {
+                const diagonal = new Coordinates(
+                    latitude + 1,
+                    longitude + direction,
+                );
+                if (!ShopMap.hasWallAt(corner)
+                    || !ShopMap.hasWallAt(diagonal)
+                ) {
+                    continue;
+                }
+                diagonalJoins++;
+                assert.ok(
+                    ShopMap.hasWallAt(new Coordinates(
+                        latitude + 1,
+                        longitude,
+                    ))
+                        || ShopMap.hasWallAt(new Coordinates(
+                            latitude,
+                            longitude + direction,
+                        )),
+                    "corner-only wall join at " + latitude + ","
+                        + longitude,
+                );
+            }
+        }
+    }
+    assert.ok(diagonalJoins > 0);
 });
 
 test("surface rivers and tributaries are connected and deterministic", () => {
@@ -287,22 +381,46 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                     SurfaceMap.roadVisualAt(coordinates, road),
                 );
                 const routeKey = road.kind + ":" + road.routeId;
-                assert.equal(visual.rotationDegrees, road.headingDegrees);
-                assert.equal(
-                    visual.textureOffsetXInTiles,
-                    -coordinates.latitude,
-                );
-                assert.equal(
-                    visual.textureOffsetYInTiles,
-                    -coordinates.longitude,
-                );
                 if (road.kind === "road") {
                     assert.ok(
-                        visual.diameterInTiles >= 1.89
-                            && visual.diameterInTiles <= 2.58,
+                        visual.diameterInTiles >= 1.92
+                            && visual.diameterInTiles <= 2.95,
+                    );
+                    assert.ok(
+                        Math.abs(
+                            visual.rotationDegrees - road.headingDegrees,
+                        ) <= 8,
+                    );
+                    assert.ok(Math.abs(visual.offsetXInTiles) <= .12);
+                    assert.ok(Math.abs(visual.offsetYInTiles) <= .12);
+                    assert.ok(
+                        Math.abs(
+                            visual.textureOffsetXInTiles
+                                + coordinates.latitude,
+                        ) <= 3,
+                    );
+                    assert.ok(
+                        Math.abs(
+                            visual.textureOffsetYInTiles
+                                + coordinates.longitude,
+                        ) <= 3,
                     );
                     roadPatchSizes.add(visual.diameterInTiles.toFixed(4));
                 } else {
+                    assert.equal(
+                        visual.rotationDegrees,
+                        road.headingDegrees,
+                    );
+                    assert.equal(visual.offsetXInTiles, 0);
+                    assert.equal(visual.offsetYInTiles, 0);
+                    assert.equal(
+                        visual.textureOffsetXInTiles,
+                        -coordinates.latitude,
+                    );
+                    assert.equal(
+                        visual.textureOffsetYInTiles,
+                        -coordinates.longitude,
+                    );
                     if (routeWidths.has(routeKey)) {
                         assert.equal(
                             visual.diameterInTiles,
@@ -312,6 +430,10 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                         routeWidths.set(routeKey, visual.diameterInTiles);
                     }
                 }
+                assert.ok(
+                    visual.textureSizeInTiles >= 6.6
+                        && visual.textureSizeInTiles <= 10.8,
+                );
                 materials.set(
                     road.surface,
                     (materials.get(road.surface) ?? 0) + 1,
@@ -426,6 +548,22 @@ test("palms and cactuses stay between their base size and double size", () => {
     }
 });
 
+test("highland rugged ground uses dark brown earth instead of pale dirt", () => {
+    const image = Image.getWithItemTypeName(
+        "highland rugged ground",
+        42,
+        24680,
+    );
+    assert.equal(
+        image.src,
+        "dungeon-sand-vault-floor-medieval-photoreal-v1.png",
+    );
+    assert.match(
+        image.style,
+        /brightness\(\.42\).*sepia\(\.34\).*contrast\(1\.06\)/,
+    );
+});
+
 test("dungeon floor clutter has broad deterministic visual variation", () => {
     const clutterNames = [
         "dungeon root tangle",
@@ -481,6 +619,52 @@ test("dungeon floor tiles overlap while varying size and angle", () => {
     }
 });
 
+test("ordinary dungeon floor stays below special-area terrain", () => {
+    const floor = Image.getWithItemTypeName("dungeon floor", 42, 12345);
+    assert.equal(floor.zIndex, 0);
+
+    const stylesheet = readFileSync(
+        path.join(PROJECT_ROOT, "style.css"),
+        "utf8",
+    );
+    for (const terrain of [
+        "deep",
+        "shallow",
+        "sand",
+        "bone",
+        "bazaar",
+        "moss",
+        "chapel-soil",
+        "spider-soil",
+    ]) {
+        const rule = stylesheet.match(new RegExp(
+            "\\.dungeon-soft-terrain-patch--" + terrain
+                + "\\s*\\{([^}]*)\\}",
+        ));
+        assert.ok(rule !== null, "missing special terrain rule for " + terrain);
+        const layer = Number(rule[1].match(/z-index:\s*(\d+)/)?.[1]);
+        assert.ok(
+            layer > floor.zIndex,
+            terrain + " terrain must paint above the ordinary dungeon floor",
+        );
+    }
+});
+
+test("dungeon moss terrain stays light and naturally green", () => {
+    const stylesheet = readFileSync(
+        path.join(PROJECT_ROOT, "style.css"),
+        "utf8",
+    );
+    const rule = stylesheet.match(
+        /\.dungeon-soft-terrain-patch--moss\s*\{([^}]*)\}/,
+    );
+    assert.ok(rule !== null);
+    assert.match(rule[1], /background-color:\s*#78935b/);
+    assert.match(rule[1], /brightness\(1\.4\)/);
+    assert.match(rule[1], /saturate\(1\.35\)/);
+    assert.doesNotMatch(rule[1], /sepia/);
+});
+
 test("dungeon water patches overlap with deterministic circular variation", () => {
     for (const name of ["dungeon moonwell water", "dungeon wet floor"]) {
         const dimensions = new Set();
@@ -492,6 +676,10 @@ test("dungeon water patches overlap with deterministic circular variation", () =
             assert.ok(image.dimension >= 2);
             assert.ok(image.dimension <= 2.2);
             assert.match(image.src, /water-round.*transparent/);
+            assert.match(
+                image.style,
+                /radial-gradient\(circle,#000 0 48%.*transparent 70%\)/,
+            );
         }
         assert.ok(dimensions.size >= 20);
         assert.ok(rotations.size >= 300);

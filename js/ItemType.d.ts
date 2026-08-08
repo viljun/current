@@ -1,6 +1,7 @@
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 export declare class ItemType {
     static readonly RIVER_FISH_NAMES: readonly ["river trout", "silver perch", "northern pike", "common carp", "river eel"];
+    static readonly CRAFTING_ACTIONS: readonly string[];
     private static readonly ENTRANCE_MODULUS;
     private static readonly SHOP_ENTRANCE_REMAINDER;
     private static readonly SHOP_TRADE_DENSITY_DIVISOR;

@@ -1,4 +1,5 @@
 import { CardGame } from "./CardGame.js";
+import { BattleSpell } from "./BattleSpell.js";
 import { ItemType } from "./ItemType.js";
 import type { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { View } from "./View.js";
@@ -16,27 +17,6 @@ interface ItemFactSections {
 }
 
 export class ItemExplanation {
-    private static readonly CRAFTING_ACTIONS = [
-        "binding rope", "club", "torch", "stone axe", "sword", "crucible",
-        "campfire",
-        "padded hide",
-        "wooden shield", "reinforced shield", "iron-spiked club",
-        "iron hand axe", "flanged mace", "bearded battle axe",
-        "arming sword", "war hammer", "longsword",
-        "two-handed battle axe", "poleaxe", "masterwork greatsword",
-        "yarrow poultice", "healing potion", "poison potion",
-        "poisoned masterwork greatsword",
-        "bone knife", "spiked cudgel", "iron dagger", "falchion",
-        "morning star", "war pick", "heavy crossbow", "zweihander",
-        "halberd", "executioner's axe", "estoc", "bec de corbin",
-        "gothic mace", "runed longsword", "blacksteel glaive",
-        "relic warhammer", "dragonbone axe", "royal claymore",
-        "obsidian polearm", "dungeon-forged greatblade", "bone carving",
-        "skull crushing", "chain smelting", "dust distilling",
-        "wing tanning", "silk binding", "candle reclaiming",
-        "nail reforging", "tile knapping", "moss brewing", "furnace",
-        "mushroom mixing", "armorer's bench",
-    ];
     private static readonly MONSTERS = [
         "rat", "orc", "troll", "bone rat", "cave bat", "giant spider",
         "plague beetle", "crypt hound", "skeletal guard",
@@ -72,7 +52,7 @@ export class ItemExplanation {
         "It consumes {cost} and produces {reward}.",
         "This action converts {cost} into {reward}.",
         "Spend {cost} here to receive {reward}.",
-        "Using it trades {cost} for {reward}.",
+        "Using it exchanges {cost} for {reward}.",
         "It transforms {cost} into {reward}.",
         "Provide {cost}, and it yields {reward}.",
         "Its practical exchange is {cost} for {reward}.",
@@ -140,7 +120,7 @@ export class ItemExplanation {
     private static readonly COIN_FACTS = [
         "Vendor cats accept it as payment.",
         "It pays for purchases from vendor cats.",
-        "Merchant cats trade their goods for it.",
+        "Merchant cats sell their goods for it.",
         "Keep it handy when dealing with vendor cats.",
         "This is the currency accepted by cat merchants.",
         "Vendor cats recognize it as perfectly spendable money.",
@@ -412,6 +392,10 @@ export class ItemExplanation {
         if (names[itemName] !== undefined) {
             return names[itemName]!;
         }
+        const battleSpell = BattleSpell.get(itemName);
+        if (battleSpell !== null) {
+            return battleSpell.title;
+        }
 
         return itemName.charAt(0).toUpperCase() + itemName.slice(1);
     }
@@ -426,6 +410,9 @@ export class ItemExplanation {
         }
         if (itemName.startsWith("spell of ")) {
             return "Permanent enchantment";
+        }
+        if (BattleSpell.isBattleSpell(itemName)) {
+            return "Battle spell";
         }
         if (itemName === "highland gate") {
             return "Realm entrance";
@@ -624,6 +611,10 @@ export class ItemExplanation {
         if (permanentBonus !== undefined) {
             sections.fight.push(permanentBonus);
         }
+        const battleSpell = BattleSpell.get(itemName);
+        if (battleSpell !== null) {
+            sections.fight.push(battleSpell.description);
+        }
         if (itemName === "highland gate") {
             sections.use.push(
                 "Enter it to reach the rugged highlands and their ancient castles.",
@@ -672,7 +663,7 @@ export class ItemExplanation {
     }
 
     private static craftingUses(itemName: string): string[] {
-        return ItemExplanation.CRAFTING_ACTIONS.filter(action =>
+        return ItemType.CRAFTING_ACTIONS.filter(action =>
             new ItemType(action).prizes().some(change =>
                 change.quantity < 0 && change.itemType.name === itemName
             )

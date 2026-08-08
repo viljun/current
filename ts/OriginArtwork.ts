@@ -214,8 +214,16 @@ export class OriginArtwork {
         const visual = SurfaceMap.roadVisualAt(coordinates, road);
         const diameter = visual.diameterInTiles * tileSize;
         const inset = (diameter - tileSize) / 2;
-        const textureSize = tileSize * 8;
+        const textureSize = tileSize * visual.textureSizeInTiles;
         cell.style.setProperty("--surface-road-size", diameter + "px");
+        cell.style.setProperty(
+            "--surface-road-offset-x",
+            visual.offsetXInTiles * tileSize + "px",
+        );
+        cell.style.setProperty(
+            "--surface-road-offset-y",
+            visual.offsetYInTiles * tileSize + "px",
+        );
         cell.style.setProperty(
             "--surface-road-rotation",
             visual.rotationDegrees + "deg",

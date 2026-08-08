@@ -162,9 +162,19 @@ test(
             assert.deepEqual(layout.message.itemToggle, {
                 opens: true,
                 expandedWhenOpen: "true",
+                focusModeWhenOpen: true,
+                focusedType: layout.message.itemToggle.focusedType,
+                focusedLabelCount:
+                    layout.message.itemToggle.matchingLabelCount,
+                matchingLabelCount:
+                    layout.message.itemToggle.matchingLabelCount,
+                onlyMatchingLabels: true,
                 closes: true,
                 expandedWhenClosed: "false",
+                focusModeWhenClosed: false,
+                visibleLabelsAfterClose: layout.labels.count,
             });
+            assert.ok(layout.message.itemToggle.focusedType.length > 0);
             assert.ok(
                 layout.message.encounterState.barHeight
                     >= layout.message.heightWithoutButton,
@@ -178,6 +188,10 @@ test(
             assert.ok(
                 layout.message.encounterState.action.right <= viewport.width,
                 viewport.name + " encounter action is outside the status bar",
+            );
+            assert.ok(
+                layout.message.encounterState.followingTextMargin >= 8,
+                viewport.name + " action button still touches its text",
             );
             const descriptionCard =
                 layout.message.encounterState.descriptionCard;
@@ -255,6 +269,16 @@ test(
                 layout.gps.fontSize >= (viewport.mobile ? 15 : 14),
             );
             assert.equal(layout.compass.label, "North points up");
+            assert.ok(layout.labels.count > 0);
+            assert.deepEqual(layout.labels, {
+                count: layout.labels.count,
+                checkedBefore: false,
+                enabledBefore: false,
+                visibleBefore: 0,
+                checkedAfter: true,
+                enabledAfter: true,
+                visibleAfter: layout.labels.count,
+            });
             assert.ok(
                 layout.compass.rectangle.bottom < layout.gps.rectangle.top,
                 viewport.name + " compass does not sit above GPS status",
@@ -328,6 +352,32 @@ test(
                     assert.notEqual(dialog.borderRadius, "0px");
                 }
             }
+            assert.equal(layout.actualInventory.itemsSelected, "false");
+            assert.equal(layout.actualInventory.recipesSelected, "true");
+            assert.ok(layout.actualInventory.recipeCount >= 2);
+            assert.ok(layout.actualInventory.filterHeight >= 39);
+            assert.equal(layout.actualInventory.clubExpanded, "true");
+            assert.equal(layout.actualInventory.clubDetailsHidden, false);
+            assert.deepEqual(
+                layout.actualInventory.clubIngredientCounts,
+                ["0/1", "0/1"],
+            );
+            assert.ok(
+                layout.actualInventory.clubRecipe.left >= 0
+                    && layout.actualInventory.clubRecipe.right
+                        <= viewport.width,
+                viewport.name + " recipe card escapes the dialog",
+            );
+            assert.ok(
+                layout.actualInventory.itemsTab.height >= 41
+                    && layout.actualInventory.recipesTab.height >= 41,
+                viewport.name + " inventory tabs are too small",
+            );
+            assert.ok(
+                layout.actualInventory.tabs.top
+                    >= layout.actualInventory.header.bottom,
+                viewport.name + " inventory tabs overlap the header",
+            );
 
             for (const control of layout.controls) {
                 assert.ok(control.rectangle.left >= 0);

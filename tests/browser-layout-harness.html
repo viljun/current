@@ -76,6 +76,7 @@
             const controls = [
                 "inventoryControl",
                 "restartControl",
+                "labelsControl",
                 "soundControl",
                 "exploreControl",
             ].map(id => {
@@ -135,19 +136,56 @@
                     scrollHeight: document.documentElement.scrollHeight,
                 },
             };
+            const labelsSwitch = document.getElementById("labelsSwitch");
+            const mapLabels = [...document.querySelectorAll(".map-item-label")];
+            measurement.labels = {
+                count: mapLabels.length,
+                checkedBefore: labelsSwitch.checked,
+                enabledBefore:
+                    container.classList.contains("map-labels-enabled"),
+                visibleBefore: mapLabels.filter(label =>
+                    window.getComputedStyle(label).display !== "none"
+                ).length,
+            };
+            labelsSwitch.click();
+            measurement.labels.checkedAfter = labelsSwitch.checked;
+            measurement.labels.enabledAfter =
+                container.classList.contains("map-labels-enabled");
+            measurement.labels.visibleAfter = mapLabels.filter(label =>
+                window.getComputedStyle(label).display !== "none"
+            ).length;
             const itemLink = message.querySelector(".status-item-link");
             if (itemLink instanceof window.HTMLButtonElement) {
                 itemLink.click();
+                const focusedLabels = mapLabels.filter(label =>
+                    window.getComputedStyle(label).display !== "none"
+                );
                 measurement.message.itemToggle = {
                     opens: encounterCard.hidden === false,
                     expandedWhenOpen:
                         itemLink.getAttribute("aria-expanded"),
+                    focusModeWhenOpen:
+                        container.classList.contains("map-labels-item-focus"),
+                    focusedType: itemLink.dataset.itemName,
+                    focusedLabelCount: focusedLabels.length,
+                    matchingLabelCount: mapLabels.filter(label =>
+                        label.dataset.itemName === itemLink.dataset.itemName
+                    ).length,
+                    onlyMatchingLabels: focusedLabels.every(label =>
+                        label.dataset.itemName === itemLink.dataset.itemName
+                    ),
                 };
                 itemLink.click();
                 measurement.message.itemToggle.closes =
                     encounterCard.hidden === true;
                 measurement.message.itemToggle.expandedWhenClosed =
                     itemLink.getAttribute("aria-expanded");
+                measurement.message.itemToggle.focusModeWhenClosed =
+                    container.classList.contains("map-labels-item-focus");
+                measurement.message.itemToggle.visibleLabelsAfterClose =
+                    mapLabels.filter(label =>
+                        window.getComputedStyle(label).display !== "none"
+                    ).length;
             }
             const buttonMessage = document.createElement("div");
             buttonMessage.className = "message";
@@ -240,6 +278,9 @@
                 barHeight: message.getBoundingClientRect().height,
                 barText: message.textContent.trim(),
                 action: rectangle(tradeButton),
+                followingTextMargin: Number.parseFloat(
+                    window.getComputedStyle(fightReward).marginLeft,
+                ),
                 descriptionCard,
                 descriptionScrollHeight: encounterCard.scrollHeight,
                 descriptionClientHeight: encounterCard.clientHeight,
@@ -342,6 +383,57 @@
             };
             fightOverlay.remove();
 
+            const actualInventoryControl = document.getElementById(
+                "inventoryControl",
+            );
+            actualInventoryControl.disabled = false;
+            actualInventoryControl.click();
+            const actualInventory = document.querySelector(
+                ".inventory-dialog[open]",
+            );
+            const actualItemsTab = actualInventory.querySelector(
+                "#inventory-items-tab",
+            );
+            const actualRecipesTab = actualInventory.querySelector(
+                "#inventory-recipes-tab",
+            );
+            actualRecipesTab.click();
+            const clubRecipe = actualInventory.querySelector(
+                '.recipe-entry[data-item-name="club"]',
+            );
+            const clubRecipeToggle = clubRecipe.querySelector(
+                ".recipe-entry-toggle",
+            );
+            clubRecipeToggle.click();
+            const actualInventoryMeasurement = {
+                itemsTab: rectangle(actualItemsTab),
+                recipesTab: rectangle(actualRecipesTab),
+                itemsSelected: actualItemsTab.getAttribute("aria-selected"),
+                recipesSelected:
+                    actualRecipesTab.getAttribute("aria-selected"),
+                recipeCount: actualInventory.querySelectorAll(
+                    ".recipe-entry",
+                ).length,
+                filterHeight: actualInventory.querySelector(
+                    ".recipe-filter",
+                ).getBoundingClientRect().height,
+                clubRecipe: rectangle(clubRecipe),
+                clubExpanded: clubRecipeToggle.getAttribute("aria-expanded"),
+                clubDetailsHidden: clubRecipe.querySelector(
+                    ".recipe-entry-details",
+                ).hidden,
+                clubIngredientCounts: Array.from(clubRecipe.querySelectorAll(
+                    ".recipe-ingredient strong",
+                )).map(value => value.textContent),
+                header: rectangle(actualInventory.querySelector(
+                    ".dialog-header",
+                )),
+                tabs: rectangle(actualInventory.querySelector(
+                    ".inventory-tabs",
+                )),
+            };
+            actualInventory.querySelector(".fight-close").click();
+
             const inventoryDialog = document.createElement("dialog");
             inventoryDialog.className = "inventory-dialog";
             const inventoryHeader = document.createElement("header");
@@ -383,6 +475,7 @@
                 fight: fightDialog,
                 inventory: inventoryDialogMeasurement,
             };
+            measurement.actualInventory = actualInventoryMeasurement;
 
             resultElement.textContent = window.btoa(
                 window.unescape(
@@ -391,6 +484,14 @@
             );
         };
 
+        localStorage.setItem("gpsgame.inventory", JSON.stringify({
+            version: 2,
+            usedCoordinates: {
+                "1,38,0": true,
+                "1,111,0": true,
+                "1,1021,0": true,
+            },
+        }));
         frame.src = "../game.html";
         window.setTimeout(measure, 50);
     </script>

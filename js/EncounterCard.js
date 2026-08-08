@@ -3,6 +3,7 @@ import { OriginArtwork } from "./OriginArtwork.js";
 export class EncounterCard {
     static show(description, details = "", title = "", returnFocus = null, closeLabel = "Close encounter details") {
         EncounterCard.setActiveItemToggle(null);
+        EncounterCard.setActiveItemName(null);
         const card = EncounterCard.element();
         const closeButton = document.createElement("button");
         closeButton.type = "button";
@@ -54,9 +55,11 @@ export class EncounterCard {
         content.append(artwork, ItemExplanation.element(itemName, origin.latitude, origin.longitude, origin.areaId));
         EncounterCard.show("", content, ItemExplanation.displayName(itemName), returnFocus, "Close item details");
         EncounterCard.setActiveItemToggle(returnFocus);
+        EncounterCard.setActiveItemName(itemName);
     }
     static clear() {
         EncounterCard.setActiveItemToggle(null);
+        EncounterCard.setActiveItemName(null);
         const card = document.getElementById(EncounterCard.ID);
         if (!(card instanceof HTMLElement)) {
             return;
@@ -89,6 +92,15 @@ export class EncounterCard {
             button.setAttribute("aria-expanded", "true");
         }
     }
+    static setActiveItemName(itemName) {
+        if (EncounterCard.activeItemName === itemName) {
+            return;
+        }
+        EncounterCard.activeItemName = itemName;
+        document.dispatchEvent(new CustomEvent(EncounterCard.ITEM_FOCUS_EVENT, { detail: { itemName } }));
+    }
 }
 EncounterCard.ID = "encounterCard";
+EncounterCard.ITEM_FOCUS_EVENT = "encounter-card-item-focus";
 EncounterCard.activeItemToggle = null;
+EncounterCard.activeItemName = null;
