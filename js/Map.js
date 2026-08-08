@@ -333,6 +333,13 @@ export class Map {
                                     ? ItemExplanation.displayName(itemType.name)
                                     : "");
                             }
+                            else {
+                                EncounterCard.showItem(itemType.name, {
+                                    latitude: selected_coordinates.latitude,
+                                    longitude: selected_coordinates.longitude,
+                                    areaId,
+                                }, null, this.inventory.countItems(itemType));
+                            }
                             const catMerchant = itemType.name.startsWith("cat ");
                             const merchantAction = item_taking_summary.getTakeButtonText();
                             const action = catMerchant

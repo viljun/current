@@ -609,6 +609,19 @@ export class Map {
                                         ? ItemExplanation.displayName(itemType.name)
                                         : "",
                                 );
+                            } else {
+                                EncounterCard.showItem(
+                                    itemType.name,
+                                    {
+                                        latitude:
+                                            selected_coordinates.latitude,
+                                        longitude:
+                                            selected_coordinates.longitude,
+                                        areaId,
+                                    },
+                                    null,
+                                    this.inventory.countItems(itemType),
+                                );
                             }
                             const catMerchant = itemType.name.startsWith(
                                 "cat ",
