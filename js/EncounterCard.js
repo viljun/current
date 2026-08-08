@@ -42,7 +42,7 @@ export class EncounterCard {
         }
         card.hidden = false;
     }
-    static showItem(itemName, origin, returnFocus = null) {
+    static showItem(itemName, origin, returnFocus = null, ownedQuantity = 0) {
         if (returnFocus !== null
             && EncounterCard.activeItemToggle === returnFocus) {
             EncounterCard.clear();
@@ -54,6 +54,13 @@ export class EncounterCard {
         OriginArtwork.containSubject(artwork, "encounter-card-item-art-subject-frame");
         content.append(artwork, ItemExplanation.element(itemName, origin.latitude, origin.longitude, origin.areaId));
         EncounterCard.show("", content, ItemExplanation.displayName(itemName), returnFocus, "Close item details");
+        const title = EncounterCard.element().querySelector(".encounter-card-title");
+        if (title !== null) {
+            const owned = document.createElement("span");
+            owned.className = "encounter-card-owned";
+            owned.textContent = "Owned: " + ownedQuantity;
+            title.append(owned);
+        }
         EncounterCard.setActiveItemToggle(returnFocus);
         EncounterCard.setActiveItemName(itemName);
     }

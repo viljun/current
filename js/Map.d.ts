@@ -20,6 +20,15 @@ export interface ShopWallVisual {
     offsetYInTiles: number;
     scale: number;
 }
+export declare const DUNGEON_SOFT_TERRAINS: readonly ["dungeon moonwell water", "dungeon wet floor", "dungeon sand floor", "dungeon fungal floor", "dungeon bone floor", "dungeon bazaar floor", "dungeon forge floor", "dungeon chapel floor", "dungeon web floor", "dungeon moss floor", "dungeon crystal floor"];
+export type DungeonSoftTerrain = typeof DUNGEON_SOFT_TERRAINS[number];
+export interface DungeonSoftTerrainVisual {
+    diameterInTiles: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    rotationDegrees: number;
+    opacity: number;
+}
 export declare class Map {
     private static readonly PROGRESS_ITEM_NAMES;
     slidingAnimationInProgress: boolean;
@@ -37,6 +46,12 @@ export declare class Map {
     tile_size: number;
     private readonly onCellSelected;
     private readonly onInteractionUnlocked;
+    static coordinatesAtCell(center: Coordinates, column: number, row: number, columns: number, rows: number): Coordinates;
+    static offsetForMovement(previousCoordinates: Coordinates, currentCoordinates: Coordinates): {
+        x: number;
+        y: number;
+    };
+    static interactionCoordinates(state: MapState): Coordinates | null;
     constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void);
     show({ previousCoordinates, }: {
         previousCoordinates?: Coordinates | null;
@@ -48,6 +63,8 @@ export declare class Map {
     }[];
     static itemLabelVisualAt(itemName: string, coordinates: Coordinates): MapItemLabelVisual;
     static shopWallVisualAt(coordinates: Coordinates): ShopWallVisual;
+    static dungeonSoftTerrainVisualAt(terrain: DungeonSoftTerrain, coordinates: Coordinates): DungeonSoftTerrainVisual;
+    private static dungeonSoftTerrainSeed;
     private static shopWallSeed;
     private static itemLabelSeed;
     private decorateItemLabel;
@@ -58,6 +75,7 @@ export declare class Map {
     isWallAt(coordinates: Coordinates, areaId?: number): boolean;
     private static coordinatesKey;
     private decorateDungeonSoftTerrainCell;
+    private static isDungeonSoftTerrain;
     private decorateRiverCell;
     private decorateShopWallCell;
     private decorateRoadCell;

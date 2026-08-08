@@ -3,24 +3,37 @@ import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { View }                from './View.js';
 import { BattleSpell }         from "./BattleSpell.js";
 
+export interface MaximumQuantityViolation {
+    itemType: ItemType;
+    maximum: number;
+    resultingQuantity: number;
+}
+
 export class ItemTakingSummary {
     itemType: ItemType;
     prizes:   ItemTypeAndQuantity[];
     expenses: ItemTypeAndQuantity[];
     requirements: ItemTypeAndQuantity[];
     missing:  ItemTypeAndQuantity[];
+    maximumExceeded: MaximumQuantityViolation[];
     constructor(
         itemType: ItemType,
         prizes:   ItemTypeAndQuantity[],
         expenses: ItemTypeAndQuantity[],
         requirements: ItemTypeAndQuantity[],
         missing:  ItemTypeAndQuantity[],
+        maximumExceeded: MaximumQuantityViolation[] = [],
     ) {
         this.itemType = itemType;  // Item type of the item that is being taken.
         this.prizes   = prizes;    // Items that will be added to inventory.
         this.expenses = expenses;  // Items that will be removed from inventory.
         this.requirements = requirements;
         this.missing  = missing;   // Items that are missing in inventory to take the item.
+        this.maximumExceeded = maximumExceeded;
+    }
+
+    isUnavailable(): boolean {
+        return this.missing.length > 0 || this.maximumExceeded.length > 0;
     }
 
     // Returns "take"-button text.
@@ -219,6 +232,9 @@ export class ItemTakingSummary {
         ) {
             additionalText = " A worm is required as bait.";
         }
+        if (this.maximumExceeded.length > 0) {
+            additionalText += " " + this.maximumQuantityText();
+        }
 
         return {buttonText: buttonText, additionalText: additionalText};
     }
@@ -227,6 +243,14 @@ export class ItemTakingSummary {
         beforeAction: string;
         afterAction: string;
     } {
+        if (this.maximumExceeded.length > 0) {
+            return {
+                beforeAction: "Maximum: " + this.maximumQuantityList()
+                    + " — cannot",
+                afterAction:
+                    View.getQuantityText(this.itemType.name, 1) + ".",
+            };
+        }
         if (this.missing.length > 0) {
             const missing = this.missing.map(change =>
                 View.getQuantityText(
@@ -277,6 +301,27 @@ export class ItemTakingSummary {
             afterAction: View.getQuantityText(this.itemType.name, 1)
                 + ". If you succeed, " + successText + ".",
         };
+    }
+
+    private maximumQuantityText(): string {
+        const limits = this.maximumQuantityList();
+
+        return this.maximumExceeded.length === 1
+            ? "You can carry only " + limits + "."
+            : "Your carrying limits are " + limits + ".";
+    }
+
+    private maximumQuantityList(): string {
+        return View.arrayToText(this.maximumExceeded.map(violation => {
+            const quantity = View.getQuantityText(
+                violation.itemType.name,
+                violation.maximum,
+            );
+
+            return violation.maximum === 1
+                ? quantity.replace(/^a /, "one ")
+                : quantity;
+        }));
     }
 
     private areSameChanges(

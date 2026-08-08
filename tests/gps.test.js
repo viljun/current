@@ -32,6 +32,48 @@ test("GPS grid distances account for latitude and longitude scale", () => {
     );
 });
 
+test("north is up and east is right on the map", () => {
+    const centerColumn = 5;
+    const centerRow = 7;
+    const columns = 9;
+    const rows = 13;
+
+    assert.deepEqual(
+        GameMap.coordinatesAtCell(
+            LOCATION,
+            centerColumn,
+            centerRow - 1,
+            columns,
+            rows,
+        ),
+        new Coordinates(LOCATION.latitude + 1, LOCATION.longitude),
+    );
+    assert.deepEqual(
+        GameMap.coordinatesAtCell(
+            LOCATION,
+            centerColumn + 1,
+            centerRow,
+            columns,
+            rows,
+        ),
+        new Coordinates(LOCATION.latitude, LOCATION.longitude + 1),
+    );
+    assert.deepEqual(
+        GameMap.offsetForMovement(
+            LOCATION,
+            new Coordinates(LOCATION.latitude + 1, LOCATION.longitude),
+        ),
+        { x: 0, y: -1 },
+    );
+    assert.deepEqual(
+        GameMap.offsetForMovement(
+            LOCATION,
+            new Coordinates(LOCATION.latitude, LOCATION.longitude + 1),
+        ),
+        { x: 1, y: 0 },
+    );
+});
+
 test("GPS pickup range follows uncertainty within safe limits", () => {
     assert.equal(gpsTakingRangeMeters(3), 15);
     assert.equal(gpsTakingRangeMeters(24), 24);
@@ -98,4 +140,55 @@ test("GPS uses metre-based reach while Explore keeps exact grid reach", () => {
         ),
         false,
     );
+});
+
+test("GPS makes the square beneath the cat the default interaction", () => {
+    const gpsState = {
+        coordinates: LOCATION,
+        selectedCoordinates: null,
+        exploreMode: false,
+        takingRangeMeters: 15,
+    };
+    assert.equal(
+        GameMap.interactionCoordinates(gpsState),
+        LOCATION,
+    );
+
+    const nearbySelection = new Coordinates(
+        LOCATION.latitude,
+        LOCATION.longitude + 1,
+    );
+    assert.equal(
+        GameMap.interactionCoordinates({
+            ...gpsState,
+            selectedCoordinates: nearbySelection,
+        }),
+        nearbySelection,
+    );
+
+    assert.equal(
+        GameMap.interactionCoordinates({
+            ...gpsState,
+            takingRangeMeters: null,
+        }),
+        null,
+    );
+    assert.equal(
+        GameMap.interactionCoordinates({
+            ...gpsState,
+            exploreMode: true,
+        }),
+        null,
+    );
+});
+
+test("GPS cannot collect before the first accepted location fix", () => {
+    const map = mapWithState({
+        coordinates: LOCATION,
+        selectedCoordinates: null,
+        exploreMode: false,
+        takingRangeMeters: null,
+    });
+
+    assert.equal(map.isWithinTakingRange(LOCATION), false);
 });

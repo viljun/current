@@ -14,6 +14,10 @@ export class ItemType {
     static isTransientAction(itemName) {
         return itemName === "campfire";
     }
+    maximumQuantity() {
+        var _a;
+        return (_a = ItemType.MAXIMUM_QUANTITIES[this.name]) !== null && _a !== void 0 ? _a : null;
+    }
     // Returns item type by seed or null if there is no item in the location with the given seed.
     static getWithSeed(seed, areaId) {
         let name = null;
@@ -892,6 +896,9 @@ export class ItemType {
         return remainder === ItemType.SHOP_ENTRANCE_REMAINDER;
     }
 }
+ItemType.MAXIMUM_QUANTITIES = {
+    crucible: 1,
+};
 ItemType.RIVER_FISH_NAMES = [
     "river trout",
     "silver perch",

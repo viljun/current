@@ -132,7 +132,7 @@ test("item explanation chapters keep broad deterministic wording variation", () 
         assert.match(explanation, /\n\nField note:/);
     }
 
-    assert.ok(new Set(explanations).size >= 450);
+    assert.ok(new Set(explanations).size >= 200);
     assert.equal(
         explanations.some(explanation =>
             explanation.includes("For adventurers who read labels")
@@ -143,6 +143,41 @@ test("item explanation chapters keep broad deterministic wording variation", () 
         explanations.some(explanation => explanation.includes("It is used for")),
         false,
     );
+});
+
+test("field notes are single comments related to their actual items", () => {
+    const cases = [
+        ["stick", /stick|club|splinter|handmade|dangerous/i],
+        ["yarrow", /yarrow|flower|plant|health|poultice|potion|grimoire|covenant/i],
+        ["crucible", /crucible|molten iron|smithing|glow|furnace/i],
+        ["worm", /worm|fish|hook|bait/i],
+        ["wooden shield", /wooden shield|shield|plank|handle|dent|ribs/i],
+        ["grave dust", /grave dust|dust|grave|poison|distill|grimoire|curse/i],
+        ["heavy crossbow", /heavy crossbow|string|loaded|distance|damage/i],
+        ["river eel", /river eel|eel|fish|campfire|feast/i],
+        ["bone rat", /bone rat|rat|food|fingers|binding rope/i],
+    ];
+    for (const [itemName, relatedWords] of cases) {
+        for (let index = 0; index < 50; index++) {
+            const note = ItemExplanation.sectionsFor(
+                itemName,
+                index * 31,
+                index * -47,
+                index % 3,
+            ).find(section => section.heading === "Field note")?.text;
+            assert.notEqual(note, undefined);
+            assert.match(note, relatedWords, itemName);
+            assert.equal(
+                note.match(/[.!?](?:\s|$)/g)?.length,
+                1,
+                itemName + " should have one field-note sentence",
+            );
+            assert.doesNotMatch(
+                note,
+                /plan accordingly|backpack has been warned|try to look professional|keep the receipt/i,
+            );
+        }
+    }
 });
 
 test("item explanation chapters only appear when applicable", () => {

@@ -2,6 +2,11 @@ import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { BattleSpell } from "./BattleSpell.js";
 
 export class ItemType {
+    private static readonly MAXIMUM_QUANTITIES: Readonly<
+        Record<string, number>
+    > = {
+        crucible: 1,
+    };
     static readonly RIVER_FISH_NAMES = [
         "river trout",
         "silver perch",
@@ -139,6 +144,10 @@ export class ItemType {
 
     static isTransientAction(itemName: string): boolean {
         return itemName === "campfire";
+    }
+
+    maximumQuantity(): number|null {
+        return ItemType.MAXIMUM_QUANTITIES[this.name] ?? null;
     }
 
     // Returns item type by seed or null if there is no item in the location with the given seed.

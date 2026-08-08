@@ -162,6 +162,9 @@
                 );
                 measurement.message.itemToggle = {
                     opens: encounterCard.hidden === false,
+                    ownedText: encounterCard.querySelector(
+                        ".encounter-card-owned",
+                    )?.textContent ?? "",
                     expandedWhenOpen:
                         itemLink.getAttribute("aria-expanded"),
                     focusModeWhenOpen:

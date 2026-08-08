@@ -5,7 +5,7 @@ export declare class EncounterCard {
     private static activeItemToggle;
     private static activeItemName;
     static show(description: string, details?: string | HTMLElement, title?: string, returnFocus?: HTMLElement | null, closeLabel?: string): void;
-    static showItem(itemName: string, origin: ItemOrigin, returnFocus?: HTMLElement | null): void;
+    static showItem(itemName: string, origin: ItemOrigin, returnFocus?: HTMLElement | null, ownedQuantity?: number): void;
     static clear(): void;
     private static element;
     private static prepare;

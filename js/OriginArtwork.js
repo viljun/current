@@ -28,7 +28,7 @@ export class OriginArtwork {
                     : "url(images/dirt2.png)";
         for (let y = -1; y <= 1; y++) {
             for (let x = -1; x <= 1; x++) {
-                const coordinates = new Coordinates(origin.latitude + x, origin.longitude + y);
+                const coordinates = new Coordinates(origin.latitude - y, origin.longitude + x);
                 const seed = coordinates.getSeed();
                 const cell = document.createElement("div");
                 cell.className = "origin-artwork-cell";
@@ -148,9 +148,9 @@ export class OriginArtwork {
             element.style.setProperty("--surface-path-patch-top", offsetY + "px");
             element.style.setProperty("--surface-path-patch-opacity", String(patch.opacity));
             element.style.setProperty("--surface-path-texture-size", textureSize + "px");
-            element.style.setProperty("--surface-path-texture-position", -coordinates.latitude * tileSize
+            element.style.setProperty("--surface-path-texture-position", -coordinates.longitude * tileSize
                 + inset - offsetX + "px "
-                + (-coordinates.longitude * tileSize
+                + (coordinates.latitude * tileSize
                     + inset - offsetY) + "px");
             cell.append(element);
         }

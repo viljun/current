@@ -161,6 +161,7 @@ test(
             );
             assert.deepEqual(layout.message.itemToggle, {
                 opens: true,
+                ownedText: "Owned: 0",
                 expandedWhenOpen: "true",
                 focusModeWhenOpen: true,
                 focusedType: layout.message.itemToggle.focusedType,

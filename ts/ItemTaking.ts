@@ -1,7 +1,8 @@
-import { Inventory }           from "./Inventory.js";
+import type { Inventory }      from "./Inventory.js";
 import { ItemType }            from "./ItemType.js";
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 import { ItemTakingSummary }   from "./ItemTakingSummary.js";
+import type { MaximumQuantityViolation } from "./ItemTakingSummary.js";
 
 export class ItemTaking {
     itemType:  ItemType;
@@ -53,6 +54,56 @@ export class ItemTaking {
             expenses,
             requirements,
             missing,
+            ItemTaking.maximumQuantityViolations(
+                this.itemType,
+                this.inventory.totalQuantities,
+            ),
+        );
+    }
+
+    static maximumQuantityViolations(
+        itemType: ItemType,
+        currentQuantities: Readonly<Record<string, number>>,
+    ): MaximumQuantityViolation[] {
+        const changes = new Map<string, number>();
+        const types = new Map<string, ItemType>();
+        const addChange = (changedType: ItemType, quantity: number): void => {
+            changes.set(
+                changedType.name,
+                (changes.get(changedType.name) ?? 0) + quantity,
+            );
+            types.set(changedType.name, changedType);
+        };
+        if (!ItemType.isTransientAction(itemType.name)) {
+            addChange(itemType, 1);
+        }
+        for (const change of itemType.prizes()) {
+            addChange(change.itemType, change.quantity);
+        }
+
+        const violations: MaximumQuantityViolation[] = [];
+        for (const [itemName, quantity] of changes) {
+            if (quantity <= 0) {
+                continue;
+            }
+            const changedType = types.get(itemName);
+            const maximum = changedType?.maximumQuantity() ?? null;
+            const resultingQuantity = (currentQuantities[itemName] ?? 0)
+                + quantity;
+            if (changedType !== undefined
+                && maximum !== null
+                && resultingQuantity > maximum
+            ) {
+                violations.push({
+                    itemType: changedType,
+                    maximum,
+                    resultingQuantity,
+                });
+            }
+        }
+
+        return violations.sort((first, second) =>
+            first.itemType.name.localeCompare(second.itemType.name)
         );
     }
 }

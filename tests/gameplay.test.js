@@ -80,6 +80,69 @@ test("taken coordinates cannot be collected twice and survive reload", () => {
     assert.equal(reloaded.countItems(new ItemType("stick")), 1);
 });
 
+test("item quantity limits include implicit, purchased, and reward items", () => {
+    assert.equal(new ItemType("crucible").maximumQuantity(), 1);
+    assert.equal(new ItemType("stone").maximumQuantity(), null);
+
+    const firstCrucible = new ItemTaking(
+        new ItemType("crucible"),
+        { totalQuantities: { stone: 5, hay: 1 } },
+    ).summary();
+    assert.deepEqual(firstCrucible.maximumExceeded, []);
+    assert.equal(firstCrucible.isUnavailable(), false);
+
+    const extraCrucible = new ItemTaking(
+        new ItemType("crucible"),
+        { totalQuantities: { crucible: 1, stone: 5, hay: 1 } },
+    ).summary();
+    assert.deepEqual(
+        extraCrucible.maximumExceeded.map(violation => ({
+            item: violation.itemType.name,
+            maximum: violation.maximum,
+            resultingQuantity: violation.resultingQuantity,
+        })),
+        [{ item: "crucible", maximum: 1, resultingQuantity: 2 }],
+    );
+    assert.equal(extraCrucible.isUnavailable(), true);
+    assert.match(
+        extraCrucible.getTakeButtonText().additionalText,
+        /You can carry only one crucible\./,
+    );
+
+    const purchasedCrucible = new ItemTaking(
+        new ItemType("cat selling crucible"),
+        { totalQuantities: { crucible: 1, coin: 100 } },
+    ).summary();
+    assert.equal(purchasedCrucible.maximumExceeded.length, 1);
+
+    const furnace = new ItemTaking(
+        new ItemType("furnace"),
+        {
+            totalQuantities: {
+                crucible: 1,
+                "iron ore": 3,
+                hay: 3,
+            },
+        },
+    ).summary();
+    assert.deepEqual(furnace.maximumExceeded, []);
+});
+
+test("inventory refuses a second crucible without consuming its square", () => {
+    localStorage.clear();
+    const inventory = new Inventory();
+    const first = new Coordinates(1, 832);
+    const second = new Coordinates(1, 1461);
+    assert.equal(SurfaceMap.itemAt(first)?.name, "crucible");
+    assert.equal(SurfaceMap.itemAt(second)?.name, "crucible");
+
+    assert.equal(inventory.takeItem(first)?.itemType.name, "crucible");
+    assert.equal(inventory.countItems(new ItemType("crucible")), 1);
+    assert.equal(inventory.takeItem(second), null);
+    assert.equal(inventory.isItemTaken(second), false);
+    assert.equal(inventory.countItems(new ItemType("crucible")), 1);
+});
+
 test("healing and poison crafting preserve the intended progression", () => {
     assert.deepEqual(changesFor("binding rope"), [
         { item: "hay", quantity: -2 },

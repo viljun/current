@@ -135,16 +135,16 @@ export class SurfaceMap {
             diameterInTiles: road.kind === "road"
                 ? (1.72 + routeWidthSeed % 13 / 100) * roadPatchScale
                 : 1.02 + routeWidthSeed % 9 / 100,
-            rotationDegrees: road.headingDegrees + rotationJitter,
+            rotationDegrees: road.headingDegrees - 90 + rotationJitter,
             offsetXInTiles: offsetX,
             offsetYInTiles: offsetY,
             textureSizeInTiles: textureSize,
             textureOffsetXInTiles: roadOnlyVariation
-                ? -coordinates.latitude + textureJitterX
-                : -coordinates.latitude,
-            textureOffsetYInTiles: roadOnlyVariation
-                ? -coordinates.longitude + textureJitterY
+                ? -coordinates.longitude + textureJitterX
                 : -coordinates.longitude,
+            textureOffsetYInTiles: roadOnlyVariation
+                ? coordinates.latitude + textureJitterY
+                : coordinates.latitude,
             grassOpacity: grassPresent
                 ? .12 + values(0x75d932ab) % 15 / 100
                 : 0,
@@ -156,7 +156,7 @@ export class SurfaceMap {
         if (road.kind !== "path") {
             return [];
         }
-        const heading = road.headingDegrees * Math.PI / 180;
+        const heading = (road.headingDegrees - 90) * Math.PI / 180;
         const alongX = Math.cos(heading);
         const alongY = Math.sin(heading);
         const acrossX = -alongY;
@@ -194,7 +194,7 @@ export class SurfaceMap {
         return {
             kind: bridge ? "bridge" : "ford",
             bridgeAnchor: bridge && SurfaceMap.isBridgeAnchor(coordinates, road, river),
-            rotationDegrees: road.headingDegrees - 90,
+            rotationDegrees: road.headingDegrees - 180,
         };
     }
     static milestoneAt(coordinates) {

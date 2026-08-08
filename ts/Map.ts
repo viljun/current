@@ -49,6 +49,30 @@ export interface ShopWallVisual {
     scale: number;
 }
 
+export const DUNGEON_SOFT_TERRAINS = [
+    "dungeon moonwell water",
+    "dungeon wet floor",
+    "dungeon sand floor",
+    "dungeon fungal floor",
+    "dungeon bone floor",
+    "dungeon bazaar floor",
+    "dungeon forge floor",
+    "dungeon chapel floor",
+    "dungeon web floor",
+    "dungeon moss floor",
+    "dungeon crystal floor",
+] as const;
+
+export type DungeonSoftTerrain = typeof DUNGEON_SOFT_TERRAINS[number];
+
+export interface DungeonSoftTerrainVisual {
+    diameterInTiles: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    rotationDegrees: number;
+    opacity: number;
+}
+
 export class Map {
     private static readonly PROGRESS_ITEM_NAMES = [
         "yarrow poultice",
@@ -99,6 +123,41 @@ export class Map {
     tile_size: number;
     private readonly onCellSelected: (coordinates: Coordinates) => void;
     private readonly onInteractionUnlocked: () => void;
+
+    static coordinatesAtCell(
+        center: Coordinates,
+        column: number,
+        row: number,
+        columns: number,
+        rows: number,
+    ): Coordinates {
+        return new Coordinates(
+            center.latitude + (rows + 1) / 2 - row,
+            center.longitude + column - (columns + 1) / 2,
+        );
+    }
+
+    static offsetForMovement(
+        previousCoordinates: Coordinates,
+        currentCoordinates: Coordinates,
+    ): { x: number; y: number } {
+        return {
+            x: currentCoordinates.longitude - previousCoordinates.longitude,
+            y: previousCoordinates.latitude - currentCoordinates.latitude,
+        };
+    }
+
+    static interactionCoordinates(state: MapState): Coordinates|null {
+        if (state.selectedCoordinates !== null) {
+            return state.selectedCoordinates;
+        }
+        if (!state.exploreMode && state.takingRangeMeters !== null) {
+            return state.coordinates;
+        }
+
+        return null;
+    }
+
     constructor(
         map: HTMLDivElement,
         messageBox: HTMLDivElement,
@@ -129,8 +188,8 @@ export class Map {
     } ) {
         // updateRealWorldMap(latitude, longitude);
         if (previousCoordinates !== null) {
-            const horizontalMovement = this.state.coordinates.latitude
-                - previousCoordinates.latitude;
+            const horizontalMovement = this.state.coordinates.longitude
+                - previousCoordinates.longitude;
             if (horizontalMovement !== 0) {
                 this.catFacingX = horizontalMovement > 0 ? 1 : -1;
             }
@@ -169,9 +228,12 @@ export class Map {
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
             for (let x = 1; x <= this.cols; x++) {
-                const cell_coordinates = new Coordinates(
-                    this.state.coordinates.latitude  + (x - (this.cols + 1) / 2),
-                    this.state.coordinates.longitude + (y - (this.rows + 1) / 2)
+                const cell_coordinates = Map.coordinatesAtCell(
+                    this.state.coordinates,
+                    x,
+                    y,
+                    this.cols,
+                    this.rows,
                 );
                 const seed = cell_coordinates.getSeed();
                 const surfaceRiver = areaId === SURFACE_AREA
@@ -224,16 +286,7 @@ export class Map {
                         div.append(Image.getWithItemTypeName("dungeon wall", this.tile_size, seed).element());
                     } else {
                         const terrain = DungeonMap.terrainAt(cell_coordinates);
-                        if (
-                            terrain === "dungeon moonwell water"
-                            || terrain === "dungeon wet floor"
-                            || terrain === "dungeon sand floor"
-                            || terrain === "dungeon bone floor"
-                            || terrain === "dungeon bazaar floor"
-                            || terrain === "dungeon chapel floor"
-                            || terrain === "dungeon web floor"
-                            || terrain === "dungeon moss floor"
-                        ) {
+                        if (Map.isDungeonSoftTerrain(terrain)) {
                             this.decorateDungeonSoftTerrainCell(
                                 div,
                                 cell_coordinates,
@@ -477,11 +530,7 @@ export class Map {
 
                     // Summary.
                     item_taking_summary = new ItemTaking(itemType, this.inventory).summary();
-                    if (item_taking_summary.missing.length > 0) {
-                        takeable = false;
-                    } else {
-                        takeable = true;
-                    }
+                    takeable = !item_taking_summary.isUnavailable();
 
                     const itemElement = Image.getWithItemTypeName(
                         itemType.name,
@@ -505,7 +554,9 @@ export class Map {
                 }
 
                 // If a location has been selected and it is the current location.
-                const selected_coordinates = this.state.selectedCoordinates;
+                const selected_coordinates = Map.interactionCoordinates(
+                    this.state,
+                );
                 if (selected_coordinates !== null && cell_coordinates.equals(selected_coordinates)) {
                     div.classList.add("selected");
 
@@ -712,6 +763,83 @@ export class Map {
         };
     }
 
+    static dungeonSoftTerrainVisualAt(
+        terrain: DungeonSoftTerrain,
+        coordinates: Coordinates,
+    ): DungeonSoftTerrainVisual {
+        const minimumOpacity: Readonly<Record<DungeonSoftTerrain, number>> = {
+            "dungeon moonwell water": 68,
+            "dungeon wet floor": 62,
+            "dungeon sand floor": 50,
+            "dungeon fungal floor": 48,
+            "dungeon bone floor": 48,
+            "dungeon bazaar floor": 42,
+            "dungeon forge floor": 50,
+            "dungeon chapel floor": 48,
+            "dungeon web floor": 50,
+            "dungeon moss floor": 48,
+            "dungeon crystal floor": 50,
+        };
+
+        return {
+            diameterInTiles: (
+                280 + Map.dungeonSoftTerrainSeed(
+                    terrain,
+                    coordinates,
+                    0x54657253,
+                ) % 121
+            ) / 100,
+            offsetXInTiles: (
+                Map.dungeonSoftTerrainSeed(
+                    terrain,
+                    coordinates,
+                    0x54657258,
+                ) % 61 - 30
+            ) / 100,
+            offsetYInTiles: (
+                Map.dungeonSoftTerrainSeed(
+                    terrain,
+                    coordinates,
+                    0x54657259,
+                ) % 61 - 30
+            ) / 100,
+            rotationDegrees: Map.dungeonSoftTerrainSeed(
+                terrain,
+                coordinates,
+                0x54657252,
+            ) % 360,
+            opacity: (
+                minimumOpacity[terrain]
+                + Map.dungeonSoftTerrainSeed(
+                    terrain,
+                    coordinates,
+                    0x5465724f,
+                ) % 13
+            ) / 100,
+        };
+    }
+
+    private static dungeonSoftTerrainSeed(
+        terrain: DungeonSoftTerrain,
+        coordinates: Coordinates,
+        salt: number,
+    ): number {
+        let hash = salt >>> 0;
+        hash ^= Math.imul(coordinates.latitude | 0, 0x85ebca6b);
+        hash ^= Math.imul(coordinates.longitude | 0, 0xc2b2ae35);
+        for (let index = 0; index < terrain.length; index++) {
+            hash ^= terrain.charCodeAt(index);
+            hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+        hash ^= hash >>> 16;
+        hash = Math.imul(hash, 0x7feb352d) >>> 0;
+        hash ^= hash >>> 15;
+        hash = Math.imul(hash, 0x846ca68b) >>> 0;
+        hash ^= hash >>> 16;
+
+        return hash >>> 0;
+    }
+
     private static shopWallSeed(
         coordinates: Coordinates,
         salt: number,
@@ -872,6 +1000,9 @@ export class Map {
                     areaId: this.inventory.getAreaId(),
                 },
                 button,
+                this.inventory.countItems(
+                    new ItemType(reference.itemName),
+                ),
             );
             status.append(button);
             position = reference.start + reference.length;
@@ -928,10 +1059,11 @@ export class Map {
     }
 
     isWithinTakingRange(coordinates: Coordinates): boolean {
-        if (
-            !this.state.exploreMode
-            && this.state.takingRangeMeters !== null
-        ) {
+        if (!this.state.exploreMode) {
+            if (this.state.takingRangeMeters === null) {
+                return false;
+            }
+
             return this.state.coordinates.distanceInMetersFrom(coordinates)
                 <= this.state.takingRangeMeters;
         }
@@ -967,26 +1099,25 @@ export class Map {
     private decorateDungeonSoftTerrainCell(
         div: HTMLDivElement,
         coordinates: Coordinates,
-        terrain:
-            | "dungeon moonwell water"
-            | "dungeon wet floor"
-            | "dungeon sand floor"
-            | "dungeon bone floor"
-            | "dungeon bazaar floor"
-            | "dungeon chapel floor"
-            | "dungeon web floor"
-            | "dungeon moss floor",
+        terrain: DungeonSoftTerrain,
     ): void {
         const variants: Readonly<Record<typeof terrain, string>> = {
             "dungeon moonwell water": "deep",
             "dungeon wet floor": "shallow",
             "dungeon sand floor": "sand",
+            "dungeon fungal floor": "fungal",
             "dungeon bone floor": "bone",
             "dungeon bazaar floor": "bazaar",
+            "dungeon forge floor": "forge",
             "dungeon chapel floor": "chapel-soil",
             "dungeon web floor": "spider-soil",
             "dungeon moss floor": "moss",
+            "dungeon crystal floor": "crystal",
         };
+        const visual = Map.dungeonSoftTerrainVisualAt(
+            terrain,
+            coordinates,
+        );
         const patch = document.createElement("span");
         patch.className = "dungeon-soft-terrain-patch "
             + "dungeon-soft-terrain-patch--" + variants[terrain];
@@ -995,29 +1126,40 @@ export class Map {
             ? 8
             : 10;
         const textureSize = this.tile_size * textureCells;
-        const diameter = this.tile_size * 3;
+        const diameter = this.tile_size * visual.diameterInTiles;
         const inset = (diameter - this.tile_size) / 2;
         patch.style.width = diameter + "px";
         patch.style.height = diameter + "px";
         patch.style.marginLeft = -inset + "px";
         patch.style.marginTop = -inset + "px";
+        patch.style.opacity = String(visual.opacity);
+        patch.style.transform = "translate("
+            + visual.offsetXInTiles * this.tile_size + "px, "
+            + visual.offsetYInTiles * this.tile_size + "px) rotate("
+            + visual.rotationDegrees + "deg)";
         patch.style.backgroundSize =
             textureSize + "px " + textureSize + "px";
         patch.style.backgroundPosition =
             (
                 -Map.positiveModulo(
-                    coordinates.latitude,
+                    coordinates.longitude,
                     textureCells,
                 ) * this.tile_size + inset
             ) + "px "
             + (
-                -Map.positiveModulo(
-                    coordinates.longitude,
+                Map.positiveModulo(
+                    coordinates.latitude,
                     textureCells,
                 ) * this.tile_size + inset
             ) + "px";
         patch.setAttribute("aria-hidden", "true");
         div.append(patch);
+    }
+
+    private static isDungeonSoftTerrain(
+        terrain: string,
+    ): terrain is DungeonSoftTerrain {
+        return DUNGEON_SOFT_TERRAINS.some(value => value === terrain);
     }
 
     private decorateRiverCell(
@@ -1079,13 +1221,13 @@ export class Map {
             "--shop-wall-texture-position",
             (
                 -Map.positiveModulo(
-                    coordinates.latitude,
+                    coordinates.longitude,
                     textureCells,
                 ) * this.tile_size + 1
             ) + "px "
             + (
-                -Map.positiveModulo(
-                    coordinates.longitude,
+                Map.positiveModulo(
+                    coordinates.latitude,
                     textureCells,
                 ) * this.tile_size + 1
             ) + "px",
@@ -1174,10 +1316,10 @@ export class Map {
             );
             element.style.setProperty(
                 "--surface-path-texture-position",
-                -coordinates.latitude * this.tile_size
+                -coordinates.longitude * this.tile_size
                     + inset - offsetX + "px "
                     + (
-                        -coordinates.longitude * this.tile_size
+                        coordinates.latitude * this.tile_size
                         + inset - offsetY
                     ) + "px",
             );
@@ -1268,12 +1410,14 @@ export class Map {
         console.log("Start sliding animation.");
 
         const MAP_SLIDING_STEPS         = 30;  // How many steps the sliding effect has. Higher value makes the effect slower.
-        let latitudeDifference: number  = this.state.coordinates.latitude  - previous_coordinates.latitude;
-        let longitudeDifference: number = this.state.coordinates.longitude - previous_coordinates.longitude;
-        let stepSizeX: number           = tile_size / MAP_SLIDING_STEPS * Math.abs(latitudeDifference);
-        let stepSizeY: number           = tile_size / MAP_SLIDING_STEPS * Math.abs(longitudeDifference);
-        let latitudeSign: number        = Math.sign(latitudeDifference);
-        let longitudeSign: number       = Math.sign(longitudeDifference);
+        const movementOffset = Map.offsetForMovement(
+            previous_coordinates,
+            this.state.coordinates,
+        );
+        const signedStepSizeX = tile_size / MAP_SLIDING_STEPS
+            * movementOffset.x;
+        const signedStepSizeY = tile_size / MAP_SLIDING_STEPS
+            * movementOffset.y;
         const cat: HTMLElement = document.getElementById("cat") ?? new HTMLElement();
 
         console.log("slide");
@@ -1287,8 +1431,8 @@ export class Map {
 
         this.slideAnimation({
             stepNumber:           0,
-            signedStepSizeX:      stepSizeX * latitudeSign,
-            signedStepSizeY:      stepSizeY * longitudeSign,
+            signedStepSizeX,
+            signedStepSizeY,
             originalMargins:      originalMargins,
         });
 
@@ -1311,13 +1455,15 @@ export class Map {
         let margins                     = { ...originalMargins };
 
         if (stepNumber < MAP_SLIDING_STEPS) {
-            const vertical_margin   = (MAP_SLIDING_STEPS - stepNumber) * signedStepSizeX;
-            const horizontal_margin = (MAP_SLIDING_STEPS - stepNumber) * signedStepSizeY;
+            const horizontalMargin = (MAP_SLIDING_STEPS - stepNumber)
+                * signedStepSizeX;
+            const verticalMargin = (MAP_SLIDING_STEPS - stepNumber)
+                * signedStepSizeY;
 
-            margins.mapLeft += vertical_margin;
-            margins.mapTop  += horizontal_margin;
-            margins.catLeft -= vertical_margin;
-            margins.catTop  -= horizontal_margin;
+            margins.mapLeft += horizontalMargin;
+            margins.mapTop  += verticalMargin;
+            margins.catLeft -= horizontalMargin;
+            margins.catTop  -= verticalMargin;
 
             // Callback.
             window.setTimeout(

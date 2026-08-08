@@ -41,6 +41,7 @@ export declare class DungeonMap {
     private removeLonelyTiles;
     removeCheckerboardPatters(dungeon_map: boolean[][]): boolean[][];
     isWall(x: number, y: number): boolean;
+    private coordinatesAt;
     calculateAdjecantWalls(dungeon_map: boolean[][], row: number, col: number): number;
     getCells(): {
         class: string;

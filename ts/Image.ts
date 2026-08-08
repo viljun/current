@@ -569,7 +569,9 @@ export class Image {
             rotate = rotationSeed % 77 / 30;
             style = "opacity:" + ((opacitySeed % 100) / 500 + 0.9).toFixed(2) + ";";
             dimension *= 1.41;
-            zIndex = 2;
+            // Wide special-floor patches overlap neighbouring cells. Walls
+            // must remain above every terrain layer but below decorations.
+            zIndex = 6;
         } else if ([
             "dungeon mushroom cluster",
             "gloamcap mushroom",

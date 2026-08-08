@@ -397,31 +397,38 @@ body {
     border-radius: 50%;
     background-repeat: repeat;
     clip-path: none;
+    transform-origin: center;
     -webkit-mask-image:
         radial-gradient(
             circle,
-            #000 0 48%,
-            rgba(0, 0, 0, .95) 52%,
-            rgba(0, 0, 0, .78) 57%,
-            rgba(0, 0, 0, .5) 62%,
-            rgba(0, 0, 0, .24) 66%,
-            rgba(0, 0, 0, .08) 69%,
-            transparent 70%
+            #000 0 24%,
+            rgba(0, 0, 0, .96) 31%,
+            rgba(0, 0, 0, .84) 39%,
+            rgba(0, 0, 0, .68) 47%,
+            rgba(0, 0, 0, .5) 55%,
+            rgba(0, 0, 0, .34) 63%,
+            rgba(0, 0, 0, .2) 69%,
+            rgba(0, 0, 0, .1) 74%,
+            rgba(0, 0, 0, .03) 79%,
+            transparent 84%
         );
     mask-image:
         radial-gradient(
             circle,
-            #000 0 48%,
-            rgba(0, 0, 0, .95) 52%,
-            rgba(0, 0, 0, .78) 57%,
-            rgba(0, 0, 0, .5) 62%,
-            rgba(0, 0, 0, .24) 66%,
-            rgba(0, 0, 0, .08) 69%,
-            transparent 70%
+            #000 0 24%,
+            rgba(0, 0, 0, .96) 31%,
+            rgba(0, 0, 0, .84) 39%,
+            rgba(0, 0, 0, .68) 47%,
+            rgba(0, 0, 0, .5) 55%,
+            rgba(0, 0, 0, .34) 63%,
+            rgba(0, 0, 0, .2) 69%,
+            rgba(0, 0, 0, .1) 74%,
+            rgba(0, 0, 0, .03) 79%,
+            transparent 84%
         );
 }
 .dungeon-soft-terrain-patch--deep {
-    z-index: 2;
+    z-index: 1;
     background-color: #123c5d;
     background-image:
         url(images/dungeon-deep-water-seamless-medieval-photoreal-v1.png);
@@ -441,6 +448,18 @@ body {
         url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png);
     filter: brightness(.72) saturate(.68);
 }
+.dungeon-soft-terrain-patch--fungal {
+    z-index: 1;
+    background-color: #707354;
+    background-image: url(images/dirt2.png);
+    background-blend-mode: multiply;
+    filter:
+        sepia(.22)
+        hue-rotate(28deg)
+        brightness(.92)
+        saturate(.72)
+        contrast(.96);
+}
 .dungeon-soft-terrain-patch--bone {
     z-index: 1;
     background-color: #6f6859;
@@ -454,6 +473,17 @@ body {
         url(images/dungeon-sand-vault-floor-medieval-photoreal-v1.png);
     filter: sepia(.5) brightness(.58) saturate(.65);
 }
+.dungeon-soft-terrain-patch--forge {
+    z-index: 1;
+    background-color: #59402f;
+    background-image: url(images/dirt.png);
+    filter:
+        sepia(.62)
+        hue-rotate(330deg)
+        brightness(.52)
+        saturate(.78)
+        contrast(1.06);
+}
 .dungeon-soft-terrain-patch--moss {
     z-index: 1;
     background-color: #78935b;
@@ -463,14 +493,14 @@ body {
 }
 .dungeon-soft-terrain-patch--chapel-soil {
     z-index: 1;
-    background-color: #241b18;
+    background-color: #756c5c;
     background-image: url(images/dirt.png);
     filter:
-        grayscale(.45)
-        sepia(.3)
-        brightness(.3)
-        saturate(.55)
-        contrast(1.08);
+        grayscale(.32)
+        sepia(.18)
+        brightness(.92)
+        saturate(.62)
+        contrast(.96);
 }
 .dungeon-soft-terrain-patch--spider-soil {
     z-index: 1;
@@ -482,6 +512,17 @@ body {
         brightness(.27)
         saturate(.42)
         contrast(1.12);
+}
+.dungeon-soft-terrain-patch--crystal {
+    z-index: 1;
+    background-color: #596467;
+    background-image: url(images/floor2.png);
+    filter:
+        grayscale(.38)
+        hue-rotate(150deg)
+        brightness(.72)
+        saturate(.58)
+        contrast(1.04);
 }
 .cell.shop-outside,
 .origin-artwork-cell.shop-outside {
@@ -1796,9 +1837,25 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     right: 0.45rem;
 }
 .encounter-card-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.65rem;
     margin: 0 3rem 0.45rem 0;
     color: white;
     font: 700 1.1rem/1.2 sans-serif;
+}
+.encounter-card-owned {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.45rem;
+    padding: 0.16rem 0.5rem;
+    border: 1px solid rgba(217, 189, 106, 0.48);
+    border-radius: 999px;
+    background: rgba(102, 86, 46, 0.5);
+    color: #ffe9a6;
+    font: 700 0.74rem/1 sans-serif;
+    white-space: nowrap;
 }
 .encounter-card-description {
     display: block;
@@ -1956,6 +2013,8 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     background: rgba(4, 7, 10, 0.92);
 }
 .inventory-tabs {
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex: none;
     align-self: center;
@@ -1966,7 +2025,27 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     border-radius: 999px;
     background: #101319;
 }
+.inventory-tabs::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 0.2rem;
+    bottom: 0.2rem;
+    left: 0.2rem;
+    width: calc((100% - 0.6rem) / 2);
+    border-radius: 999px;
+    background: #66562e;
+    box-shadow: inset 0 0 0 1px rgba(255, 229, 155, 0.44);
+    pointer-events: none;
+    transform: translateX(0);
+    transition: transform 280ms cubic-bezier(0.22, 0.8, 0.22, 1);
+}
+.inventory-tabs[data-active-tab="recipes"]::before {
+    transform: translateX(calc(100% + 0.2rem));
+}
 .inventory-tab {
+    position: relative;
+    z-index: 1;
     min-width: 7.5rem;
     min-height: 2.6rem;
     padding: 0.45rem 1rem;
@@ -1976,15 +2055,20 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     color: #bbb4a4;
     font: 700 0.9rem/1 sans-serif;
     cursor: pointer;
+    transition: color 180ms ease;
 }
 .inventory-tab--active {
-    background: #66562e;
-    box-shadow: inset 0 0 0 1px rgba(255, 229, 155, 0.44);
     color: #fff1bd;
 }
 .inventory-tab:focus-visible {
     outline: 2px solid #ffe173;
     outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .inventory-tabs::before,
+    .inventory-tab {
+        transition: none;
+    }
 }
 .inventory-dialog-content {
     position: relative;

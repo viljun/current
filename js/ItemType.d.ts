@@ -1,5 +1,6 @@
 import { ItemTypeAndQuantity } from "./ItemTypeAndQuantity.js";
 export declare class ItemType {
+    private static readonly MAXIMUM_QUANTITIES;
     static readonly RIVER_FISH_NAMES: readonly ["river trout", "silver perch", "northern pike", "common carp", "river eel"];
     static readonly CRAFTING_ACTIONS: readonly string[];
     private static readonly ENTRANCE_MODULUS;
@@ -21,6 +22,7 @@ export declare class ItemType {
     isMonster(): boolean;
     static isRiverFish(itemName: string): boolean;
     static isTransientAction(itemName: string): boolean;
+    maximumQuantity(): number | null;
     static getWithSeed(seed: number, areaId: number): ItemType | null;
     private static frequencyGate;
     static getShopOutsideWithSeed(seed: number): ItemType | null;

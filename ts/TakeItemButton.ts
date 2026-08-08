@@ -63,7 +63,7 @@ export class TakeItemButton {
         const button = document.createElement("input");
         button.setAttribute("type", "button");
         button.setAttribute("class", "button");
-        if (this.item_taking_summary.missing.length > 0) {
+        if (this.item_taking_summary.isUnavailable()) {
             button.setAttribute("disabled", 'true');
         }
         button.setAttribute("value", takeButtonText.buttonText);

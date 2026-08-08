@@ -83,8 +83,8 @@ test("dungeon items and monsters keep a full tile away from walls", () => {
     for (let y = 1; y <= rows; y++) {
         for (let x = 1; x <= cols; x++) {
             const coordinates = new Coordinates(
-                center.latitude + (x - (cols + 1) / 2),
-                center.longitude + (y - (rows + 1) / 2),
+                center.latitude + (rows + 1) / 2 - y,
+                center.longitude + x - (cols + 1) / 2,
             );
             const itemType = DungeonMap.itemAt(coordinates);
             if (itemType === null || itemType.name === "stairs up") {
@@ -209,6 +209,67 @@ test("all ten deterministic dungeon landmarks carve walkable themed rooms", () =
 
     assert.equal(centerTerrains.size, 10);
     assert.equal(titles.size, 10);
+});
+
+test("gloamcap groves stay sparse but provide enough mushrooms to mix", () => {
+    const groves = new Map();
+    for (let latitude = -240; latitude <= 240; latitude += 4) {
+        for (let longitude = -240; longitude <= 240; longitude += 4) {
+            const feature = DungeonMap.featureAt(
+                new Coordinates(latitude, longitude),
+            );
+            if (feature?.kind === "gloamcap grove") {
+                groves.set(
+                    feature.centerLatitude + "," + feature.centerLongitude,
+                    feature,
+                );
+            }
+        }
+    }
+    assert.ok(groves.size >= 12);
+
+    for (const feature of [...groves.values()].slice(0, 12)) {
+        let floorCells = 0;
+        let collectibleMushrooms = 0;
+        let decorativeClusters = 0;
+        for (
+            let latitude = feature.centerLatitude - feature.radiusX - 2;
+            latitude <= feature.centerLatitude + feature.radiusX + 2;
+            latitude++
+        ) {
+            for (
+                let longitude = feature.centerLongitude - feature.radiusY - 2;
+                longitude <= feature.centerLongitude + feature.radiusY + 2;
+                longitude++
+            ) {
+                const coordinates = new Coordinates(latitude, longitude);
+                const current = DungeonMap.featureAt(coordinates);
+                if (current?.kind !== "gloamcap grove"
+                    || current.centerLatitude !== feature.centerLatitude
+                    || current.centerLongitude !== feature.centerLongitude
+                ) {
+                    continue;
+                }
+                floorCells++;
+                if (DungeonMap.itemAt(coordinates)?.name
+                    === "gloamcap mushroom"
+                ) {
+                    collectibleMushrooms++;
+                }
+                if (DungeonMap.decorationAt(coordinates)
+                    === "dungeon mushroom cluster"
+                ) {
+                    decorativeClusters++;
+                }
+            }
+        }
+        assert.ok(collectibleMushrooms >= 3);
+        assert.ok(
+            (collectibleMushrooms + decorativeClusters) / floorCells < .1,
+            "mushrooms cover too much of the grove at "
+                + feature.centerLatitude + "," + feature.centerLongitude,
+        );
+    }
 });
 
 test("dense dungeon clutter is deterministically thinned", () => {

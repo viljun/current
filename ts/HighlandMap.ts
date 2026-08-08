@@ -365,7 +365,7 @@ export class HighlandMap {
         castle: HighlandCastle,
         coordinates: Coordinates,
     ): "highland castle wall horizontal"|"highland castle wall vertical" {
-        const horizontal = [
+        const vertical = [
             new Coordinates(
                 coordinates.latitude - 1,
                 coordinates.longitude,
@@ -377,7 +377,7 @@ export class HighlandMap {
         ].filter(neighbour =>
             HighlandMap.isCastleWall(castle, neighbour)
         ).length;
-        const vertical = [
+        const horizontal = [
             new Coordinates(
                 coordinates.latitude,
                 coordinates.longitude - 1,

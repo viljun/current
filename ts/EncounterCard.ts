@@ -59,6 +59,7 @@ export class EncounterCard {
         itemName: string,
         origin: ItemOrigin,
         returnFocus: HTMLElement|null = null,
+        ownedQuantity = 0,
     ): void {
         if (
             returnFocus !== null
@@ -96,6 +97,15 @@ export class EncounterCard {
             returnFocus,
             "Close item details",
         );
+        const title = EncounterCard.element().querySelector<HTMLElement>(
+            ".encounter-card-title",
+        );
+        if (title !== null) {
+            const owned = document.createElement("span");
+            owned.className = "encounter-card-owned";
+            owned.textContent = "Owned: " + ownedQuantity;
+            title.append(owned);
+        }
         EncounterCard.setActiveItemToggle(returnFocus);
         EncounterCard.setActiveItemName(itemName);
     }

@@ -1206,7 +1206,7 @@ export class FightView {
             this.itemTakingSummary.itemType,
             this.inventory,
         ).summary();
-        if (currentSummary.missing.length > 0) {
+        if (currentSummary.isUnavailable()) {
             return;
         }
         const result = this.inventory.takeItem(this.coordinates);

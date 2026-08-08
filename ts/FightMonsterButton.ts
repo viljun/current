@@ -50,7 +50,7 @@ export class FightMonsterButton {
         ].filter(part => part !== "").join(" ");
         container.title = completeStatus;
         button.setAttribute("aria-label", completeStatus);
-        button.disabled = this.itemTakingSummary.missing.length > 0;
+        button.disabled = this.itemTakingSummary.isUnavailable();
         button.onclick = () => {
             if (!this.map.isWithinTakingRange(this.selectedCoordinates)) {
                 this.map.show({});

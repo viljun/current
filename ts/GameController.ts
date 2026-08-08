@@ -370,6 +370,11 @@ export class GameController {
 
             return;
         }
+        if (!this.state.exploreMode) {
+            // A tap may temporarily inspect a nearby square. Once GPS moves
+            // the player, the square beneath the cat becomes active again.
+            this.state.selectedCoordinates = null;
+        }
 
         const previousCoordinates = this.state.coordinates;
         if (this.inventory.getAreaId() === HIGHLAND_AREA

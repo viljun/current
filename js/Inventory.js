@@ -10,6 +10,7 @@ import { SurfaceMap } from "./SurfaceMap.js";
 import { View } from './View.js';
 import { BattleSpell } from "./BattleSpell.js";
 import { CardGame } from "./CardGame.js";
+import { ItemTaking } from "./ItemTaking.js";
 export class Inventory {
     constructor() {
         this.quantities = {};
@@ -343,6 +344,7 @@ export class Inventory {
         content.setAttribute("role", "tabpanel");
         const showTab = (tab) => {
             const itemsSelected = tab === "items";
+            tabs.dataset.activeTab = tab;
             itemsTab.setAttribute("aria-selected", String(itemsSelected));
             recipesTab.setAttribute("aria-selected", String(!itemsSelected));
             itemsTab.classList.toggle("inventory-tab--active", itemsSelected);
@@ -589,6 +591,11 @@ export class Inventory {
         if (itemType.name === "stairs up") {
             this.exitArea();
             return { itemType, prizes: [], expenses: [] };
+        }
+        if (ItemTaking.maximumQuantityViolations(itemType, this.totalQuantities).length > 0) {
+            console.log("Taking this " + itemType.name
+                + " would exceed an inventory limit.");
+            return null;
         }
         this.usedCoordinates[coordinatesKey] = true;
         this.reconstructQuantities();

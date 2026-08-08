@@ -225,11 +225,11 @@ export class HighlandMap {
         return false;
     }
     static castleWallDecoration(castle, coordinates) {
-        const horizontal = [
+        const vertical = [
             new Coordinates(coordinates.latitude - 1, coordinates.longitude),
             new Coordinates(coordinates.latitude + 1, coordinates.longitude),
         ].filter(neighbour => HighlandMap.isCastleWall(castle, neighbour)).length;
-        const vertical = [
+        const horizontal = [
             new Coordinates(coordinates.latitude, coordinates.longitude - 1),
             new Coordinates(coordinates.latitude, coordinates.longitude + 1),
         ].filter(neighbour => HighlandMap.isCastleWall(castle, neighbour)).length;

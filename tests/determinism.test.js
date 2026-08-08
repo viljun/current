@@ -16,7 +16,10 @@ import { Effects } from "../js/Effects.js";
 import { HighlandMap } from "../js/HighlandMap.js";
 import { Image } from "../js/Image.js";
 import { ItemType } from "../js/ItemType.js";
-import { Map as GameMap } from "../js/Map.js";
+import {
+    DUNGEON_SOFT_TERRAINS,
+    Map as GameMap,
+} from "../js/Map.js";
 import { ShopMap } from "../js/ShopMap.js";
 import { SurfaceMap } from "../js/SurfaceMap.js";
 
@@ -388,7 +391,8 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                     );
                     assert.ok(
                         Math.abs(
-                            visual.rotationDegrees - road.headingDegrees,
+                            visual.rotationDegrees
+                                - (road.headingDegrees - 90),
                         ) <= 8,
                     );
                     assert.ok(Math.abs(visual.offsetXInTiles) <= .12);
@@ -396,30 +400,30 @@ test("surface roads form sparse crossroads with paths, fords, and bridges", () =
                     assert.ok(
                         Math.abs(
                             visual.textureOffsetXInTiles
-                                + coordinates.latitude,
+                                + coordinates.longitude,
                         ) <= 3,
                     );
                     assert.ok(
                         Math.abs(
                             visual.textureOffsetYInTiles
-                                + coordinates.longitude,
+                                - coordinates.latitude,
                         ) <= 3,
                     );
                     roadPatchSizes.add(visual.diameterInTiles.toFixed(4));
                 } else {
                     assert.equal(
                         visual.rotationDegrees,
-                        road.headingDegrees,
+                        road.headingDegrees - 90,
                     );
                     assert.equal(visual.offsetXInTiles, 0);
                     assert.equal(visual.offsetYInTiles, 0);
                     assert.equal(
                         visual.textureOffsetXInTiles,
-                        -coordinates.latitude,
+                        -coordinates.longitude,
                     );
                     assert.equal(
                         visual.textureOffsetYInTiles,
-                        -coordinates.longitude,
+                        coordinates.latitude,
                     );
                     if (routeWidths.has(routeKey)) {
                         assert.equal(
@@ -621,7 +625,9 @@ test("dungeon floor tiles overlap while varying size and angle", () => {
 
 test("ordinary dungeon floor stays below special-area terrain", () => {
     const floor = Image.getWithItemTypeName("dungeon floor", 42, 12345);
+    const wall = Image.getWithItemTypeName("dungeon wall", 42, 12345);
     assert.equal(floor.zIndex, 0);
+    assert.equal(wall.zIndex, 6);
 
     const stylesheet = readFileSync(
         path.join(PROJECT_ROOT, "style.css"),
@@ -631,11 +637,14 @@ test("ordinary dungeon floor stays below special-area terrain", () => {
         "deep",
         "shallow",
         "sand",
+        "fungal",
         "bone",
         "bazaar",
+        "forge",
         "moss",
         "chapel-soil",
         "spider-soil",
+        "crystal",
     ]) {
         const rule = stylesheet.match(new RegExp(
             "\\.dungeon-soft-terrain-patch--" + terrain
@@ -647,7 +656,76 @@ test("ordinary dungeon floor stays below special-area terrain", () => {
             layer > floor.zIndex,
             terrain + " terrain must paint above the ordinary dungeon floor",
         );
+        assert.ok(
+            layer < wall.zIndex,
+            terrain + " terrain must remain below dungeon walls",
+        );
     }
+});
+
+test("all special dungeon floors use varied translucent soft patches", () => {
+    for (const terrain of DUNGEON_SOFT_TERRAINS) {
+        const diameters = new Set();
+        const xOffsets = new Set();
+        const yOffsets = new Set();
+        const rotations = new Set();
+        const opacities = new Set();
+        for (let index = 0; index < 2048; index++) {
+            const coordinates = new Coordinates(
+                index * 37 - 9000,
+                index * -61 + 4000,
+            );
+            const first = GameMap.dungeonSoftTerrainVisualAt(
+                terrain,
+                coordinates,
+            );
+            assert.deepEqual(
+                first,
+                GameMap.dungeonSoftTerrainVisualAt(terrain, coordinates),
+            );
+            assert.ok(first.diameterInTiles >= 2.8);
+            assert.ok(first.diameterInTiles <= 4);
+            assert.ok(first.offsetXInTiles >= -.3);
+            assert.ok(first.offsetXInTiles <= .3);
+            assert.ok(first.offsetYInTiles >= -.3);
+            assert.ok(first.offsetYInTiles <= .3);
+            assert.ok(first.rotationDegrees >= 0);
+            assert.ok(first.rotationDegrees < 360);
+            assert.ok(first.opacity >= .42);
+            assert.ok(first.opacity <= .8);
+            diameters.add(first.diameterInTiles);
+            xOffsets.add(first.offsetXInTiles);
+            yOffsets.add(first.offsetYInTiles);
+            rotations.add(first.rotationDegrees);
+            opacities.add(first.opacity);
+        }
+        assert.ok(diameters.size > 110, terrain);
+        assert.equal(xOffsets.size, 61, terrain);
+        assert.equal(yOffsets.size, 61, terrain);
+        assert.ok(rotations.size > 300, terrain);
+        assert.equal(opacities.size, 13, terrain);
+    }
+
+    for (let index = 0; index < 512; index++) {
+        const visual = GameMap.dungeonSoftTerrainVisualAt(
+            "dungeon bazaar floor",
+            new Coordinates(index * 13, index * -29),
+        );
+        assert.ok(visual.opacity >= .42 && visual.opacity <= .54);
+    }
+
+    const stylesheet = readFileSync(
+        path.join(PROJECT_ROOT, "style.css"),
+        "utf8",
+    );
+    const commonRule = stylesheet.match(
+        /\.dungeon-soft-terrain-patch\s*\{([^}]*)\}/,
+    );
+    assert.ok(commonRule !== null);
+    assert.match(
+        commonRule[1],
+        /radial-gradient\([\s\S]*#000 0 24%[\s\S]*transparent 84%/,
+    );
 });
 
 test("dungeon moss terrain stays light and naturally green", () => {
@@ -663,6 +741,28 @@ test("dungeon moss terrain stays light and naturally green", () => {
     assert.match(rule[1], /brightness\(1\.4\)/);
     assert.match(rule[1], /saturate\(1\.35\)/);
     assert.doesNotMatch(rule[1], /sepia/);
+});
+
+test("fungal and chapel floors stay earthy and distinct from dark walls", () => {
+    const stylesheet = readFileSync(
+        path.join(PROJECT_ROOT, "style.css"),
+        "utf8",
+    );
+    const fungal = stylesheet.match(
+        /\.dungeon-soft-terrain-patch--fungal\s*\{([^}]*)\}/,
+    );
+    assert.ok(fungal !== null);
+    assert.match(fungal[1], /background-color:\s*#707354/);
+    assert.match(fungal[1], /hue-rotate\(28deg\)/);
+    assert.doesNotMatch(fungal[1], /hue-rotate\(2(?:2[0-9]|[3-9][0-9])deg\)/);
+
+    const chapel = stylesheet.match(
+        /\.dungeon-soft-terrain-patch--chapel-soil\s*\{([^}]*)\}/,
+    );
+    assert.ok(chapel !== null);
+    assert.match(chapel[1], /background-color:\s*#756c5c/);
+    assert.match(chapel[1], /brightness\(\.92\)/);
+    assert.doesNotMatch(chapel[1], /brightness\(\.[1-4]\)/);
 });
 
 test("dungeon water patches overlap with deterministic circular variation", () => {

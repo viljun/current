@@ -48,8 +48,8 @@ export class OriginArtwork {
         for (let y = -1; y <= 1; y++) {
             for (let x = -1; x <= 1; x++) {
                 const coordinates = new Coordinates(
-                    origin.latitude + x,
-                    origin.longitude + y,
+                    origin.latitude - y,
+                    origin.longitude + x,
                 );
                 const seed = coordinates.getSeed();
                 const cell = document.createElement("div");
@@ -289,10 +289,10 @@ export class OriginArtwork {
             );
             element.style.setProperty(
                 "--surface-path-texture-position",
-                -coordinates.latitude * tileSize
+                -coordinates.longitude * tileSize
                     + inset - offsetX + "px "
                     + (
-                        -coordinates.longitude * tileSize
+                        coordinates.latitude * tileSize
                         + inset - offsetY
                     ) + "px",
             );

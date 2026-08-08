@@ -3,7 +3,7 @@ import { DUNGEON_AREA } from "./Area.js";
 import { ItemType } from "./ItemType.js";
 export class DungeonMap {
     static forViewport(cols, rows, center, extraSize) {
-        const origin = new GameCoordinates(center.latitude - (cols + 1) / 2 - extraSize, center.longitude - (rows + 1) / 2 - extraSize);
+        const origin = new GameCoordinates(center.latitude + (rows + 1) / 2 + extraSize, center.longitude - (cols + 1) / 2 - extraSize);
         return new DungeonMap(cols + extraSize * 2, rows + extraSize * 2, origin);
     }
     constructor(width, height, coordinates) {
@@ -121,7 +121,7 @@ export class DungeonMap {
             return seed % 17 === 0 ? "dungeon boneyard scatter" : null;
         }
         if (feature.kind === "gloamcap grove") {
-            return seed % 5 === 0 ? "dungeon mushroom cluster" : null;
+            return seed % 31 === 0 ? "dungeon mushroom cluster" : null;
         }
         if (feature.kind === "boneyard") {
             return seed % 6 === 0 ? "dungeon boneyard scatter" : null;
@@ -196,7 +196,7 @@ export class DungeonMap {
                     (_a = dungeon_map[r]) !== null && _a !== void 0 ? _a : (dungeon_map[r] = []);
                     dungeon_map[r][col] = true;
                 }
-                const coordinates = new GameCoordinates(this.coordinates.latitude + col, this.coordinates.longitude + row);
+                const coordinates = this.coordinatesAt(col, row);
                 if (this.isNearStairs(coordinates)) {
                     const r = row;
                     (_b = dungeon_map[r]) !== null && _b !== void 0 ? _b : (dungeon_map[r] = []);
@@ -210,7 +210,7 @@ export class DungeonMap {
         var _a;
         for (let col = 0; col <= this.width; col++) {
             for (let row = 0; row <= this.height; row++) {
-                const coordinates = new GameCoordinates(this.coordinates.latitude + col, this.coordinates.longitude + row);
+                const coordinates = this.coordinatesAt(col, row);
                 if (!DungeonMap.isFeatureFloorAt(coordinates)) {
                     continue;
                 }
@@ -246,7 +246,8 @@ export class DungeonMap {
             if (center) {
                 return new ItemType("mushroom mixing");
             }
-            return seed % 11 === 0
+            const recipeMushroom = (local.x === -2 && local.y === 0) || (local.x === 2 && local.y === 0) || (local.x === 0 && local.y === 2);
+            return recipeMushroom || seed % 59 === 0
                 ? new ItemType("gloamcap mushroom")
                 : null;
         }
@@ -494,8 +495,9 @@ export class DungeonMap {
     }
     // Returns true if the cell is a wall.
     isWall(x, y) {
-        x += 220 + this.coordinates.latitude;
-        y += 220 + this.coordinates.longitude;
+        const coordinates = this.coordinatesAt(x, y);
+        x = 220 + coordinates.latitude;
+        y = 220 + coordinates.longitude;
         x /= 8;
         y /= 8;
         x += Math.cos(x / 9) * Math.sin(y / 7);
@@ -503,6 +505,9 @@ export class DungeonMap {
         x *= Math.cos(Math.cos(y / 19) * Math.sin(y / 17));
         y *= Math.sin(Math.sin(x / 13) * Math.sin(y / 11));
         return Math.sin(x * 0.3 * y) + Math.cos(y * 0.3 * x) > 0.1;
+    }
+    coordinatesAt(col, row) {
+        return new GameCoordinates(this.coordinates.latitude - row, this.coordinates.longitude + col);
     }
     // Returns the number of adjecant walls.
     calculateAdjecantWalls(dungeon_map, row, col) {
