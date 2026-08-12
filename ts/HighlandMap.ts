@@ -1,6 +1,7 @@
 import { Coordinates } from "./Coordinates.js";
 import { ItemType } from "./ItemType.js";
 import { BattleSpell } from "./BattleSpell.js";
+import { SurfaceMap } from "./SurfaceMap.js";
 
 export interface HighlandCastle {
     centerX: number;
@@ -72,7 +73,7 @@ export class HighlandMap {
     }
 
     static hasWallAt(coordinates: Coordinates): boolean {
-        if (ItemType.isHighlandEntranceSeed(coordinates.getSeed())) {
+        if (SurfaceMap.itemAt(coordinates)?.name === "highland gate") {
             return false;
         }
         const castle = HighlandMap.castleAt(coordinates);
@@ -136,8 +137,7 @@ export class HighlandMap {
     }
 
     static itemAt(coordinates: Coordinates): ItemType|null {
-        const seed = coordinates.getSeed();
-        if (ItemType.isHighlandEntranceSeed(seed)) {
+        if (SurfaceMap.itemAt(coordinates)?.name === "highland gate") {
             return new ItemType("stairs up");
         }
         if (HighlandMap.hasWallAt(coordinates)) {

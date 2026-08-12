@@ -22,11 +22,13 @@ export declare class ItemType {
     isMonster(): boolean;
     static isRiverFish(itemName: string): boolean;
     static isTransientAction(itemName: string): boolean;
+    static allNames(): string[];
     maximumQuantity(): number | null;
     static getWithSeed(seed: number, areaId: number): ItemType | null;
     private static frequencyGate;
     static getShopOutsideWithSeed(seed: number): ItemType | null;
     static isHighlandEntranceSeed(seed: number): boolean;
+    static isBonusHighlandEntranceSeed(seed: number, chanceMultiplier: number): boolean;
     prizes(): ItemTypeAndQuantity[];
     requirements(): ItemTypeAndQuantity[];
     static intrinsicValue(itemName: string): number;

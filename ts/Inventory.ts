@@ -1210,7 +1210,7 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = ItemType.getWithSeed(coordinates.getSeed(), 0)?.name;
+            const action = SurfaceMap.itemAt(coordinates)?.name;
             if (action === "dungeon entrance") {
                 areaId = 1;
             } else if (action === "shop entrance") {

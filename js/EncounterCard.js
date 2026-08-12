@@ -59,7 +59,7 @@ export class EncounterCard {
             const owned = document.createElement("span");
             owned.className = "encounter-card-owned";
             owned.textContent = "Owned: " + ownedQuantity;
-            title.append(owned);
+            title.insertAdjacentElement("afterend", owned);
         }
         EncounterCard.setActiveItemToggle(returnFocus);
         EncounterCard.setActiveItemName(itemName);

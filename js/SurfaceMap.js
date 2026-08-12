@@ -8,6 +8,11 @@ import { ItemType } from "./ItemType.js";
  * them at viewport boundaries.
  */
 export class SurfaceMap {
+    static fishDensityPerWaterCell() {
+        // Fish pass independent one-in-seventeen placement and three-in-ten
+        // population checks in itemAt().
+        return 3 / 170;
+    }
     static riverAt(coordinates) {
         const x = coordinates.latitude;
         const y = coordinates.longitude;
@@ -45,6 +50,103 @@ export class SurfaceMap {
     }
     static isRiverAt(coordinates) {
         return SurfaceMap.riverAt(coordinates) !== null;
+    }
+    static forestAt(coordinates) {
+        const spacing = SurfaceMap.FOREST_REGION_SPACING;
+        const blockX = Math.floor(coordinates.latitude / spacing);
+        const blockY = Math.floor(coordinates.longitude / spacing);
+        let closest = null;
+        for (let x = blockX - 1; x <= blockX + 1; x++) {
+            for (let y = blockY - 1; y <= blockY + 1; y++) {
+                const groveId = SurfaceMap.hash(x, y, 0x5c71a2e9);
+                if (groveId % 3 !== 0) {
+                    continue;
+                }
+                const centerX = x * spacing + spacing / 2
+                    + SurfaceMap.signedRange(SurfaceMap.hash(x, y, 0x1e49b763), 15);
+                const centerY = y * spacing + spacing / 2
+                    + SurfaceMap.signedRange(SurfaceMap.hash(x, y, 0x8b32d5f1), 15);
+                const radiusX = 9 + SurfaceMap.hash(x, y, 0x32e5c197) % 7;
+                const radiusY = 8 + SurfaceMap.hash(x, y, 0xa9174d63) % 7;
+                const rotation = SurfaceMap.hash(x, y, 0x73c18b4d) % 360 * Math.PI / 180;
+                const deltaX = coordinates.latitude - centerX;
+                const deltaY = coordinates.longitude - centerY;
+                const rotatedX = deltaX * Math.cos(rotation)
+                    - deltaY * Math.sin(rotation);
+                const rotatedY = deltaX * Math.sin(rotation)
+                    + deltaY * Math.cos(rotation);
+                const angle = Math.atan2(rotatedY / radiusY, rotatedX / radiusX);
+                const firstPhase = SurfaceMap.hash(x, y, 0xd4629e15) % 628 / 100;
+                const secondPhase = SurfaceMap.hash(x, y, 0x49a7f2c3) % 628 / 100;
+                const irregularEdge = 1
+                    + Math.sin(angle * 3 + firstPhase) * .12
+                    + Math.sin(angle * 5 + secondPhase) * .08;
+                const distance = Math.hypot(rotatedX / radiusX, rotatedY / radiusY) / irregularEdge;
+                if (distance > 1) {
+                    continue;
+                }
+                const candidate = {
+                    groveId,
+                    depth: SurfaceMap.roundDepth(1 - distance),
+                };
+                if (closest === null
+                    || candidate.depth > closest.depth
+                    || (candidate.depth === closest.depth
+                        && candidate.groveId < closest.groveId)) {
+                    closest = candidate;
+                }
+            }
+        }
+        return closest;
+    }
+    static hasForestTreeAt(coordinates, forest = SurfaceMap.forestAt(coordinates)) {
+        if (forest === null
+            || SurfaceMap.riverAt(coordinates) !== null
+            || SurfaceMap.roadAt(coordinates) !== null) {
+            return false;
+        }
+        const placementSeed = SurfaceMap.hash(coordinates.latitude, coordinates.longitude, forest.groveId, 0x6f28c4b1);
+        const densityPercent = 62 + Math.round(forest.depth * 27);
+        return placementSeed % 100 < densityPercent;
+    }
+    static forestTreeVisualAt(coordinates, forest) {
+        const stableValue = (salt) => SurfaceMap.hash(coordinates.latitude, coordinates.longitude, forest.groveId, salt);
+        return {
+            imageSeed: stableValue(0x2d91a7c5),
+            sizeMultiplier: .72
+                + stableValue(0x84c3e16b) % 69 / 100,
+            offsetXInTiles: (stableValue(0x51b8d42f) % 75 - 37) / 100,
+            offsetYInTiles: (stableValue(0xc7295a13) % 59 - 29) / 100,
+            mirrorX: stableValue(0x36e4b981) % 2 === 0 ? 1 : -1,
+        };
+    }
+    static hasForestMossAt(coordinates, forest = SurfaceMap.forestAt(coordinates), river = SurfaceMap.riverAt(coordinates), road = SurfaceMap.roadAt(coordinates)) {
+        return forest !== null && river === null && road === null;
+    }
+    static forestMossVisualAt(coordinates, forest) {
+        const stableValue = (salt) => SurfaceMap.hash(coordinates.latitude, coordinates.longitude, forest.groveId, salt);
+        return {
+            diameterInTiles: 1.55
+                + stableValue(0x7a31d8c5) % 76 / 100,
+            rotationDegrees: stableValue(0x19e4b76f) % 360,
+            offsetXInTiles: (stableValue(0xb42c1593) % 39 - 19) / 100,
+            offsetYInTiles: (stableValue(0x53d8a271) % 39 - 19) / 100,
+            // Every eligible grove cell already carries moss, so double its
+            // visible coverage by doubling the deterministic patch opacity.
+            opacity: 2 * (.18 + forest.depth * .14
+                + stableValue(0xc7154e39) % 7 / 100),
+            textureSizeInTiles: 7
+                + stableValue(0x2f96c84b) % 401 / 100,
+            textureOffsetXInTiles: -coordinates.longitude
+                + (stableValue(0x8d43e1a7) % 101 - 50) / 100,
+            textureOffsetYInTiles: coordinates.latitude
+                + (stableValue(0x64b7f29d) % 101 - 50) / 100,
+        };
+    }
+    static hasScatteredTreeAt(coordinates, river = SurfaceMap.riverAt(coordinates), road = SurfaceMap.roadAt(coordinates)) {
+        return river === null
+            && road === null
+            && coordinates.getSeed() % 21 === 0;
     }
     static roadAt(coordinates) {
         const x = coordinates.latitude;
@@ -266,12 +368,30 @@ export class SurfaceMap {
             return fish === undefined ? null : new ItemType(fish);
         }
         const ordinaryItem = ItemType.getWithSeed(coordinates.getSeed(), 0);
+        if (ordinaryItem !== null && [
+            "highland gate",
+            "dungeon entrance",
+            "shop entrance",
+        ].includes(ordinaryItem.name)) {
+            return ordinaryItem;
+        }
+        if (SurfaceMap.hasBonusGroveHighlandGateAt(coordinates)) {
+            return new ItemType("highland gate");
+        }
         if (ordinaryItem !== null) {
             return ordinaryItem;
         }
         return SurfaceMap.isCampfireAt(coordinates)
             ? new ItemType("campfire")
             : null;
+    }
+    static hasBonusGroveHighlandGateAt(coordinates, forest = SurfaceMap.forestAt(coordinates), river = SurfaceMap.riverAt(coordinates), road = SurfaceMap.roadAt(coordinates)) {
+        if (forest === null
+            || !SurfaceMap.hasForestMossAt(coordinates, forest, river, road)) {
+            return false;
+        }
+        const bonusSeed = SurfaceMap.hash(coordinates.latitude, coordinates.longitude, forest.groveId, 0xe63b91a7);
+        return ItemType.isBonusHighlandEntranceSeed(bonusSeed, 10);
     }
     static isCampfireAt(coordinates) {
         if (SurfaceMap.isRiverAt(coordinates)) {
@@ -567,3 +687,4 @@ SurfaceMap.VERTICAL_ROAD_SPACING = 157;
 SurfaceMap.ROAD_BEND_STEP = 30;
 SurfaceMap.PATH_JUNCTION_STEP = 46;
 SurfaceMap.WANDERING_PATH_BLOCK = 58;
+SurfaceMap.FOREST_REGION_SPACING = 78;

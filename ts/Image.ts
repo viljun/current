@@ -630,13 +630,16 @@ export class Image {
         } else if (name === "forest") {  // quite similar to "tree"
             srcs = [
                 "tree-grounded-olive-v1.png",
-                "tree-grounded-dark-v1.png",
+                "tree-grounded-dark-colorized-photoreal-v2.png",
                 "tree-grounded-broadleaf-v1.png",
                 "tree-grounded-tall-v1.png",
                 "tree-grounded-weathered-v1.png",
             ];
-            dimension = 0.3 + (dimensionSeed % 500) / 170;
-            style = "opacity:" + ((opacitySeed % 100) / 10).toFixed(2) + ";";
+            rotate = 0;
+            dimension = 1.4 + (dimensionSeed % 71) / 100;
+            style = "opacity:"
+                + (.86 + (opacitySeed % 13) / 100).toFixed(2)
+                + ";";
             zIndex = 16;
         } else if (name === "furnace") {
             srcs = [
@@ -1011,7 +1014,7 @@ export class Image {
         } else if (name === "tree") {
             srcs = [
                 "tree-grounded-olive-v1.png",
-                "tree-grounded-dark-v1.png",
+                "tree-grounded-dark-colorized-photoreal-v2.png",
                 "tree-grounded-broadleaf-v1.png",
                 "tree-grounded-tall-v1.png",
                 "tree-grounded-weathered-v1.png",

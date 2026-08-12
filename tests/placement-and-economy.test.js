@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { Coordinates } from "../js/Coordinates.js";
+import { DungeonMap } from "../js/DungeonMap.js";
 import { DUNGEON_AREA, SHOP_AREA, SURFACE_AREA } from "../js/Area.js";
 import { ItemType } from "../js/ItemType.js";
+import { Image } from "../js/Image.js";
 import { Map as GameMap } from "../js/Map.js";
 import { SurfaceMap } from "../js/SurfaceMap.js";
 
@@ -26,6 +28,47 @@ test("progress instructions identify specific item names for detail buttons", ()
             { text: "iron ore", itemName: "iron ore" },
         ],
     );
+});
+
+test("status links cover advanced, plural, and irregular item names", () => {
+    const text = "Spend ancient nails and cracked skulls on a frostbind "
+        + "grimoire, then pack yarrows, bone knives, and a river feast.";
+    const references = GameMap.progressItemReferences(text);
+
+    assert.deepEqual(
+        references.map(reference => ({
+            text: text.slice(
+                reference.start,
+                reference.start + reference.length,
+            ),
+            itemName: reference.itemName,
+        })),
+        [
+            { text: "ancient nails", itemName: "ancient nail" },
+            { text: "cracked skulls", itemName: "cracked skull" },
+            {
+                text: "frostbind grimoire",
+                itemName: "frostbind grimoire",
+            },
+            { text: "yarrows", itemName: "yarrow" },
+            { text: "bone knives", itemName: "bone knife" },
+            { text: "river feast", itemName: "river feast" },
+        ],
+    );
+});
+
+test("the status-link catalog includes every defined recipe and reward", () => {
+    const names = new Set(ItemType.allNames());
+    for (const actionName of ItemType.CRAFTING_ACTIONS) {
+        assert.equal(names.has(actionName), true, actionName);
+        for (const change of new ItemType(actionName).prizes()) {
+            assert.equal(
+                names.has(change.itemType.name),
+                true,
+                actionName + " references missing " + change.itemType.name,
+            );
+        }
+    }
 });
 
 test("entrance seed families map to matching return stairs", () => {
@@ -126,6 +169,80 @@ test("fish live in rivers, worms on land, and campfires stay rare on banks", () 
     assert.ok(campfires > 10 && campfires < 100, campfires);
     assert.ok(campfires * 3 < fish);
     assert.ok(worms >= 1_900 && worms <= 2_000, worms);
+});
+
+test("dungeon lakes hold five times more fish, mostly in deep water", () => {
+    let surfaceWaterCells = 0;
+    let surfaceFish = 0;
+    let dungeonWaterCells = 0;
+    let dungeonFish = 0;
+    let deepFish = 0;
+    let shallowFish = 0;
+    const dungeonSpecies = new Set();
+
+    for (let latitude = -300; latitude <= 300; latitude++) {
+        for (let longitude = -300; longitude <= 300; longitude++) {
+            const coordinates = new Coordinates(latitude, longitude);
+            if (SurfaceMap.isRiverAt(coordinates)) {
+                surfaceWaterCells++;
+                if (ItemType.isRiverFish(
+                    SurfaceMap.itemAt(coordinates)?.name ?? "",
+                )) {
+                    surfaceFish++;
+                }
+            }
+
+            if (DungeonMap.featureAt(coordinates)?.kind !== "moonwell") {
+                continue;
+            }
+            const terrain = DungeonMap.terrainAt(coordinates);
+            if (terrain !== "dungeon moonwell water"
+                && terrain !== "dungeon wet floor"
+            ) {
+                continue;
+            }
+            dungeonWaterCells++;
+            const item = DungeonMap.itemAt(coordinates);
+            assert.equal(item?.isMonster() ?? false, false);
+            if (!ItemType.isRiverFish(item?.name ?? "")) {
+                continue;
+            }
+            dungeonFish++;
+            dungeonSpecies.add(item?.name);
+            if (terrain === "dungeon moonwell water") {
+                deepFish++;
+            } else {
+                shallowFish++;
+            }
+        }
+    }
+
+    const densityRatio = (dungeonFish / dungeonWaterCells)
+        / (surfaceFish / surfaceWaterCells);
+    const expectedDungeonDensity =
+        SurfaceMap.fishDensityPerWaterCell() * 5;
+    assert.ok(
+        Math.abs(
+            dungeonFish / dungeonWaterCells - expectedDungeonDensity,
+        ) < .01,
+        {
+            expectedDungeonDensity,
+            dungeonFish,
+            dungeonWaterCells,
+        },
+    );
+    assert.ok(densityRatio >= 4.4 && densityRatio <= 5.8, {
+        densityRatio,
+        dungeonFish,
+        dungeonWaterCells,
+        surfaceFish,
+        surfaceWaterCells,
+    });
+    assert.ok(deepFish > shallowFish, { deepFish, shallowFish });
+    assert.deepEqual(
+        dungeonSpecies,
+        new Set(ItemType.RIVER_FISH_NAMES),
+    );
 });
 
 test("chests are absent from surface and shop pools but present in dungeon", () => {
@@ -275,6 +392,169 @@ test("surface resource tuning keeps hay and stone sparse", () => {
     );
     assert.ok(stoneAxes >= 1_400 && stoneAxes <= 1_470, stoneAxes);
     assert.ok(stoneAxes >= clubs * 0.85, { clubs, stoneAxes });
+});
+
+test("rare surface forests are dense but keep every trunk out of water", () => {
+    let forestCells = 0;
+    let forestTrees = 0;
+    let riverTrees = 0;
+    let bankTrees = 0;
+    let mossCells = 0;
+    const treeSizes = new Set();
+    const treeOffsetsX = new Set();
+    const treeOffsetsY = new Set();
+    const treeMirrors = new Set();
+    const treeSources = new Set();
+    const mossSizes = new Set();
+    const mossRotations = new Set();
+    const mossOpacities = new Set();
+    const totalCells = 321 * 321;
+
+    for (let latitude = -160; latitude <= 160; latitude++) {
+        for (let longitude = -160; longitude <= 160; longitude++) {
+            const coordinates = new Coordinates(latitude, longitude);
+            const forest = SurfaceMap.forestAt(coordinates);
+            if (forest !== null) {
+                forestCells++;
+            }
+            const isRiver = SurfaceMap.isRiverAt(coordinates);
+            if (isRiver) {
+                assert.equal(
+                    SurfaceMap.hasScatteredTreeAt(coordinates),
+                    false,
+                );
+                assert.equal(
+                    SurfaceMap.hasForestMossAt(coordinates, forest),
+                    false,
+                );
+            }
+            if (SurfaceMap.hasForestMossAt(coordinates, forest)) {
+                mossCells++;
+                const moss = SurfaceMap.forestMossVisualAt(
+                    coordinates,
+                    forest,
+                );
+                assert.deepEqual(
+                    moss,
+                    SurfaceMap.forestMossVisualAt(coordinates, forest),
+                );
+                mossSizes.add(moss.diameterInTiles);
+                mossRotations.add(moss.rotationDegrees);
+                mossOpacities.add(moss.opacity);
+                assert.ok(moss.opacity >= .36 && moss.opacity <= .76, moss);
+            }
+            if (!SurfaceMap.hasForestTreeAt(coordinates, forest)) {
+                continue;
+            }
+            forestTrees++;
+            const visual = SurfaceMap.forestTreeVisualAt(
+                coordinates,
+                forest,
+            );
+            assert.deepEqual(
+                visual,
+                SurfaceMap.forestTreeVisualAt(coordinates, forest),
+            );
+            treeSizes.add(visual.sizeMultiplier);
+            treeOffsetsX.add(visual.offsetXInTiles);
+            treeOffsetsY.add(visual.offsetYInTiles);
+            treeMirrors.add(visual.mirrorX);
+            treeSources.add(
+                Image.getWithItemTypeName(
+                    "forest",
+                    42,
+                    visual.imageSeed,
+                ).src,
+            );
+            if (isRiver) {
+                riverTrees++;
+            }
+            const neighbours = [
+                new Coordinates(latitude - 1, longitude),
+                new Coordinates(latitude + 1, longitude),
+                new Coordinates(latitude, longitude - 1),
+                new Coordinates(latitude, longitude + 1),
+            ];
+            if (neighbours.some(neighbour => SurfaceMap.isRiverAt(neighbour))) {
+                bankTrees++;
+            }
+        }
+    }
+
+    assert.ok(forestCells / totalCells > .008, forestCells);
+    assert.ok(forestCells / totalCells < .04, forestCells);
+    assert.ok(forestTrees / forestCells > .45, {
+        forestCells,
+        forestTrees,
+    });
+    assert.equal(riverTrees, 0);
+    assert.ok(bankTrees > 0, bankTrees);
+    assert.ok(treeSizes.size > 40, treeSizes.size);
+    assert.ok(treeOffsetsX.size > 50, treeOffsetsX.size);
+    assert.ok(treeOffsetsY.size > 40, treeOffsetsY.size);
+    assert.deepEqual([...treeMirrors].sort(), [-1, 1]);
+    assert.ok(treeSources.size >= 4, [...treeSources]);
+    assert.ok(mossCells > forestTrees, { mossCells, forestTrees });
+    assert.ok(mossSizes.size > 40, mossSizes.size);
+    assert.ok(mossRotations.size > 100, mossRotations.size);
+    assert.ok(mossOpacities.size > 30, mossOpacities.size);
+});
+
+test("surface groves add tenfold bonus chances for highland gates", () => {
+    let baseResidues = 0;
+    let bonusResidues = 0;
+    for (let seed = 0; seed < 7_817; seed++) {
+        if (ItemType.isHighlandEntranceSeed(seed)) {
+            baseResidues++;
+        }
+        if (ItemType.isBonusHighlandEntranceSeed(seed, 10)) {
+            bonusResidues++;
+        }
+    }
+    assert.equal(baseResidues, 1);
+    assert.equal(bonusResidues, baseResidues * 10);
+
+    let bonusGates = 0;
+
+    for (let latitude = -300; latitude <= 300; latitude++) {
+        for (let longitude = -300; longitude <= 300; longitude++) {
+            const coordinates = new Coordinates(latitude, longitude);
+            const forest = SurfaceMap.forestAt(coordinates);
+            if (!SurfaceMap.hasForestMossAt(coordinates, forest)) {
+                assert.equal(
+                    SurfaceMap.hasBonusGroveHighlandGateAt(
+                        coordinates,
+                        forest,
+                    ),
+                    false,
+                );
+                continue;
+            }
+            if (!SurfaceMap.hasBonusGroveHighlandGateAt(
+                coordinates,
+                forest,
+            )) {
+                continue;
+            }
+            bonusGates++;
+            assert.equal(SurfaceMap.isRiverAt(coordinates), false);
+            assert.equal(SurfaceMap.roadAt(coordinates), null);
+            const ordinaryItem = ItemType.getWithSeed(
+                coordinates.getSeed(),
+                SURFACE_AREA,
+            );
+            const existingEntrance = ordinaryItem !== null && [
+                "highland gate",
+                "dungeon entrance",
+                "shop entrance",
+            ].includes(ordinaryItem.name);
+            assert.equal(SurfaceMap.itemAt(coordinates)?.name, existingEntrance
+                ? ordinaryItem.name
+                : "highland gate");
+        }
+    }
+
+    assert.ok(bonusGates >= 4, bonusGates);
 });
 
 test("dungeon furnaces are common enough to support early smelting", () => {

@@ -31,15 +31,26 @@
         <button id="inventoryControl" type="button">0 items</button>
         <button id="restartControl" type="button">Restart</button>
         <div
-            id="compassIndicator"
-            role="img"
-            aria-label="North points up"
-            title="North"
+            id="navigationInstrument"
+            role="group"
+            aria-label="Navigation"
         >
-            <span class="compass-arrow" aria-hidden="true"></span>
-            <span class="compass-north" aria-hidden="true">N</span>
+            <div
+                id="compassIndicator"
+                role="img"
+                aria-label="North points up"
+                title="North"
+            >
+                <span class="compass-arrow" aria-hidden="true"></span>
+                <span class="compass-north" aria-hidden="true">N</span>
+            </div>
+            <div class="navigation-gps">
+                <span class="navigation-gps-label" aria-hidden="true">GPS</span>
+                <div id="gpsStatus" role="status" aria-live="polite">
+                    Finding location.
+                </div>
+            </div>
         </div>
-        <div id="gpsStatus" role="status" aria-live="polite">Finding location.</div>
         <div id="map"></div>
     </div>
 

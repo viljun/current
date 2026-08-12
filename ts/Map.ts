@@ -9,6 +9,7 @@ import { EncounterText }  from "./EncounterText.js";
 import { ShopMap }        from "./ShopMap.js";
 import {
     SurfaceMap,
+    type SurfaceForestCell,
     type SurfaceRiverCell,
     type SurfaceRoadCell,
     type SurfaceRoadVisual,
@@ -74,35 +75,6 @@ export interface DungeonSoftTerrainVisual {
 }
 
 export class Map {
-    private static readonly PROGRESS_ITEM_NAMES = [
-        "yarrow poultice",
-        "reinforced shield",
-        "wooden shield",
-        "iron-spiked club",
-        "iron hand axe",
-        "arming sword",
-        "binding rope",
-        "dungeon entrance",
-        "highland gate",
-        "stone axe",
-        "iron ore",
-        "crucible",
-        "furnace",
-        "coin",
-        "hide",
-        "sword",
-        "club",
-        "yarrow",
-        "stone",
-        "stick",
-        "root",
-        "hay",
-        "iron",
-        "rat",
-        "orc",
-        "troll",
-    ] as const;
-
     slidingAnimationInProgress: boolean = false;
     interactionLocked: boolean = false;
     private catFacingX = 1;
@@ -223,7 +195,7 @@ export class Map {
 
         // Inventory is the default whenever the selected location has no action.
         EncounterCard.clear();
-        View.setMessage(this.messageBox, this.progressStatusElement());
+        this.setStatusMessage(this.progressStatusElement());
 
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
@@ -241,6 +213,9 @@ export class Map {
                     : null;
                 const surfaceRoad = areaId === SURFACE_AREA
                     ? SurfaceMap.roadAt(cell_coordinates)
+                    : null;
+                const surfaceForest = areaId === SURFACE_AREA
+                    ? SurfaceMap.forestAt(cell_coordinates)
                     : null;
                 const surfaceItem = areaId === SURFACE_AREA
                     ? SurfaceMap.itemAt(cell_coordinates)
@@ -409,12 +384,67 @@ export class Map {
                         div.append(Image.getWithItemTypeName('grass', this.tile_size, seed).element());
 
                         if (
-                            surfaceItem?.name !== "campfire"
-                            && !surfaceMilestone
+                            surfaceForest !== null
+                            && SurfaceMap.hasForestMossAt(
+                                cell_coordinates,
+                                surfaceForest,
+                                surfaceRiver,
+                                surfaceRoad,
+                            )
                         ) {
+                            this.decorateForestMoss(
+                                div,
+                                cell_coordinates,
+                                surfaceForest,
+                            );
+                        }
+
+                        if (surfaceItem === null && !surfaceMilestone) {
+                            const forestTree = SurfaceMap.hasForestTreeAt(
+                                cell_coordinates,
+                                surfaceForest,
+                            );
                             // Tree.
-                            if (!(seed % 21)) {
-                                div.append(Image.getWithItemTypeName('tree', this.tile_size, seed).element());
+                            if (forestTree && surfaceForest !== null) {
+                                const visual = SurfaceMap.forestTreeVisualAt(
+                                    cell_coordinates,
+                                    surfaceForest,
+                                );
+                                const forestImage = Image.getWithItemTypeName(
+                                    "forest",
+                                    this.tile_size,
+                                    visual.imageSeed,
+                                );
+                                forestImage.dimension *= visual.sizeMultiplier;
+                                const tree = forestImage.element();
+                                const offsetX = visual.offsetXInTiles
+                                    * this.tile_size;
+                                const offsetY = visual.offsetYInTiles
+                                    * this.tile_size;
+                                tree.style.marginLeft = (
+                                    Number.parseFloat(tree.style.marginLeft)
+                                    + offsetX
+                                ) + "px";
+                                tree.style.marginTop = (
+                                    Number.parseFloat(tree.style.marginTop)
+                                    + offsetY
+                                ) + "px";
+                                tree.style.setProperty(
+                                    "--item-mirror",
+                                    String(visual.mirrorX),
+                                );
+                                tree.classList.add("surface-forest-tree");
+                                div.append(tree);
+                            } else if (SurfaceMap.hasScatteredTreeAt(
+                                cell_coordinates,
+                                surfaceRiver,
+                                surfaceRoad,
+                            )) {
+                                div.append(Image.getWithItemTypeName(
+                                    "tree",
+                                    this.tile_size,
+                                    seed,
+                                ).element());
                             }
 
                             // Rock formation.
@@ -559,6 +589,9 @@ export class Map {
                 );
                 if (selected_coordinates !== null && cell_coordinates.equals(selected_coordinates)) {
                     div.classList.add("selected");
+                    if (itemType !== null) {
+                        div.classList.add("selected-item");
+                    }
 
                     // Show "take"-button if item has not been taken.
                     if (isTaken === false
@@ -580,7 +613,7 @@ export class Map {
                                     this,
                                     this.messageBox,
                                 ).element();
-                            View.setMessage(this.messageBox, actionButton);
+                            this.setStatusMessage(actionButton);
                         } else {
                             const isEncounter = itemType.isMonster()
                                 || itemType.name.startsWith("cat ")
@@ -641,8 +674,7 @@ export class Map {
                                 )
                                     ? "buy a spell"
                                     : "take this " + itemType.name;
-                            View.setMessage(
-                                this.messageBox,
+                            this.setStatusMessage(
                                 itemType.isMonster()
                                     ? "Walk closer to capture "
                                         + View.getQuantityText(itemType.name, 1)
@@ -670,6 +702,11 @@ export class Map {
             }
         }
 
+        // Opening an encounter card while its cell is being built focuses item
+        // labels before that cell has been attached to the map. Reapply the
+        // focus after every cell exists so the clicked item is included too.
+        this.focusItemLabels(this.focusedLabelItemName);
+
         // Map is moved - slide it.
         if (previousCoordinates !== null) {
             this.slide({ previous_coordinates: previousCoordinates, tile_size: this.tile_size });
@@ -685,12 +722,16 @@ export class Map {
             itemName: string;
         }[] = [];
         const lowerText = text.toLowerCase();
-        for (const itemName of Map.PROGRESS_ITEM_NAMES) {
+        for (const itemName of ItemType.allNames()) {
             const plural = View.getQuantityText(itemName, 2).replace(
                 /^2\s+/,
                 "",
             );
-            const labels = Array.from(new Set([itemName, plural]));
+            const labels = Array.from(new Set([
+                itemName,
+                plural,
+                ...(itemName === "yarrow" ? ["yarrows"] : []),
+            ]));
             for (const label of labels) {
                 let searchFrom = 0;
                 while (searchFrom < lowerText.length) {
@@ -984,10 +1025,56 @@ export class Map {
         const status = document.createElement("div");
         status.className = "message status-text";
         status.title = text;
+        this.appendLinkedItemText(status, text);
+
+        return status;
+    }
+
+    setStatusMessage(message: string|HTMLDivElement): void {
+        View.setMessage(this.messageBox, message);
+        const content = this.messageBox.querySelector<HTMLDivElement>(
+            ".message",
+        );
+        if (content !== null) {
+            this.linkItemNamesInElement(content);
+        }
+    }
+
+    private linkItemNamesInElement(element: HTMLElement): void {
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+        );
+        const textNodes: Text[] = [];
+        let current = walker.nextNode();
+        while (current !== null) {
+            const parent = current.parentElement;
+            if (current instanceof Text
+                && parent !== null
+                && !parent.closest(
+                    "button, input, select, option, a, .status-item-link",
+                )
+                && Map.progressItemReferences(current.data).length > 0
+            ) {
+                textNodes.push(current);
+            }
+            current = walker.nextNode();
+        }
+        for (const textNode of textNodes) {
+            const fragment = document.createDocumentFragment();
+            this.appendLinkedItemText(fragment, textNode.data);
+            textNode.replaceWith(fragment);
+        }
+    }
+
+    private appendLinkedItemText(
+        container: HTMLElement|DocumentFragment,
+        text: string,
+    ): void {
         const references = Map.progressItemReferences(text);
         let position = 0;
         for (const reference of references) {
-            status.append(document.createTextNode(
+            container.append(document.createTextNode(
                 text.slice(position, reference.start),
             ));
             const button = document.createElement("button");
@@ -1017,12 +1104,10 @@ export class Map {
                     new ItemType(reference.itemName),
                 ),
             );
-            status.append(button);
+            container.append(button);
             position = reference.start + reference.length;
         }
-        status.append(document.createTextNode(text.slice(position)));
-
-        return status;
+        container.append(document.createTextNode(text.slice(position)));
     }
 
     focusItemLabels(itemName: string|null): void {
@@ -1365,6 +1450,49 @@ export class Map {
             + visual.grassRotationDegrees
             + "deg)";
         div.append(grass);
+    }
+
+    private decorateForestMoss(
+        div: HTMLDivElement,
+        coordinates: Coordinates,
+        forest: SurfaceForestCell,
+    ): void {
+        const visual = SurfaceMap.forestMossVisualAt(coordinates, forest);
+        const patch = document.createElement("span");
+        const diameter = visual.diameterInTiles * this.tile_size;
+        const textureSize = visual.textureSizeInTiles * this.tile_size;
+        patch.className = "surface-forest-moss";
+        patch.style.setProperty(
+            "--surface-forest-moss-size",
+            diameter + "px",
+        );
+        patch.style.setProperty(
+            "--surface-forest-moss-offset-x",
+            visual.offsetXInTiles * this.tile_size + "px",
+        );
+        patch.style.setProperty(
+            "--surface-forest-moss-offset-y",
+            visual.offsetYInTiles * this.tile_size + "px",
+        );
+        patch.style.setProperty(
+            "--surface-forest-moss-rotation",
+            visual.rotationDegrees + "deg",
+        );
+        patch.style.setProperty(
+            "--surface-forest-moss-opacity",
+            visual.opacity.toFixed(3),
+        );
+        patch.style.setProperty(
+            "--surface-forest-moss-texture-size",
+            textureSize + "px",
+        );
+        patch.style.setProperty(
+            "--surface-forest-moss-texture-position",
+            visual.textureOffsetXInTiles * this.tile_size + "px "
+                + visual.textureOffsetYInTiles * this.tile_size + "px",
+        );
+        patch.setAttribute("aria-hidden", "true");
+        div.append(patch);
     }
 
     private static positiveModulo(value: number, divisor: number): number {

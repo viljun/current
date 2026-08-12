@@ -1,6 +1,7 @@
 import { Coordinates as GameCoordinates } from "./Coordinates.js";
 import { DUNGEON_AREA } from "./Area.js";
 import { ItemType } from "./ItemType.js";
+import { SurfaceMap } from "./SurfaceMap.js";
 export class DungeonMap {
     static forViewport(cols, rows, center, extraSize) {
         const origin = new GameCoordinates(center.latitude + (rows + 1) / 2 + extraSize, center.longitude - (cols + 1) / 2 - extraSize);
@@ -160,9 +161,18 @@ export class DungeonMap {
         if (specialItem !== null) {
             return specialItem;
         }
-        if (feature.kind === "moonwell"
-            && DungeonMap.terrainAt(coordinates) === "dungeon moonwell water") {
-            return null;
+        if (feature.kind === "moonwell") {
+            const terrain = DungeonMap.terrainAt(coordinates);
+            if (terrain === "dungeon moonwell water"
+                || terrain === "dungeon wet floor") {
+                const fish = DungeonMap.moonwellFishAt(feature, coordinates, terrain === "dungeon moonwell water");
+                if (fish !== null) {
+                    return fish;
+                }
+                // Lake creatures are fish only. Ordinary materials may still
+                // wash into the shallows, but monsters never occupy the water.
+                return (baseItem === null || baseItem === void 0 ? void 0 : baseItem.isMonster()) ? null : baseItem;
+            }
         }
         return baseItem;
     }
@@ -300,6 +310,26 @@ export class DungeonMap {
             return new ItemType("iron ore");
         }
         return seed % 29 === 0 ? new ItemType("ancient nail") : null;
+    }
+    static moonwellFishAt(feature, coordinates, deepWater) {
+        const deepAreaFraction = .62
+            * Math.max(1, feature.radiusX - 2)
+            * Math.max(1, feature.radiusY - 2)
+            / (feature.radiusX * feature.radiusY);
+        const targetDensity = SurfaceMap.fishDensityPerWaterCell() * 5;
+        const desiredDeepFishShare = .72;
+        const density = deepWater
+            ? targetDensity * desiredDeepFishShare / deepAreaFraction
+            : targetDensity * (1 - desiredDeepFishShare)
+                / (1 - deepAreaFraction);
+        const precision = 10000;
+        const placementSeed = DungeonMap.cellSeed(feature, coordinates, 0x4b93d2a7);
+        if (placementSeed % precision >= Math.round(density * precision)) {
+            return null;
+        }
+        const speciesSeed = DungeonMap.cellSeed(feature, coordinates, 0xa61f7c39);
+        const fish = ItemType.RIVER_FISH_NAMES[speciesSeed % ItemType.RIVER_FISH_NAMES.length];
+        return fish === undefined ? null : new ItemType(fish);
     }
     static isFeatureFloorAt(coordinates) {
         return DungeonMap.nearbyFeatures(coordinates).some(feature => {

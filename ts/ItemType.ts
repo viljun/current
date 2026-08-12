@@ -146,6 +146,53 @@ export class ItemType {
         return itemName === "campfire";
     }
 
+    static allNames(): string[] {
+        const names = new Set<string>([
+            "dungeon entrance",
+            "shop entrance",
+            "highland gate",
+            "stairs up",
+            "coin",
+            "stick",
+            "stone",
+            "hay",
+            "root",
+            "iron ore",
+            "iron",
+            "yarrow",
+            "hide",
+            "chest",
+            "treasure",
+            "worm",
+            "calendula",
+            "chamomile",
+            "lavender",
+            "red poppy",
+            "cornflower",
+            "gloamcap mushroom",
+            "river feast",
+            "spell of force",
+            "spell of mending",
+            "spell of warding",
+            ...ItemType.RIVER_FISH_NAMES,
+            ...ItemType.CRAFTING_ACTIONS,
+            ...ItemType.SHOP_TRADES.map(trade => trade.item),
+            ...ItemType.DUNGEON_MONSTERS.map(([, name]) => name),
+            ...ItemType.DUNGEON_MATERIALS.map(([, name]) => name),
+            ...ItemType.DUNGEON_WEAPONS.map(([, name]) => name),
+            ...ItemType.DUNGEON_ACTIONS.map(([, name]) => name),
+            ...BattleSpell.names(),
+            "rat",
+            "orc",
+            "troll",
+        ]);
+
+        return [...names].sort((first, second) =>
+            second.length - first.length
+                || (first < second ? -1 : first > second ? 1 : 0)
+        );
+    }
+
     maximumQuantity(): number|null {
         return ItemType.MAXIMUM_QUANTITIES[this.name] ?? null;
     }
@@ -405,6 +452,16 @@ export class ItemType {
         const remainder = ((seed % modulus) + modulus) % modulus;
 
         return remainder === ItemType.HIGHLAND_ENTRANCE_REMAINDER;
+    }
+
+    static isBonusHighlandEntranceSeed(
+        seed: number,
+        chanceMultiplier: number,
+    ): boolean {
+        const modulus = ItemType.HIGHLAND_ENTRANCE_MODULUS;
+        const remainder = ((seed % modulus) + modulus) % modulus;
+
+        return remainder < Math.max(0, Math.floor(chanceMultiplier));
     }
 
     // Returns

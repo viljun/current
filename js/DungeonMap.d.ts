@@ -29,6 +29,7 @@ export declare class DungeonMap {
     private generate;
     private carveFeatureRooms;
     private static featureItemAt;
+    private static moonwellFishAt;
     private static isFeatureFloorAt;
     private static nearbyFeatures;
     private static featureForChunk;

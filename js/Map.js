@@ -100,7 +100,7 @@ export class Map {
         this.map.setAttribute("style", style);
         // Inventory is the default whenever the selected location has no action.
         EncounterCard.clear();
-        View.setMessage(this.messageBox, this.progressStatusElement());
+        this.setStatusMessage(this.progressStatusElement());
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
             for (let x = 1; x <= this.cols; x++) {
@@ -111,6 +111,9 @@ export class Map {
                     : null;
                 const surfaceRoad = areaId === SURFACE_AREA
                     ? SurfaceMap.roadAt(cell_coordinates)
+                    : null;
+                const surfaceForest = areaId === SURFACE_AREA
+                    ? SurfaceMap.forestAt(cell_coordinates)
                     : null;
                 const surfaceItem = areaId === SURFACE_AREA
                     ? SurfaceMap.itemAt(cell_coordinates)
@@ -212,11 +215,32 @@ export class Map {
                         div.append(Image.getWithItemTypeName('sand', this.tile_size, seed).element());
                         // Grass.
                         div.append(Image.getWithItemTypeName('grass', this.tile_size, seed).element());
-                        if ((surfaceItem === null || surfaceItem === void 0 ? void 0 : surfaceItem.name) !== "campfire"
-                            && !surfaceMilestone) {
+                        if (surfaceForest !== null
+                            && SurfaceMap.hasForestMossAt(cell_coordinates, surfaceForest, surfaceRiver, surfaceRoad)) {
+                            this.decorateForestMoss(div, cell_coordinates, surfaceForest);
+                        }
+                        if (surfaceItem === null && !surfaceMilestone) {
+                            const forestTree = SurfaceMap.hasForestTreeAt(cell_coordinates, surfaceForest);
                             // Tree.
-                            if (!(seed % 21)) {
-                                div.append(Image.getWithItemTypeName('tree', this.tile_size, seed).element());
+                            if (forestTree && surfaceForest !== null) {
+                                const visual = SurfaceMap.forestTreeVisualAt(cell_coordinates, surfaceForest);
+                                const forestImage = Image.getWithItemTypeName("forest", this.tile_size, visual.imageSeed);
+                                forestImage.dimension *= visual.sizeMultiplier;
+                                const tree = forestImage.element();
+                                const offsetX = visual.offsetXInTiles
+                                    * this.tile_size;
+                                const offsetY = visual.offsetYInTiles
+                                    * this.tile_size;
+                                tree.style.marginLeft = (Number.parseFloat(tree.style.marginLeft)
+                                    + offsetX) + "px";
+                                tree.style.marginTop = (Number.parseFloat(tree.style.marginTop)
+                                    + offsetY) + "px";
+                                tree.style.setProperty("--item-mirror", String(visual.mirrorX));
+                                tree.classList.add("surface-forest-tree");
+                                div.append(tree);
+                            }
+                            else if (SurfaceMap.hasScatteredTreeAt(cell_coordinates, surfaceRiver, surfaceRoad)) {
+                                div.append(Image.getWithItemTypeName("tree", this.tile_size, seed).element());
                             }
                             // Rock formation.
                             if (!(seed % 177)) {
@@ -308,6 +332,9 @@ export class Map {
                 const selected_coordinates = Map.interactionCoordinates(this.state);
                 if (selected_coordinates !== null && cell_coordinates.equals(selected_coordinates)) {
                     div.classList.add("selected");
+                    if (itemType !== null) {
+                        div.classList.add("selected-item");
+                    }
                     // Show "take"-button if item has not been taken.
                     if (isTaken === false
                         && item_taking_summary !== null // to satisfy ts compiler
@@ -317,7 +344,7 @@ export class Map {
                             const actionButton = itemType.isMonster()
                                 ? new FightMonsterButton(item_taking_summary, this.inventory, selected_coordinates, this).element()
                                 : new TakeItemButton(item_taking_summary, this.inventory, selected_coordinates, this, this.messageBox).element();
-                            View.setMessage(this.messageBox, actionButton);
+                            this.setStatusMessage(actionButton);
                         }
                         else {
                             const isEncounter = itemType.isMonster()
@@ -348,7 +375,7 @@ export class Map {
                                 : itemType.name.startsWith("magician selling ")
                                     ? "buy a spell"
                                     : "take this " + itemType.name;
-                            View.setMessage(this.messageBox, itemType.isMonster()
+                            this.setStatusMessage(itemType.isMonster()
                                 ? "Walk closer to capture "
                                     + View.getQuantityText(itemType.name, 1)
                                     + "."
@@ -371,6 +398,10 @@ export class Map {
                 this.map.append(div);
             }
         }
+        // Opening an encounter card while its cell is being built focuses item
+        // labels before that cell has been attached to the map. Reapply the
+        // focus after every cell exists so the clicked item is included too.
+        this.focusItemLabels(this.focusedLabelItemName);
         // Map is moved - slide it.
         if (previousCoordinates !== null) {
             this.slide({ previous_coordinates: previousCoordinates, tile_size: this.tile_size });
@@ -380,9 +411,13 @@ export class Map {
         var _a, _b;
         const candidates = [];
         const lowerText = text.toLowerCase();
-        for (const itemName of Map.PROGRESS_ITEM_NAMES) {
+        for (const itemName of ItemType.allNames()) {
             const plural = View.getQuantityText(itemName, 2).replace(/^2\s+/, "");
-            const labels = Array.from(new Set([itemName, plural]));
+            const labels = Array.from(new Set([
+                itemName,
+                plural,
+                ...(itemName === "yarrow" ? ["yarrows"] : []),
+            ]));
             for (const label of labels) {
                 let searchFrom = 0;
                 while (searchFrom < lowerText.length) {
@@ -560,10 +595,41 @@ export class Map {
         const status = document.createElement("div");
         status.className = "message status-text";
         status.title = text;
+        this.appendLinkedItemText(status, text);
+        return status;
+    }
+    setStatusMessage(message) {
+        View.setMessage(this.messageBox, message);
+        const content = this.messageBox.querySelector(".message");
+        if (content !== null) {
+            this.linkItemNamesInElement(content);
+        }
+    }
+    linkItemNamesInElement(element) {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        const textNodes = [];
+        let current = walker.nextNode();
+        while (current !== null) {
+            const parent = current.parentElement;
+            if (current instanceof Text
+                && parent !== null
+                && !parent.closest("button, input, select, option, a, .status-item-link")
+                && Map.progressItemReferences(current.data).length > 0) {
+                textNodes.push(current);
+            }
+            current = walker.nextNode();
+        }
+        for (const textNode of textNodes) {
+            const fragment = document.createDocumentFragment();
+            this.appendLinkedItemText(fragment, textNode.data);
+            textNode.replaceWith(fragment);
+        }
+    }
+    appendLinkedItemText(container, text) {
         const references = Map.progressItemReferences(text);
         let position = 0;
         for (const reference of references) {
-            status.append(document.createTextNode(text.slice(position, reference.start)));
+            container.append(document.createTextNode(text.slice(position, reference.start)));
             const button = document.createElement("button");
             button.type = "button";
             button.className = "status-item-link";
@@ -578,11 +644,10 @@ export class Map {
                 longitude: this.state.coordinates.longitude,
                 areaId: this.inventory.getAreaId(),
             }, button, this.inventory.countItems(new ItemType(reference.itemName)));
-            status.append(button);
+            container.append(button);
             position = reference.start + reference.length;
         }
-        status.append(document.createTextNode(text.slice(position)));
-        return status;
+        container.append(document.createTextNode(text.slice(position)));
     }
     focusItemLabels(itemName) {
         var _a;
@@ -777,6 +842,23 @@ export class Map {
             + "deg)";
         div.append(grass);
     }
+    decorateForestMoss(div, coordinates, forest) {
+        const visual = SurfaceMap.forestMossVisualAt(coordinates, forest);
+        const patch = document.createElement("span");
+        const diameter = visual.diameterInTiles * this.tile_size;
+        const textureSize = visual.textureSizeInTiles * this.tile_size;
+        patch.className = "surface-forest-moss";
+        patch.style.setProperty("--surface-forest-moss-size", diameter + "px");
+        patch.style.setProperty("--surface-forest-moss-offset-x", visual.offsetXInTiles * this.tile_size + "px");
+        patch.style.setProperty("--surface-forest-moss-offset-y", visual.offsetYInTiles * this.tile_size + "px");
+        patch.style.setProperty("--surface-forest-moss-rotation", visual.rotationDegrees + "deg");
+        patch.style.setProperty("--surface-forest-moss-opacity", visual.opacity.toFixed(3));
+        patch.style.setProperty("--surface-forest-moss-texture-size", textureSize + "px");
+        patch.style.setProperty("--surface-forest-moss-texture-position", visual.textureOffsetXInTiles * this.tile_size + "px "
+            + visual.textureOffsetYInTiles * this.tile_size + "px");
+        patch.setAttribute("aria-hidden", "true");
+        div.append(patch);
+    }
     static positiveModulo(value, divisor) {
         return ((value % divisor) + divisor) % divisor;
     }
@@ -890,31 +972,3 @@ export class Map {
         return div;
     }
 }
-Map.PROGRESS_ITEM_NAMES = [
-    "yarrow poultice",
-    "reinforced shield",
-    "wooden shield",
-    "iron-spiked club",
-    "iron hand axe",
-    "arming sword",
-    "binding rope",
-    "dungeon entrance",
-    "highland gate",
-    "stone axe",
-    "iron ore",
-    "crucible",
-    "furnace",
-    "coin",
-    "hide",
-    "sword",
-    "club",
-    "yarrow",
-    "stone",
-    "stick",
-    "root",
-    "hay",
-    "iron",
-    "rat",
-    "orc",
-    "troll",
-];

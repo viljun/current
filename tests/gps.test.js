@@ -3,13 +3,28 @@ import test from "node:test";
 
 import { Coordinates } from "../js/Coordinates.js";
 import {
+    DUNGEON_AREA,
+    HIGHLAND_AREA,
+    SHOP_AREA,
+    SURFACE_AREA,
+} from "../js/Area.js";
+import {
     gpsHysteresisMeters,
     gpsTakingRangeMeters,
     shouldAdoptGpsCoordinates,
+    shouldExitAreaAtWall,
 } from "../js/GameController.js";
 import { Map as GameMap } from "../js/Map.js";
 
 const LOCATION = new Coordinates(608_923, 251_498);
+
+test("walls exit every interior area instead of blocking movement", () => {
+    assert.equal(shouldExitAreaAtWall(DUNGEON_AREA, true), true);
+    assert.equal(shouldExitAreaAtWall(SHOP_AREA, true), true);
+    assert.equal(shouldExitAreaAtWall(HIGHLAND_AREA, true), true);
+    assert.equal(shouldExitAreaAtWall(SURFACE_AREA, true), false);
+    assert.equal(shouldExitAreaAtWall(HIGHLAND_AREA, false), false);
+});
 
 function mapWithState(state) {
     const map = Object.create(GameMap.prototype);

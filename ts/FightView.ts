@@ -1083,8 +1083,7 @@ export class FightView {
         if (state.status === "won") {
             this.applyVictory();
         } else {
-            View.setMessage(
-                this.map.messageBox,
+            this.map.setStatusMessage(
                 "Defeated. Gather yarrows or stronger gear, then retry.",
             );
             void sweep.then(() => this.showDefeatAdvice());

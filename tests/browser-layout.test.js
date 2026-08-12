@@ -170,12 +170,32 @@ test(
                 matchingLabelCount:
                     layout.message.itemToggle.matchingLabelCount,
                 onlyMatchingLabels: true,
+                visibleLabelsWhenUnchecked: 0,
                 closes: true,
                 expandedWhenClosed: "false",
                 focusModeWhenClosed: false,
                 visibleLabelsAfterClose: layout.labels.count,
             });
             assert.ok(layout.message.itemToggle.focusedType.length > 0);
+            assert.equal(layout.labels.clickedItemLabel.found, true);
+            assert.equal(layout.labels.clickedItemLabel.visible, true);
+            assert.ok(layout.labels.clickedItemLabel.itemName.length > 0);
+            assert.deepEqual(layout.labels.clickedItemOwned, {
+                text: "Owned: 0",
+                followsTitle: true,
+            });
+            assert.deepEqual(layout.labels.clickedItemSelection, {
+                hasItemSelectionClass: true,
+                tileOutline: "none",
+                ringContent: '\"\"',
+                ringBorderStyle: "solid",
+                ringWidth: layout.labels.clickedItemSelection.ringWidth,
+            });
+            assert.ok(
+                Number.parseFloat(layout.labels.clickedItemSelection.ringWidth)
+                    > 0,
+            );
+            assert.equal(layout.labels.visibleDuringFocusWhenUnchecked, 0);
             assert.ok(
                 layout.message.encounterState.barHeight
                     >= layout.message.heightWithoutButton,
@@ -279,15 +299,46 @@ test(
                 checkedAfter: true,
                 enabledAfter: true,
                 visibleAfter: layout.labels.count,
+                clickedItemLabel: {
+                    found: true,
+                    visible: true,
+                    itemName: layout.labels.clickedItemLabel.itemName,
+                },
+                clickedItemSelection: {
+                    hasItemSelectionClass: true,
+                    tileOutline: "none",
+                    ringContent: '\"\"',
+                    ringBorderStyle: "solid",
+                    ringWidth: layout.labels.clickedItemSelection.ringWidth,
+                },
+                clickedItemOwned: {
+                    text: "Owned: 0",
+                    followsTitle: true,
+                },
+                visibleDuringFocusWhenUnchecked: 0,
             });
+            assert.ok(layout.labels.clickedItemLabel.itemName.length > 0);
+            assert.equal(layout.navigation.label, "Navigation");
             assert.ok(
-                layout.compass.rectangle.bottom < layout.gps.rectangle.top,
-                viewport.name + " compass does not sit above GPS status",
+                layout.compass.rectangle.right < layout.gps.rectangle.left,
+                viewport.name + " compass does not sit beside GPS status",
             );
-            assert.ok(layout.compass.rectangle.left >= 0);
             assert.ok(
-                layout.compass.rectangle.right <= viewport.width,
-                viewport.name + " compass extends outside the viewport",
+                layout.compass.rectangle.left
+                    >= layout.navigation.rectangle.left,
+            );
+            assert.ok(
+                layout.gps.rectangle.right <= layout.navigation.rectangle.right,
+                viewport.name + " GPS status extends outside its instrument",
+            );
+            assert.ok(
+                layout.navigation.rectangle.left >= 0
+                    && layout.navigation.rectangle.right <= viewport.width,
+                viewport.name + " navigation instrument leaves the viewport",
+            );
+            assert.ok(
+                layout.navigation.rectangle.bottom <= viewport.height,
+                viewport.name + " navigation instrument leaves the viewport",
             );
 
             for (const [name, dialog] of Object.entries(layout.dialogs)) {

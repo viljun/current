@@ -866,7 +866,7 @@ export class Inventory {
                 continue;
             }
             const coordinates = new Coordinates(origin.latitude, origin.longitude);
-            const action = (_a = ItemType.getWithSeed(coordinates.getSeed(), 0)) === null || _a === void 0 ? void 0 : _a.name;
+            const action = (_a = SurfaceMap.itemAt(coordinates)) === null || _a === void 0 ? void 0 : _a.name;
             if (action === "dungeon entrance") {
                 areaId = 1;
             }

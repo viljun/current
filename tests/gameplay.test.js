@@ -38,7 +38,7 @@ function changesFor(itemName) {
     }));
 }
 
-test("dungeon and shop entrances always return through the same coordinate", () => {
+test("area entrances always return through the same coordinate", () => {
     const entrances = [
         {
             coordinates: new Coordinates(20, 304),
@@ -50,10 +50,27 @@ test("dungeon and shop entrances always return through the same coordinate", () 
             entrance: "shop entrance",
             area: 2,
         },
+        {
+            coordinates: new Coordinates(-277, -43),
+            entrance: "highland gate",
+            area: 3,
+            bonusGroveGate: true,
+        },
     ];
 
-    for (const { coordinates, entrance, area } of entrances) {
+    for (const {
+        coordinates,
+        entrance,
+        area,
+        bonusGroveGate = false,
+    } of entrances) {
         localStorage.clear();
+        if (bonusGroveGate) {
+            assert.equal(
+                SurfaceMap.hasBonusGroveHighlandGateAt(coordinates),
+                true,
+            );
+        }
         const inventory = new Inventory();
         assert.equal(inventory.takeItem(coordinates)?.itemType.name, entrance);
         assert.equal(inventory.getAreaId(), area);

@@ -11,6 +11,27 @@ export interface SurfaceRiverVisual {
     textureOffsetXInTiles: number;
     textureOffsetYInTiles: number;
 }
+export interface SurfaceForestCell {
+    groveId: number;
+    depth: number;
+}
+export interface SurfaceForestTreeVisual {
+    imageSeed: number;
+    sizeMultiplier: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    mirrorX: -1 | 1;
+}
+export interface SurfaceForestMossVisual {
+    diameterInTiles: number;
+    rotationDegrees: number;
+    offsetXInTiles: number;
+    offsetYInTiles: number;
+    opacity: number;
+    textureSizeInTiles: number;
+    textureOffsetXInTiles: number;
+    textureOffsetYInTiles: number;
+}
 export type SurfaceRoadSurface = "sand" | "gravel" | "cobble" | "stone" | "dust" | "mud";
 export interface SurfaceRoadCell {
     kind: "road" | "path";
@@ -58,8 +79,16 @@ export declare class SurfaceMap {
     private static readonly ROAD_BEND_STEP;
     private static readonly PATH_JUNCTION_STEP;
     private static readonly WANDERING_PATH_BLOCK;
+    private static readonly FOREST_REGION_SPACING;
+    static fishDensityPerWaterCell(): number;
     static riverAt(coordinates: Coordinates): SurfaceRiverCell | null;
     static isRiverAt(coordinates: Coordinates): boolean;
+    static forestAt(coordinates: Coordinates): SurfaceForestCell | null;
+    static hasForestTreeAt(coordinates: Coordinates, forest?: SurfaceForestCell | null): boolean;
+    static forestTreeVisualAt(coordinates: Coordinates, forest: SurfaceForestCell): SurfaceForestTreeVisual;
+    static hasForestMossAt(coordinates: Coordinates, forest?: SurfaceForestCell | null, river?: SurfaceRiverCell | null, road?: SurfaceRoadCell | null): boolean;
+    static forestMossVisualAt(coordinates: Coordinates, forest: SurfaceForestCell): SurfaceForestMossVisual;
+    static hasScatteredTreeAt(coordinates: Coordinates, river?: SurfaceRiverCell | null, road?: SurfaceRoadCell | null): boolean;
     static roadAt(coordinates: Coordinates): SurfaceRoadCell | null;
     static roadVisualAt(coordinates: Coordinates, road: SurfaceRoadCell): SurfaceRoadVisual;
     static pathPatchVisualsAt(coordinates: Coordinates, road: SurfaceRoadCell): readonly SurfacePathPatchVisual[];
@@ -67,6 +96,7 @@ export declare class SurfaceMap {
     static milestoneAt(coordinates: Coordinates): boolean;
     private static milestoneRouteAt;
     static itemAt(coordinates: Coordinates): ItemType | null;
+    static hasBonusGroveHighlandGateAt(coordinates: Coordinates, forest?: SurfaceForestCell | null, river?: SurfaceRiverCell | null, road?: SurfaceRoadCell | null): boolean;
     static isCampfireAt(coordinates: Coordinates): boolean;
     static riverVisualAt(coordinates: Coordinates, river: SurfaceRiverCell): SurfaceRiverVisual;
     private static roadsidePathAt;

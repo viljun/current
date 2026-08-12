@@ -1,6 +1,7 @@
 import { Coordinates } from "./Coordinates.js";
 import { ItemType } from "./ItemType.js";
 import { BattleSpell } from "./BattleSpell.js";
+import { SurfaceMap } from "./SurfaceMap.js";
 /**
  * Deterministic highland terrain with continuous ridges and rare fortresses.
  */
@@ -41,7 +42,8 @@ export class HighlandMap {
             + " Castle";
     }
     static hasWallAt(coordinates) {
-        if (ItemType.isHighlandEntranceSeed(coordinates.getSeed())) {
+        var _a;
+        if (((_a = SurfaceMap.itemAt(coordinates)) === null || _a === void 0 ? void 0 : _a.name) === "highland gate") {
             return false;
         }
         const castle = HighlandMap.castleAt(coordinates);
@@ -81,8 +83,8 @@ export class HighlandMap {
         return seed % 29 === 0 ? "rock formation" : null;
     }
     static itemAt(coordinates) {
-        const seed = coordinates.getSeed();
-        if (ItemType.isHighlandEntranceSeed(seed)) {
+        var _a;
+        if (((_a = SurfaceMap.itemAt(coordinates)) === null || _a === void 0 ? void 0 : _a.name) === "highland gate") {
             return new ItemType("stairs up");
         }
         if (HighlandMap.hasWallAt(coordinates)) {

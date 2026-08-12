@@ -7,6 +7,7 @@ export interface MapLayout {
     marginLeft: number;
     marginTop: number;
 }
+export declare function shouldExitAreaAtWall(areaId: number, wall: boolean): boolean;
 export declare function gpsTakingRangeMeters(accuracyMeters: number): number;
 export declare function gpsHysteresisMeters(accuracyMeters: number): number;
 export declare function shouldAdoptGpsCoordinates(current: Coordinates | null, candidate: Coordinates, accuracyMeters: number): boolean;

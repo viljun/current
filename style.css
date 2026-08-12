@@ -60,7 +60,7 @@ body {
     text-shadow: 0 1px 2px #000;
 }
 .map-labels-enabled:not(.map-labels-item-focus) .map-item-label,
-.map-labels-item-focus .map-item-label--item-focus {
+.map-labels-enabled.map-labels-item-focus .map-item-label--item-focus {
     display: block;
 }
 .map-item-label-arrow {
@@ -175,6 +175,47 @@ body {
 .surface-river--tributary::before {
     filter: saturate(.78) brightness(.95) contrast(1.05);
     opacity: .96;
+}
+.surface-forest-moss {
+    position: absolute;
+    z-index: 11;
+    top: calc(50% + var(--surface-forest-moss-offset-y));
+    left: calc(50% + var(--surface-forest-moss-offset-x));
+    width: var(--surface-forest-moss-size);
+    height: var(--surface-forest-moss-size);
+    border-radius: 50%;
+    background-color: #31542c;
+    background-image:
+        url(images/highland-jungle-floor-medieval-photoreal-v1.png);
+    background-position: var(--surface-forest-moss-texture-position);
+    background-repeat: repeat;
+    background-size: var(--surface-forest-moss-texture-size);
+    background-blend-mode: multiply;
+    filter: brightness(.78) saturate(.9) contrast(.96);
+    opacity: var(--surface-forest-moss-opacity);
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--surface-forest-moss-rotation));
+    transform-origin: center;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(
+        ellipse,
+        #000 0 34%,
+        rgba(0, 0, 0, .82) 49%,
+        rgba(0, 0, 0, .46) 65%,
+        rgba(0, 0, 0, .2) 79%,
+        rgba(0, 0, 0, .06) 91%,
+        transparent 100%
+    );
+    mask-image: radial-gradient(
+        ellipse,
+        #000 0 34%,
+        rgba(0, 0, 0, .82) 49%,
+        rgba(0, 0, 0, .46) 65%,
+        rgba(0, 0, 0, .2) 79%,
+        rgba(0, 0, 0, .06) 91%,
+        transparent 100%
+    );
 }
 .cell.surface-road,
 .origin-artwork-cell.surface-road {
@@ -571,6 +612,32 @@ body {
     outline: 3px solid #ffd65a;
     outline-offset: -3px;
 }
+.cell.selected.selected-item {
+    position: relative;
+    outline: none;
+}
+.cell.selected.selected-item::after {
+    content: "";
+    position: absolute;
+    z-index: 18;
+    top: 62%;
+    left: 50%;
+    width: 72%;
+    height: 25%;
+    border: 2px solid rgba(239, 190, 91, 0.78);
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse,
+        rgba(243, 190, 75, 0.14) 0%,
+        rgba(243, 190, 75, 0.08) 48%,
+        rgba(243, 190, 75, 0) 74%
+    );
+    box-shadow:
+        0 0 0 1px rgba(104, 66, 20, 0.34),
+        0 0 8px rgba(255, 202, 88, 0.38);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
 #messageBox {
     position: relative;
     flex: none;
@@ -673,29 +740,40 @@ body {
     background: rgba(80, 55, 0, 0.9);
     color: #ffe173;
 }
-#gpsStatus {
+#navigationInstrument {
     position: absolute;
     left: 0.75rem;
     bottom: 0.75rem;
     z-index: 9999;
-    padding: 0.5rem 0.65rem;
-    border-radius: 0.5rem;
-    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: stretch;
+    max-width: calc(100% - 9rem);
+    min-height: 3.05rem;
+    padding: 0.28rem 0.65rem 0.28rem 0.28rem;
+    border: 1px solid rgba(214, 180, 101, 0.58);
+    border-radius: 0.72rem;
+    background:
+        linear-gradient(
+            112deg,
+            rgba(65, 50, 31, 0.96),
+            rgba(19, 20, 17, 0.96) 62%,
+            rgba(10, 12, 10, 0.97)
+        );
+    box-shadow:
+        0 0.2rem 0.45rem rgba(0, 0, 0, 0.58),
+        inset 0 0 0 1px rgba(247, 219, 145, 0.1);
     color: white;
     font-family: sans-serif;
-    font-size: 0.9rem;
-    line-height: 1.25;
     pointer-events: none;
 }
 #compassIndicator {
     --compass-rotation: 0deg;
-    position: absolute;
-    left: 0.75rem;
-    bottom: 3.35rem;
-    z-index: 9998;
+    position: relative;
+    flex: 0 0 auto;
+    align-self: center;
     width: 2.45rem;
     height: 2.45rem;
-    border: 2px solid rgba(255, 255, 255, 0.58);
+    border: 1px solid rgba(233, 207, 144, 0.72);
     border-radius: 50%;
     background:
         radial-gradient(
@@ -707,6 +785,29 @@ body {
         0 0.18rem 0.35rem rgba(0, 0, 0, 0.52),
         inset 0 0 0 1px rgba(217, 189, 106, 0.22);
     color: #f1e4bd;
+    pointer-events: none;
+}
+.navigation-gps {
+    display: grid;
+    grid-template-rows: auto auto;
+    align-content: center;
+    min-width: 0;
+    margin-left: 0.48rem;
+    padding-left: 0.58rem;
+    border-left: 1px solid rgba(217, 189, 106, 0.34);
+}
+.navigation-gps-label {
+    color: #d9bd75;
+    font: 800 0.58rem/1 sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+#gpsStatus {
+    min-width: 0;
+    padding-top: 0.13rem;
+    color: #f5f0e3;
+    font: 600 0.9rem/1.15 sans-serif;
+    overflow-wrap: anywhere;
     pointer-events: none;
 }
 .compass-arrow {
@@ -1849,6 +1950,7 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     display: inline-flex;
     align-items: center;
     min-height: 1.45rem;
+    margin: -0.15rem 0 0.5rem;
     padding: 0.16rem 0.5rem;
     border: 1px solid rgba(217, 189, 106, 0.48);
     border-radius: 999px;
@@ -1856,6 +1958,9 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     color: #ffe9a6;
     font: 700 0.74rem/1 sans-serif;
     white-space: nowrap;
+}
+.encounter-card-owned + .encounter-card-details {
+    margin-top: 0;
 }
 .encounter-card-description {
     display: block;
@@ -2424,22 +2529,19 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
     #inventoryControl {
         bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 13rem);
     }
-    #gpsStatus {
+    #navigationInstrument {
         left: max(0.45rem, env(safe-area-inset-left));
         bottom: max(0.45rem, env(safe-area-inset-bottom));
         max-width: calc(100% - 8rem);
-        min-height: 2.5rem;
-        display: flex;
-        align-items: center;
-        padding: 0.55rem 0.7rem;
-        font-size: 0.95rem;
-        overflow: hidden;
-        text-overflow: clip;
-        white-space: nowrap;
+        min-height: 3rem;
+        padding: 0.25rem 0.55rem 0.25rem 0.25rem;
     }
     #compassIndicator {
-        left: max(0.45rem, env(safe-area-inset-left));
-        bottom: calc(max(0.45rem, env(safe-area-inset-bottom)) + 3rem);
+        width: 2.4rem;
+        height: 2.4rem;
+    }
+    #gpsStatus {
+        font-size: 0.95rem;
     }
     .fight-overlay {
         padding: 0;

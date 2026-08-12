@@ -110,6 +110,14 @@
                     rectangle: rectangle(document.getElementById("gpsStatus")),
                     fontSize: fontSize(document.getElementById("gpsStatus")),
                 },
+                navigation: {
+                    rectangle: rectangle(
+                        document.getElementById("navigationInstrument"),
+                    ),
+                    label: document
+                        .getElementById("navigationInstrument")
+                        .getAttribute("aria-label"),
+                },
                 compass: {
                     rectangle: rectangle(
                         document.getElementById("compassIndicator"),
@@ -178,6 +186,12 @@
                         label.dataset.itemName === itemLink.dataset.itemName
                     ),
                 };
+                labelsSwitch.click();
+                measurement.message.itemToggle.visibleLabelsWhenUnchecked =
+                    mapLabels.filter(label =>
+                        window.getComputedStyle(label).display !== "none"
+                    ).length;
+                labelsSwitch.click();
                 itemLink.click();
                 measurement.message.itemToggle.closes =
                     encounterCard.hidden === true;
@@ -189,6 +203,54 @@
                     mapLabels.filter(label =>
                         window.getComputedStyle(label).display !== "none"
                     ).length;
+            }
+
+            const labelledItemCell = document.querySelector(
+                ".cell.map-item-labelled",
+            );
+            if (labelledItemCell instanceof window.HTMLElement) {
+                labelledItemCell.click();
+                const selectedItemLabel = document.querySelector(
+                    ".cell.selected .map-item-label--item-focus",
+                );
+                measurement.labels.clickedItemLabel = {
+                    found: selectedItemLabel !== null,
+                    visible: selectedItemLabel !== null
+                        && window.getComputedStyle(selectedItemLabel).display
+                            !== "none",
+                    itemName: selectedItemLabel?.dataset.itemName ?? "",
+                };
+                const clickedItemOwned = encounterCard.querySelector(
+                    ".encounter-card-owned",
+                );
+                measurement.labels.clickedItemOwned = {
+                    text: clickedItemOwned?.textContent ?? "",
+                    followsTitle: clickedItemOwned?.previousElementSibling
+                        ?.classList.contains("encounter-card-title") ?? false,
+                };
+                const selectedItemCell = document.querySelector(
+                    ".cell.selected.selected-item",
+                );
+                const selectionRing = selectedItemCell === null
+                    ? null
+                    : window.getComputedStyle(selectedItemCell, "::after");
+                measurement.labels.clickedItemSelection = {
+                    hasItemSelectionClass: selectedItemCell !== null,
+                    tileOutline: selectedItemCell === null
+                        ? ""
+                        : window.getComputedStyle(selectedItemCell).outlineStyle,
+                    ringContent: selectionRing?.content ?? "",
+                    ringBorderStyle: selectionRing?.borderStyle ?? "",
+                    ringWidth: selectionRing?.width ?? "",
+                };
+                labelsSwitch.click();
+                measurement.labels.visibleDuringFocusWhenUnchecked = [
+                    ...document.querySelectorAll(".map-item-label"),
+                ].filter(label =>
+                    window.getComputedStyle(label).display !== "none"
+                ).length;
+                labelsSwitch.click();
+                encounterCard.querySelector(".encounter-card-close")?.click();
             }
             const buttonMessage = document.createElement("div");
             buttonMessage.className = "message";

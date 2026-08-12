@@ -766,7 +766,7 @@ export class FightView {
             this.applyVictory();
         }
         else {
-            View.setMessage(this.map.messageBox, "Defeated. Gather yarrows or stronger gear, then retry.");
+            this.map.setStatusMessage("Defeated. Gather yarrows or stronger gear, then retry.");
             void sweep.then(() => this.showDefeatAdvice());
         }
         const board = this.overlay.querySelector(".fight-board");

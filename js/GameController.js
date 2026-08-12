@@ -1,10 +1,13 @@
 import { Coordinates } from "./Coordinates.js";
-import { HIGHLAND_AREA } from "./Area.js";
+import { SURFACE_AREA } from "./Area.js";
 import { Effects } from "./Effects.js";
 import { EncounterCard } from "./EncounterCard.js";
 import { Inventory } from "./Inventory.js";
 import { ACCURACY_MULTIPLIER, Map } from "./Map.js";
 import { View } from "./View.js";
+export function shouldExitAreaAtWall(areaId, wall) {
+    return areaId !== SURFACE_AREA && wall;
+}
 const MIN_GPS_TAKING_RANGE_METERS = 15;
 const MAX_GPS_TAKING_RANGE_METERS = 50;
 const MIN_GPS_HYSTERESIS_METERS = 6;
@@ -248,13 +251,7 @@ export class GameController {
             this.state.selectedCoordinates = null;
         }
         const previousCoordinates = this.state.coordinates;
-        if (this.inventory.getAreaId() === HIGHLAND_AREA
-            && this.map.isWallAt(coordinates)) {
-            this.map.show({});
-            View.setMessage(this.messageBox, "The mountain face is impassable. Find another way around.");
-            return;
-        }
-        if (this.inventory.getAreaId() !== 0 && this.map.isWallAt(coordinates)) {
+        if (shouldExitAreaAtWall(this.inventory.getAreaId(), this.map.isWallAt(coordinates))) {
             this.state.coordinates = coordinates;
             if (this.state.exploreMode) {
                 this.saveExploreCoordinates();

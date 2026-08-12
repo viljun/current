@@ -30,7 +30,6 @@ export interface DungeonSoftTerrainVisual {
     opacity: number;
 }
 export declare class Map {
-    private static readonly PROGRESS_ITEM_NAMES;
     slidingAnimationInProgress: boolean;
     interactionLocked: boolean;
     private catFacingX;
@@ -69,6 +68,9 @@ export declare class Map {
     private static itemLabelSeed;
     private decorateItemLabel;
     private progressStatusElement;
+    setStatusMessage(message: string | HTMLDivElement): void;
+    private linkItemNamesInElement;
+    private appendLinkedItemText;
     focusItemLabels(itemName: string | null): void;
     private animateCatVisual;
     isWithinTakingRange(coordinates: Coordinates): boolean;
@@ -81,6 +83,7 @@ export declare class Map {
     private decorateRoadCell;
     private decoratePathPatches;
     private decorateRoadGrass;
+    private decorateForestMoss;
     private static positiveModulo;
     private static shopOutsideDecoration;
     private static decorationSeed;
