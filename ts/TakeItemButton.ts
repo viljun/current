@@ -68,7 +68,10 @@ export class TakeItemButton {
         }
         button.setAttribute("value", takeButtonText.buttonText);
         button.onclick = () => {
-            if (!this.map.isWithinTakingRange(this.selected_coordinates)) {
+            if (!this.map.isWithinTakingRange(
+                this.selected_coordinates,
+                this.item_taking_summary.itemType,
+            )) {
                 this.map.show({});
 
                 return;

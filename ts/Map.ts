@@ -1,5 +1,5 @@
 export const ACCURACY_MULTIPLIER = 10_000;
-export const ITEM_TAKING_RANGE = 1;
+export const ITEM_TAKING_RANGE = 3;
 
 import { Coordinates }    from "./Coordinates.js";
 import { DungeonMap }     from "./DungeonMap.js";
@@ -94,7 +94,18 @@ export class Map {
     private readonly state: MapState;
     tile_size: number;
     private readonly onCellSelected: (coordinates: Coordinates) => void;
+    private readonly onExploreMoveRequested: (coordinates: Coordinates) => void;
     private readonly onInteractionUnlocked: () => void;
+    private dragState: {
+        pointerId: number;
+        startX: number;
+        startY: number;
+        active: boolean;
+        targetCell: HTMLDivElement|null;
+    }|null = null;
+    private suppressNextCellClick = false;
+
+    private static readonly PLAYER_DRAG_THRESHOLD_PIXELS = 8;
 
     static coordinatesAtCell(
         center: Coordinates,
@@ -123,7 +134,7 @@ export class Map {
         if (state.selectedCoordinates !== null) {
             return state.selectedCoordinates;
         }
-        if (!state.exploreMode && state.takingRangeMeters !== null) {
+        if (state.exploreMode || state.takingRangeMeters !== null) {
             return state.coordinates;
         }
 
@@ -139,6 +150,7 @@ export class Map {
         state: MapState,
         tile_size: number,
         onCellSelected: (coordinates: Coordinates) => void,
+        onExploreMoveRequested: (coordinates: Coordinates) => void,
         onInteractionUnlocked: () => void,
     ) {
         this.map = map;
@@ -149,6 +161,7 @@ export class Map {
         this.state = state;
         this.tile_size = tile_size;
         this.onCellSelected = onCellSelected;
+        this.onExploreMoveRequested = onExploreMoveRequested;
         this.onInteractionUnlocked = onInteractionUnlocked;
     }
 
@@ -598,7 +611,10 @@ export class Map {
                         && item_taking_summary !== null  // to satisfy ts compiler
                         && itemType !== null             // to satisfy ts compiler
                     ) {
-                        if (this.isWithinTakingRange(selected_coordinates)) {
+                        if (this.isWithinTakingRange(
+                            selected_coordinates,
+                            itemType,
+                        )) {
                             const actionButton = itemType.isMonster()
                                 ? new FightMonsterButton(
                                     item_taking_summary,
@@ -690,12 +706,14 @@ export class Map {
                 
                 // Current location.
                 if (x === (this.cols + 1) / 2 && y === (this.rows + 1) / 2) {
+                    div.classList.add("player-cell");
                     // Cat.
                     const catImage = Image.getWithItemTypeName("cat", this.tile_size, seed);
                     const cat = catImage.element();
                     cat.style.setProperty("--item-mirror", String(this.catFacingX));
                     this.animateCatVisual(cat, catImage);
                     div.append(cat);
+                    this.bindPlayerDragging(div, cat);
                 }
 
                 this.map.append(div);
@@ -1156,17 +1174,20 @@ export class Map {
         });
     }
 
-    isWithinTakingRange(coordinates: Coordinates): boolean {
-        if (!this.state.exploreMode) {
-            if (this.state.takingRangeMeters === null) {
-                return false;
-            }
-
-            return this.state.coordinates.distanceInMetersFrom(coordinates)
-                <= this.state.takingRangeMeters;
+    isWithinTakingRange(
+        coordinates: Coordinates,
+        itemType: ItemType,
+    ): boolean {
+        if (!this.state.exploreMode && this.state.takingRangeMeters === null) {
+            return false;
         }
 
-        return this.state.coordinates.distanceFrom(coordinates) <= ITEM_TAKING_RANGE;
+        const maximumDistance = itemType.changesArea()
+            ? 0
+            : ITEM_TAKING_RANGE;
+
+        return this.state.coordinates.distanceFrom(coordinates)
+            <= maximumDistance;
     }
 
     isWallAt(coordinates: Coordinates, areaId = this.inventory.getAreaId()): boolean {
@@ -1641,14 +1662,160 @@ export class Map {
         div.setAttribute("style", "grid-column:" + x + "/" + x + ";grid-row:" + y + "/" + y);
         div.setAttribute("aria-label", cell_coordinates.latitude + "," + cell_coordinates.longitude);
         div.setAttribute("id", "cell" + x + "-" + y);
+        div.dataset.latitude = String(cell_coordinates.latitude);
+        div.dataset.longitude = String(cell_coordinates.longitude);
 
-        // Select a location, or move to it in Explore mode.
-        div.addEventListener("click", () => {
+        // Selecting and moving are separate: Explore movement is performed by
+        // dragging the player, while a click or tap always inspects this cell.
+        div.addEventListener("click", event => {
+            if (this.suppressNextCellClick) {
+                this.suppressNextCellClick = false;
+                event.preventDefault();
+                event.stopPropagation();
+
+                return;
+            }
             if (!this.slidingAnimationInProgress && !this.interactionLocked) {
                 this.onCellSelected(cell_coordinates);
             }
         });
 
         return div;
+    }
+
+    private bindPlayerDragging(
+        playerCell: HTMLDivElement,
+        player: HTMLImageElement,
+    ): void {
+        playerCell.addEventListener("pointerdown", event => {
+            if (!this.state.exploreMode
+                || this.slidingAnimationInProgress
+                || this.interactionLocked
+                || !event.isPrimary
+                || event.button !== 0
+                || event.target !== player
+            ) {
+                return;
+            }
+
+            this.suppressNextCellClick = false;
+            this.dragState = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                active: false,
+                targetCell: playerCell,
+            };
+            try {
+                playerCell.setPointerCapture(event.pointerId);
+            } catch {
+                // Synthetic pointer events used by browser tests do not own a
+                // native pointer, so they cannot be captured.
+            }
+        });
+        playerCell.addEventListener("pointermove", event => {
+            const drag = this.dragState;
+            if (drag === null || drag.pointerId !== event.pointerId) {
+                return;
+            }
+
+            const offsetX = event.clientX - drag.startX;
+            const offsetY = event.clientY - drag.startY;
+            if (!drag.active
+                && Math.hypot(offsetX, offsetY)
+                    < Map.PLAYER_DRAG_THRESHOLD_PIXELS
+            ) {
+                return;
+            }
+
+            drag.active = true;
+            player.style.translate = offsetX + "px " + offsetY + "px";
+            player.classList.add("player-drag-preview");
+            this.map.classList.add("player-dragging");
+            this.setPlayerDragTarget(this.cellAtPoint(
+                event.clientX,
+                event.clientY,
+            ));
+            event.preventDefault();
+        });
+        playerCell.addEventListener("pointerup", event => {
+            const drag = this.dragState;
+            if (drag === null || drag.pointerId !== event.pointerId) {
+                return;
+            }
+
+            if (drag.active) {
+                this.setPlayerDragTarget(this.cellAtPoint(
+                    event.clientX,
+                    event.clientY,
+                ));
+            }
+            const target = this.state.exploreMode
+                && drag.active
+                && drag.targetCell !== null
+                ? Map.coordinatesFromCell(drag.targetCell)
+                : null;
+            this.suppressNextCellClick = drag.active;
+            this.finishPlayerDrag(playerCell, player, event.pointerId);
+            if (target !== null) {
+                this.onExploreMoveRequested(target);
+            }
+            if (drag.active) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        });
+        playerCell.addEventListener("pointercancel", event => {
+            if (this.dragState?.pointerId !== event.pointerId) {
+                return;
+            }
+
+            this.suppressNextCellClick = false;
+            this.finishPlayerDrag(playerCell, player, event.pointerId);
+        });
+    }
+
+    private cellAtPoint(clientX: number, clientY: number): HTMLDivElement|null {
+        const element = document.elementFromPoint(clientX, clientY);
+        const cell = element?.closest(".cell");
+
+        return cell instanceof HTMLDivElement && this.map.contains(cell)
+            ? cell
+            : null;
+    }
+
+    private setPlayerDragTarget(target: HTMLDivElement|null): void {
+        const drag = this.dragState;
+        if (drag === null || drag.targetCell === target) {
+            return;
+        }
+
+        drag.targetCell?.classList.remove("player-drop-target");
+        drag.targetCell = target;
+        drag.targetCell?.classList.add("player-drop-target");
+    }
+
+    private finishPlayerDrag(
+        playerCell: HTMLDivElement,
+        player: HTMLImageElement,
+        pointerId: number,
+    ): void {
+        this.dragState?.targetCell?.classList.remove("player-drop-target");
+        this.dragState = null;
+        player.style.removeProperty("translate");
+        player.classList.remove("player-drag-preview");
+        this.map.classList.remove("player-dragging");
+        if (playerCell.hasPointerCapture(pointerId)) {
+            playerCell.releasePointerCapture(pointerId);
+        }
+    }
+
+    private static coordinatesFromCell(cell: HTMLDivElement): Coordinates|null {
+        const latitude = Number(cell.dataset.latitude);
+        const longitude = Number(cell.dataset.longitude);
+
+        return Number.isFinite(latitude) && Number.isFinite(longitude)
+            ? new Coordinates(latitude, longitude)
+            : null;
     }
 }

@@ -1,7 +1,8 @@
 export declare const ACCURACY_MULTIPLIER = 10000;
-export declare const ITEM_TAKING_RANGE = 1;
+export declare const ITEM_TAKING_RANGE = 3;
 import { Coordinates } from "./Coordinates.js";
 import { Inventory } from "./Inventory.js";
+import { ItemType } from "./ItemType.js";
 export interface MapState {
     coordinates: Coordinates;
     selectedCoordinates: Coordinates | null;
@@ -44,14 +45,18 @@ export declare class Map {
     private readonly state;
     tile_size: number;
     private readonly onCellSelected;
+    private readonly onExploreMoveRequested;
     private readonly onInteractionUnlocked;
+    private dragState;
+    private suppressNextCellClick;
+    private static readonly PLAYER_DRAG_THRESHOLD_PIXELS;
     static coordinatesAtCell(center: Coordinates, column: number, row: number, columns: number, rows: number): Coordinates;
     static offsetForMovement(previousCoordinates: Coordinates, currentCoordinates: Coordinates): {
         x: number;
         y: number;
     };
     static interactionCoordinates(state: MapState): Coordinates | null;
-    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void);
+    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onExploreMoveRequested: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void);
     show({ previousCoordinates, }: {
         previousCoordinates?: Coordinates | null;
     }): void;
@@ -73,7 +78,7 @@ export declare class Map {
     private appendLinkedItemText;
     focusItemLabels(itemName: string | null): void;
     private animateCatVisual;
-    isWithinTakingRange(coordinates: Coordinates): boolean;
+    isWithinTakingRange(coordinates: Coordinates, itemType: ItemType): boolean;
     isWallAt(coordinates: Coordinates, areaId?: number): boolean;
     private static coordinatesKey;
     private decorateDungeonSoftTerrainCell;
@@ -104,5 +109,10 @@ export declare class Map {
         };
     }): void;
     getCellElement(x: number, y: number, cell_coordinates: Coordinates): HTMLDivElement;
+    private bindPlayerDragging;
+    private cellAtPoint;
+    private setPlayerDragTarget;
+    private finishPlayerDrag;
+    private static coordinatesFromCell;
 }
 //# sourceMappingURL=Map.d.ts.map

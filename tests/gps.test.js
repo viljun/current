@@ -14,6 +14,7 @@ import {
     shouldAdoptGpsCoordinates,
     shouldExitAreaAtWall,
 } from "../js/GameController.js";
+import { ItemType } from "../js/ItemType.js";
 import { Map as GameMap } from "../js/Map.js";
 
 const LOCATION = new Coordinates(608_923, 251_498);
@@ -117,22 +118,32 @@ test("GPS hysteresis ignores one-cell jitter but follows real movement", () => {
     );
 });
 
-test("GPS uses metre-based reach while Explore keeps exact grid reach", () => {
+test("ordinary actions use the same three-cell radius in both modes", () => {
     const gpsMap = mapWithState({
         coordinates: LOCATION,
         selectedCoordinates: null,
         exploreMode: false,
         takingRangeMeters: 15,
     });
+    const stick = new ItemType("stick");
     assert.equal(
         gpsMap.isWithinTakingRange(
-            new Coordinates(LOCATION.latitude, LOCATION.longitude + 2),
+            new Coordinates(LOCATION.latitude + 3, LOCATION.longitude),
+            stick,
         ),
         true,
     );
     assert.equal(
         gpsMap.isWithinTakingRange(
-            new Coordinates(LOCATION.latitude, LOCATION.longitude + 3),
+            new Coordinates(LOCATION.latitude + 2, LOCATION.longitude + 2),
+            stick,
+        ),
+        true,
+    );
+    assert.equal(
+        gpsMap.isWithinTakingRange(
+            new Coordinates(LOCATION.latitude + 3, LOCATION.longitude + 1),
+            stick,
         ),
         false,
     );
@@ -141,20 +152,78 @@ test("GPS uses metre-based reach while Explore keeps exact grid reach", () => {
         coordinates: LOCATION,
         selectedCoordinates: LOCATION,
         exploreMode: true,
-        takingRangeMeters: 50,
+        takingRangeMeters: null,
     });
     assert.equal(
         exploreMap.isWithinTakingRange(
-            new Coordinates(LOCATION.latitude + 1, LOCATION.longitude),
+            new Coordinates(LOCATION.latitude + 3, LOCATION.longitude),
+            stick,
         ),
         true,
     );
     assert.equal(
         exploreMap.isWithinTakingRange(
-            new Coordinates(LOCATION.latitude + 1, LOCATION.longitude + 1),
+            new Coordinates(LOCATION.latitude + 3, LOCATION.longitude + 1),
+            stick,
         ),
         false,
     );
+});
+
+test("every ordinary item type shares the three-cell action radius", () => {
+    const map = mapWithState({
+        coordinates: LOCATION,
+        selectedCoordinates: null,
+        exploreMode: false,
+        takingRangeMeters: 15,
+    });
+    const edge = new Coordinates(LOCATION.latitude, LOCATION.longitude + 3);
+
+    for (const name of ItemType.allNames()) {
+        const itemType = new ItemType(name);
+        if (!itemType.changesArea()) {
+            assert.equal(
+                map.isWithinTakingRange(edge, itemType),
+                true,
+                name,
+            );
+        }
+    }
+});
+
+test("area-changing actions require the player's exact cell", () => {
+    const transitionNames = [
+        "dungeon entrance",
+        "shop entrance",
+        "highland gate",
+        "stairs up",
+    ];
+    const adjacent = new Coordinates(
+        LOCATION.latitude,
+        LOCATION.longitude + 1,
+    );
+    for (const exploreMode of [false, true]) {
+        const map = mapWithState({
+            coordinates: LOCATION,
+            selectedCoordinates: LOCATION,
+            exploreMode,
+            takingRangeMeters: exploreMode ? null : 15,
+        });
+        for (const name of transitionNames) {
+            const itemType = new ItemType(name);
+            assert.equal(itemType.changesArea(), true, name);
+            assert.equal(
+                map.isWithinTakingRange(LOCATION, itemType),
+                true,
+                name + " at player",
+            );
+            assert.equal(
+                map.isWithinTakingRange(adjacent, itemType),
+                false,
+                name + " beside player",
+            );
+        }
+    }
 });
 
 test("GPS makes the square beneath the cat the default interaction", () => {
@@ -193,7 +262,7 @@ test("GPS makes the square beneath the cat the default interaction", () => {
             ...gpsState,
             exploreMode: true,
         }),
-        null,
+        LOCATION,
     );
 });
 
@@ -205,5 +274,8 @@ test("GPS cannot collect before the first accepted location fix", () => {
         takingRangeMeters: null,
     });
 
-    assert.equal(map.isWithinTakingRange(LOCATION), false);
+    assert.equal(
+        map.isWithinTakingRange(LOCATION, new ItemType("stick")),
+        false,
+    );
 });

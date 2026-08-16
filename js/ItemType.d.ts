@@ -20,6 +20,7 @@ export declare class ItemType {
     name: string;
     constructor(name: string);
     isMonster(): boolean;
+    changesArea(): boolean;
     static isRiverFish(itemName: string): boolean;
     static isTransientAction(itemName: string): boolean;
     static allNames(): string[];

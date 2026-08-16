@@ -138,6 +138,15 @@ export class ItemType {
             || ItemType.DUNGEON_MONSTERS.some(([, name]) => name === this.name);
     }
 
+    changesArea(): boolean {
+        return [
+            "dungeon entrance",
+            "shop entrance",
+            "highland gate",
+            "stairs up",
+        ].includes(this.name);
+    }
+
     static isRiverFish(itemName: string): boolean {
         return ItemType.RIVER_FISH_NAMES.some(name => name === itemName);
     }

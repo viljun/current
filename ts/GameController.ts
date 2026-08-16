@@ -168,6 +168,7 @@ export class GameController {
             this.state,
             GameController.TILE_SIZE,
             coordinates => this.selectCoordinates(coordinates),
+            coordinates => this.moveTo(coordinates),
             () => this.resumeMovement(),
         );
         this.map.show({});
@@ -364,11 +365,7 @@ export class GameController {
 
     private selectCoordinates(coordinates: Coordinates): void {
         this.state.selectedCoordinates = coordinates;
-        if (this.state.exploreMode) {
-            this.moveTo(coordinates);
-        } else {
-            this.map.show({});
-        }
+        this.map.show({});
     }
 
     private moveTo(coordinates: Coordinates): void {
@@ -377,12 +374,6 @@ export class GameController {
 
             return;
         }
-        if (!this.state.exploreMode) {
-            // A tap may temporarily inspect a nearby square. Once GPS moves
-            // the player, the square beneath the cat becomes active again.
-            this.state.selectedCoordinates = null;
-        }
-
         const previousCoordinates = this.state.coordinates;
         if (shouldExitAreaAtWall(
             this.inventory.getAreaId(),
@@ -394,12 +385,13 @@ export class GameController {
             }
             Effects.showAreaExplosion(this.mapElement, coordinates.getSeed());
             this.inventory.exitArea();
-            this.state.selectedCoordinates = this.state.exploreMode ? coordinates : null;
+            this.state.selectedCoordinates = coordinates;
             this.map.show({});
 
             return;
         }
         this.state.coordinates = coordinates;
+        this.state.selectedCoordinates = coordinates;
         if (this.state.exploreMode) {
             this.saveExploreCoordinates();
         }

@@ -84,7 +84,7 @@ export class GameController {
         Effects.initialize(this.soundSwitch);
         document.head.append(this.mapDimensionStyle);
         const dimensions = this.configureMapDimensions();
-        this.map = new Map(this.mapElement, this.messageBox, dimensions.cols, dimensions.rows, this.inventory, this.state, GameController.TILE_SIZE, coordinates => this.selectCoordinates(coordinates), () => this.resumeMovement());
+        this.map = new Map(this.mapElement, this.messageBox, dimensions.cols, dimensions.rows, this.inventory, this.state, GameController.TILE_SIZE, coordinates => this.selectCoordinates(coordinates), coordinates => this.moveTo(coordinates), () => this.resumeMovement());
         this.map.show({});
         this.bindControls();
         this.bindCompass();
@@ -233,22 +233,12 @@ export class GameController {
     }
     selectCoordinates(coordinates) {
         this.state.selectedCoordinates = coordinates;
-        if (this.state.exploreMode) {
-            this.moveTo(coordinates);
-        }
-        else {
-            this.map.show({});
-        }
+        this.map.show({});
     }
     moveTo(coordinates) {
         if (this.map.interactionLocked) {
             this.pendingCoordinates = coordinates;
             return;
-        }
-        if (!this.state.exploreMode) {
-            // A tap may temporarily inspect a nearby square. Once GPS moves
-            // the player, the square beneath the cat becomes active again.
-            this.state.selectedCoordinates = null;
         }
         const previousCoordinates = this.state.coordinates;
         if (shouldExitAreaAtWall(this.inventory.getAreaId(), this.map.isWallAt(coordinates))) {
@@ -258,11 +248,12 @@ export class GameController {
             }
             Effects.showAreaExplosion(this.mapElement, coordinates.getSeed());
             this.inventory.exitArea();
-            this.state.selectedCoordinates = this.state.exploreMode ? coordinates : null;
+            this.state.selectedCoordinates = coordinates;
             this.map.show({});
             return;
         }
         this.state.coordinates = coordinates;
+        this.state.selectedCoordinates = coordinates;
         if (this.state.exploreMode) {
             this.saveExploreCoordinates();
         }

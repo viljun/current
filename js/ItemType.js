@@ -8,6 +8,14 @@ export class ItemType {
         return ["rat", "orc", "troll"].includes(this.name)
             || ItemType.DUNGEON_MONSTERS.some(([, name]) => name === this.name);
     }
+    changesArea() {
+        return [
+            "dungeon entrance",
+            "shop entrance",
+            "highland gate",
+            "stairs up",
+        ].includes(this.name);
+    }
     static isRiverFish(itemName) {
         return ItemType.RIVER_FISH_NAMES.some(name => name === itemName);
     }

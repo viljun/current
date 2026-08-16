@@ -430,6 +430,63 @@ test(
                     >= layout.actualInventory.header.bottom,
                 viewport.name + " inventory tabs overlap the header",
             );
+            assert.deepEqual(
+                layout.exploreDrag.nonExploreCenterAfterDrag,
+                layout.exploreDrag.startingCoordinates,
+                viewport.name + " dragged in GPS mode",
+            );
+            assert.deepEqual(
+                layout.exploreDrag.exploreCenterAfterClick,
+                layout.exploreDrag.startingCoordinates,
+                viewport.name + " click moved the Explore player",
+            );
+            assert.deepEqual(
+                layout.exploreDrag.exploreSelectionAfterClick,
+                layout.exploreDrag.targetCoordinates,
+                viewport.name + " click did not select the Explore target",
+            );
+            assert.deepEqual(
+                layout.exploreDrag.exploreCenterAfterCancelledDrag,
+                layout.exploreDrag.startingCoordinates,
+                viewport.name + " cancelled drag moved the Explore player",
+            );
+            assert.equal(
+                layout.exploreDrag.cancelledDragHighlightRemoved,
+                true,
+                viewport.name + " cancelled drag left visual state behind",
+            );
+            assert.equal(
+                layout.exploreDrag.targetHighlightedDuringDrag,
+                true,
+                viewport.name + " drag target was not highlighted",
+            );
+            assert.deepEqual(
+                layout.exploreDrag.exploreCenterAfterDrag,
+                layout.exploreDrag.targetCoordinates,
+                viewport.name + " Explore drag did not update coordinates",
+            );
+            assert.deepEqual(
+                layout.exploreDrag.exploreSelectionAfterDrag,
+                layout.exploreDrag.targetCoordinates,
+                viewport.name + " arrival cell was not selected",
+            );
+            assert.deepEqual(
+                layout.exploreDrag.selectionAfterTrailingClick,
+                layout.exploreDrag.targetCoordinates,
+                viewport.name + " drag's trailing click changed selection",
+            );
+            near(
+                layout.exploreDrag.catCenterAfterDrag.x,
+                viewport.width / 2,
+                2,
+                viewport.name + " dragged cat horizontal center",
+            );
+            near(
+                layout.exploreDrag.catCenterAfterDrag.y,
+                viewport.height / 2,
+                2,
+                viewport.name + " dragged cat vertical center",
+            );
 
             for (const control of layout.controls) {
                 assert.ok(control.rectangle.left >= 0);

@@ -120,6 +120,25 @@ body {
 .cell {
     border: 1px solid rgba(0, 0, 0, 0.0);
 }
+.explore-mode #cat {
+    cursor: grab;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+}
+.explore-mode #map.player-dragging #cat {
+    cursor: grabbing;
+}
+#map .cell.player-drop-target {
+    outline: 3px solid rgba(126, 218, 255, 0.95);
+    outline-offset: -3px;
+}
+#map #cat.player-drag-preview {
+    z-index: 250 !important;
+    opacity: 0.86;
+    filter: drop-shadow(0 0 0.35rem rgba(126, 218, 255, 0.9));
+    pointer-events: none;
+}
 .cell.surface-river,
 .origin-artwork-cell.surface-river {
     position: relative;

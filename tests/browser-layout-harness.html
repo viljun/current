@@ -542,6 +542,164 @@
             };
             measurement.actualInventory = actualInventoryMeasurement;
 
+            const cellCoordinates = cell => ({
+                latitude: Number(cell.dataset.latitude),
+                longitude: Number(cell.dataset.longitude),
+            });
+            const cellWithCoordinates = coordinates =>
+                [...document.querySelectorAll(".cell")].find(cell =>
+                    Number(cell.dataset.latitude) === coordinates.latitude
+                        && Number(cell.dataset.longitude)
+                            === coordinates.longitude
+                );
+            const dispatchPointer = (element, type, point, pointerId) =>
+                element.dispatchEvent(new window.PointerEvent(type, {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: point.x,
+                    clientY: point.y,
+                    button: 0,
+                    buttons: type === "pointerup" ? 0 : 1,
+                    isPrimary: true,
+                    pointerId,
+                    pointerType: "touch",
+                }));
+            let playerCell = document.querySelector(".player-cell");
+            let playerCoordinates = cellCoordinates(playerCell);
+            let dragTargetCoordinates = {
+                latitude: playerCoordinates.latitude,
+                longitude: playerCoordinates.longitude - 2,
+            };
+            let dragTarget = cellWithCoordinates(dragTargetCoordinates);
+            let playerBounds = rectangle(playerCell);
+            let targetBounds = rectangle(dragTarget);
+            const playerImage = playerCell.querySelector("#cat");
+            dispatchPointer(
+                playerImage,
+                "pointerdown",
+                { x: playerBounds.centerX, y: playerBounds.centerY },
+                41,
+            );
+            dispatchPointer(
+                playerCell,
+                "pointermove",
+                { x: targetBounds.centerX, y: targetBounds.centerY },
+                41,
+            );
+            dispatchPointer(
+                playerCell,
+                "pointerup",
+                { x: targetBounds.centerX, y: targetBounds.centerY },
+                41,
+            );
+            const nonExploreCenterAfterDrag = cellCoordinates(
+                document.querySelector(".player-cell"),
+            );
+
+            const exploreSwitch = document.getElementById("exploreSwitch");
+            exploreSwitch.click();
+            playerCell = document.querySelector(".player-cell");
+            playerCoordinates = cellCoordinates(playerCell);
+            dragTargetCoordinates = {
+                latitude: playerCoordinates.latitude,
+                longitude: playerCoordinates.longitude - 2,
+            };
+            dragTarget = cellWithCoordinates(dragTargetCoordinates);
+            dragTarget.click();
+            const exploreCenterAfterClick = cellCoordinates(
+                document.querySelector(".player-cell"),
+            );
+            const exploreSelectionAfterClick = cellCoordinates(
+                document.querySelector(".cell.selected"),
+            );
+
+            playerCell = document.querySelector(".player-cell");
+            dragTarget = cellWithCoordinates(dragTargetCoordinates);
+            playerBounds = rectangle(playerCell);
+            targetBounds = rectangle(dragTarget);
+            let oldPlayerImage = playerCell.querySelector("#cat");
+            dispatchPointer(
+                oldPlayerImage,
+                "pointerdown",
+                { x: playerBounds.centerX, y: playerBounds.centerY },
+                42,
+            );
+            dispatchPointer(
+                playerCell,
+                "pointermove",
+                { x: targetBounds.centerX, y: targetBounds.centerY },
+                42,
+            );
+            dispatchPointer(
+                playerCell,
+                "pointercancel",
+                { x: targetBounds.centerX, y: targetBounds.centerY },
+                42,
+            );
+            const exploreCenterAfterCancelledDrag = cellCoordinates(
+                document.querySelector(".player-cell"),
+            );
+            const cancelledDragHighlightRemoved =
+                !dragTarget.classList.contains("player-drop-target")
+                    && !map.classList.contains("player-dragging");
+
+            playerCell = document.querySelector(".player-cell");
+            dragTarget = cellWithCoordinates(dragTargetCoordinates);
+            playerBounds = rectangle(playerCell);
+            targetBounds = rectangle(dragTarget);
+            const oldPlayerCell = playerCell;
+            oldPlayerImage = playerCell.querySelector("#cat");
+            dispatchPointer(
+                oldPlayerImage,
+                "pointerdown",
+                { x: playerBounds.centerX, y: playerBounds.centerY },
+                43,
+            );
+            dispatchPointer(
+                oldPlayerCell,
+                "pointermove",
+                { x: targetBounds.centerX, y: targetBounds.centerY },
+                43,
+            );
+            const targetHighlightedDuringDrag =
+                dragTarget.classList.contains("player-drop-target");
+            dispatchPointer(
+                oldPlayerCell,
+                "pointerup",
+                { x: targetBounds.centerX, y: targetBounds.centerY },
+                43,
+            );
+            const exploreCenterAfterDrag = cellCoordinates(
+                document.querySelector(".player-cell"),
+            );
+            const exploreSelectionAfterDrag = cellCoordinates(
+                document.querySelector(".cell.selected"),
+            );
+            oldPlayerCell.click();
+            const selectionAfterTrailingClick = cellCoordinates(
+                document.querySelector(".cell.selected"),
+            );
+            const centeredCatAfterDrag = rectangle(
+                document.getElementById("cat"),
+            );
+            measurement.exploreDrag = {
+                startingCoordinates: playerCoordinates,
+                targetCoordinates: dragTargetCoordinates,
+                nonExploreCenterAfterDrag,
+                exploreCenterAfterClick,
+                exploreSelectionAfterClick,
+                exploreCenterAfterCancelledDrag,
+                cancelledDragHighlightRemoved,
+                targetHighlightedDuringDrag,
+                exploreCenterAfterDrag,
+                exploreSelectionAfterDrag,
+                selectionAfterTrailingClick,
+                catCenterAfterDrag: {
+                    x: centeredCatAfterDrag.centerX,
+                    y: centeredCatAfterDrag.centerY,
+                },
+            };
+
             resultElement.textContent = window.btoa(
                 window.unescape(
                     window.encodeURIComponent(JSON.stringify(measurement)),
