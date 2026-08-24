@@ -11,6 +11,7 @@ export declare function normalizeHeading(heading: number): number;
 export declare function shortestHeadingDelta(from: number, to: number): number;
 export declare function smoothHeading(previous: number | null, next: number, factor?: number, deadbandDegrees?: number): number;
 export declare function usableTravelHeading(heading: number | null, speedMetersPerSecond: number | null): number | null;
+export declare function mapHeadingFromSensors(exploreMode: boolean, travelHeading: number | null, compassHeading: number | null): number | null;
 export declare function shouldExitAreaAtWall(areaId: number, wall: boolean): boolean;
 export declare function gpsTakingRangeMeters(accuracyMeters: number): number;
 export declare function gpsHysteresisMeters(accuracyMeters: number): number;

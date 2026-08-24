@@ -72,6 +72,16 @@ export function usableTravelHeading(
     return normalizeHeading(heading);
 }
 
+export function mapHeadingFromSensors(
+    exploreMode: boolean,
+    travelHeading: number|null,
+    compassHeading: number|null,
+): number|null {
+    return exploreMode
+        ? compassHeading
+        : travelHeading ?? compassHeading;
+}
+
 export function shouldExitAreaAtWall(
     areaId: number,
     wall: boolean,
@@ -558,11 +568,13 @@ export class GameController {
     }
 
     private applyMapHeading(immediate = false): void {
-        const sensorHeading = this.state.exploreMode
-            ? null
-            : this.travelHeading ?? this.compassHeading;
+        const sensorHeading = mapHeadingFromSensors(
+            this.state.exploreMode,
+            this.travelHeading,
+            this.compassHeading,
+        );
         const target = sensorHeading ?? this.displayedHeading;
-        if (this.state.exploreMode || target === null) {
+        if (target === null) {
             this.mapContainer.style.setProperty(
                 "--map-bearing-rotation",
                 "0deg",
@@ -597,7 +609,7 @@ export class GameController {
     }
 
     private scheduleCompassMapHeading(): void {
-        if (this.state.exploreMode || this.travelHeading !== null) {
+        if (!this.state.exploreMode && this.travelHeading !== null) {
             return;
         }
         if (this.displayedHeading === null) {

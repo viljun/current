@@ -11,6 +11,7 @@ import {
 import {
     gpsHysteresisMeters,
     gpsTakingRangeMeters,
+    mapHeadingFromSensors,
     normalizeHeading,
     shortestHeadingDelta,
     shouldAdoptGpsCoordinates,
@@ -110,6 +111,13 @@ test("travel heading is accepted only while GPS reports movement", () => {
     assert.equal(usableTravelHeading(90, null), 90);
     assert.equal(usableTravelHeading(90, .2), null);
     assert.equal(usableTravelHeading(null, 1.2), null);
+});
+
+test("Explore map follows the compass instead of GPS travel course", () => {
+    assert.equal(mapHeadingFromSensors(true, 80, 145), 145);
+    assert.equal(mapHeadingFromSensors(true, 80, null), null);
+    assert.equal(mapHeadingFromSensors(false, 80, 145), 80);
+    assert.equal(mapHeadingFromSensors(false, null, 145), 145);
 });
 
 test("map cells form a centered circular footprint", () => {

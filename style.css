@@ -134,9 +134,6 @@ body {
     touch-action: none;
     user-select: none;
 }
-.explore-mode #map {
-    transition: none;
-}
 #cat {
     rotate: var(--map-counter-rotation);
 }

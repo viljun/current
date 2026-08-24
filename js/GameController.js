@@ -33,6 +33,11 @@ export function usableTravelHeading(heading, speedMetersPerSecond) {
     }
     return normalizeHeading(heading);
 }
+export function mapHeadingFromSensors(exploreMode, travelHeading, compassHeading) {
+    return exploreMode
+        ? compassHeading
+        : travelHeading !== null && travelHeading !== void 0 ? travelHeading : compassHeading;
+}
 export function shouldExitAreaAtWall(areaId, wall) {
     return areaId !== SURFACE_AREA && wall;
 }
@@ -378,19 +383,17 @@ export class GameController {
         this.gpsStatus.dataset.state = status;
     }
     applyMapHeading(immediate = false) {
-        var _a, _b;
-        const sensorHeading = this.state.exploreMode
-            ? null
-            : (_a = this.travelHeading) !== null && _a !== void 0 ? _a : this.compassHeading;
+        var _a;
+        const sensorHeading = mapHeadingFromSensors(this.state.exploreMode, this.travelHeading, this.compassHeading);
         const target = sensorHeading !== null && sensorHeading !== void 0 ? sensorHeading : this.displayedHeading;
-        if (this.state.exploreMode || target === null) {
+        if (target === null) {
             this.mapContainer.style.setProperty("--map-bearing-rotation", "0deg");
             this.mapContainer.style.setProperty("--map-counter-rotation", "0deg");
             this.mapContainer.classList.remove("map-heading-up");
             return;
         }
         const hadDisplayedHeading = this.displayedHeading !== null;
-        const previous = (_b = this.displayedHeading) !== null && _b !== void 0 ? _b : 0;
+        const previous = (_a = this.displayedHeading) !== null && _a !== void 0 ? _a : 0;
         const nextHeading = immediate || !hadDisplayedHeading
             ? previous + shortestHeadingDelta(previous, target)
             : smoothHeading(previous, target);
@@ -403,7 +406,7 @@ export class GameController {
         this.mapContainer.classList.add("map-heading-up");
     }
     scheduleCompassMapHeading() {
-        if (this.state.exploreMode || this.travelHeading !== null) {
+        if (!this.state.exploreMode && this.travelHeading !== null) {
             return;
         }
         if (this.displayedHeading === null) {
