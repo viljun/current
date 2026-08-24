@@ -64,7 +64,7 @@ export class Map {
         this.dragState = null;
         this.dragDestination = null;
         this.dragDestinationRemovalTimer = null;
-        this.suppressNextCellClick = false;
+        this.pendingCellSelection = null;
         this.map = map;
         this.messageBox = messageBox;
         this.cols = cols;
@@ -944,7 +944,8 @@ export class Map {
         const MAP_SLIDING_STEPS = 30; // How many steps the sliding effect has. Higher value makes the effect slower.
         const cat = (_a = document.getElementById("cat")) !== null && _a !== void 0 ? _a : new HTMLElement();
         let margins = Object.assign({}, originalMargins);
-        if (stepNumber < MAP_SLIDING_STEPS) {
+        const animationFinished = stepNumber >= MAP_SLIDING_STEPS;
+        if (!animationFinished) {
             const horizontalMargin = (MAP_SLIDING_STEPS - stepNumber)
                 * signedStepSizeX;
             const verticalMargin = (MAP_SLIDING_STEPS - stepNumber)
@@ -966,7 +967,6 @@ export class Map {
         }
         else {
             this.slidingAnimationInProgress = false;
-            this.fadePlayerDragDestination();
             console.log("End sliding animation.");
         }
         // Save margin values to css.
@@ -974,6 +974,17 @@ export class Map {
         cat.style.marginLeft = margins.catLeft + "px";
         this.map.style.marginTop = margins.mapTop + "px";
         cat.style.marginTop = margins.catTop + "px";
+        if (animationFinished) {
+            this.fadePlayerDragDestination();
+            this.selectPendingCellAfterSlide();
+        }
+    }
+    selectPendingCellAfterSlide() {
+        const coordinates = this.pendingCellSelection;
+        this.pendingCellSelection = null;
+        if (coordinates !== null && !this.interactionLocked) {
+            this.onCellSelected(coordinates);
+        }
     }
     getCellElement(x, y, cell_coordinates) {
         let div = document.createElement("div");
@@ -985,16 +996,15 @@ export class Map {
         div.dataset.longitude = String(cell_coordinates.longitude);
         // Selecting and moving are separate: Explore movement is performed by
         // dragging the player, while a click or tap always inspects this cell.
-        div.addEventListener("click", event => {
-            if (this.suppressNextCellClick) {
-                this.suppressNextCellClick = false;
-                event.preventDefault();
-                event.stopPropagation();
+        div.addEventListener("click", () => {
+            if (this.interactionLocked) {
                 return;
             }
-            if (!this.slidingAnimationInProgress && !this.interactionLocked) {
-                this.onCellSelected(cell_coordinates);
+            if (this.slidingAnimationInProgress) {
+                this.pendingCellSelection = cell_coordinates;
+                return;
             }
+            this.onCellSelected(cell_coordinates);
         });
         return div;
     }
@@ -1011,7 +1021,6 @@ export class Map {
                 || event.target !== player) {
                 return;
             }
-            this.suppressNextCellClick = false;
             this.dragState = {
                 pointerId: event.pointerId,
                 startX: event.clientX,
@@ -1063,7 +1072,9 @@ export class Map {
                 && drag.targetCell !== null
                 ? Map.coordinatesFromCell(drag.targetCell)
                 : null;
-            this.suppressNextCellClick = drag.active;
+            if (drag.active) {
+                Map.suppressTrailingClickOn(playerCell);
+            }
             if (target !== null) {
                 this.preservePlayerDragDestination();
             }
@@ -1084,9 +1095,14 @@ export class Map {
             if (((_a = this.dragState) === null || _a === void 0 ? void 0 : _a.pointerId) !== event.pointerId) {
                 return;
             }
-            this.suppressNextCellClick = false;
             this.finishPlayerDrag(playerCell, event.pointerId);
         });
+    }
+    static suppressTrailingClickOn(playerCell) {
+        playerCell.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }, { capture: true, once: true });
     }
     movePlayerDragPreview(playerCell, player, offsetX, offsetY) {
         const drag = this.dragState;

@@ -106,7 +106,7 @@ export class Map {
     }|null = null;
     private dragDestination: HTMLImageElement|null = null;
     private dragDestinationRemovalTimer: number|null = null;
-    private suppressNextCellClick = false;
+    private pendingCellSelection: Coordinates|null = null;
 
     private static readonly PLAYER_DRAG_THRESHOLD_PIXELS = 8;
 
@@ -1645,7 +1645,8 @@ export class Map {
         const cat: HTMLElement          = document.getElementById("cat") ?? new HTMLElement();
         let margins                     = { ...originalMargins };
 
-        if (stepNumber < MAP_SLIDING_STEPS) {
+        const animationFinished = stepNumber >= MAP_SLIDING_STEPS;
+        if (!animationFinished) {
             const horizontalMargin = (MAP_SLIDING_STEPS - stepNumber)
                 * signedStepSizeX;
             const verticalMargin = (MAP_SLIDING_STEPS - stepNumber)
@@ -1671,7 +1672,6 @@ export class Map {
             );
         } else {
             this.slidingAnimationInProgress = false;
-            this.fadePlayerDragDestination();
             console.log("End sliding animation.");
         }
 
@@ -1680,6 +1680,18 @@ export class Map {
         cat.style.marginLeft      = margins.catLeft + "px";
         this.map.style.marginTop  = margins.mapTop  + "px";
         cat.style.marginTop       = margins.catTop  + "px";
+        if (animationFinished) {
+            this.fadePlayerDragDestination();
+            this.selectPendingCellAfterSlide();
+        }
+    }
+
+    private selectPendingCellAfterSlide(): void {
+        const coordinates = this.pendingCellSelection;
+        this.pendingCellSelection = null;
+        if (coordinates !== null && !this.interactionLocked) {
+            this.onCellSelected(coordinates);
+        }
     }
 
     getCellElement(
@@ -1697,17 +1709,16 @@ export class Map {
 
         // Selecting and moving are separate: Explore movement is performed by
         // dragging the player, while a click or tap always inspects this cell.
-        div.addEventListener("click", event => {
-            if (this.suppressNextCellClick) {
-                this.suppressNextCellClick = false;
-                event.preventDefault();
-                event.stopPropagation();
+        div.addEventListener("click", () => {
+            if (this.interactionLocked) {
+                return;
+            }
+            if (this.slidingAnimationInProgress) {
+                this.pendingCellSelection = cell_coordinates;
 
                 return;
             }
-            if (!this.slidingAnimationInProgress && !this.interactionLocked) {
-                this.onCellSelected(cell_coordinates);
-            }
+            this.onCellSelected(cell_coordinates);
         });
 
         return div;
@@ -1732,7 +1743,6 @@ export class Map {
                 return;
             }
 
-            this.suppressNextCellClick = false;
             this.dragState = {
                 pointerId: event.pointerId,
                 startX: event.clientX,
@@ -1801,7 +1811,9 @@ export class Map {
                 && drag.targetCell !== null
                 ? Map.coordinatesFromCell(drag.targetCell)
                 : null;
-            this.suppressNextCellClick = drag.active;
+            if (drag.active) {
+                Map.suppressTrailingClickOn(playerCell);
+            }
             if (target !== null) {
                 this.preservePlayerDragDestination();
             }
@@ -1822,9 +1834,15 @@ export class Map {
                 return;
             }
 
-            this.suppressNextCellClick = false;
             this.finishPlayerDrag(playerCell, event.pointerId);
         });
+    }
+
+    private static suppressTrailingClickOn(playerCell: HTMLDivElement): void {
+        playerCell.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }, { capture: true, once: true });
     }
 
     private movePlayerDragPreview(

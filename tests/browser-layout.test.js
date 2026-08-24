@@ -520,8 +520,13 @@ test(
                 viewport.name + " destination outline vanished before arrival",
             );
             assert.deepEqual(
+                layout.exploreDrag.selectionAfterFirstItemClick,
+                layout.exploreDrag.firstItemClickCoordinates,
+                viewport.name + " first item click after drag was ignored",
+            );
+            assert.deepEqual(
                 layout.exploreDrag.selectionAfterTrailingClick,
-                layout.exploreDrag.targetCoordinates,
+                layout.exploreDrag.firstItemClickCoordinates,
                 viewport.name + " drag's trailing click changed selection",
             );
             near(

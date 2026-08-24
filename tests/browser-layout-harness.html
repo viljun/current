@@ -50,7 +50,7 @@
                 element.closest(".cell") !== null
             );
 
-        const measure = () => {
+        const measure = async () => {
             const window = frame.contentWindow;
             const document = frame.contentDocument;
             const map = document.getElementById("map");
@@ -763,6 +763,26 @@
             );
             const destinationOutlineVisibleAfterDrop =
                 document.querySelector(".player-drag-destination") !== null;
+            const firstItemCellAfterDrag = [
+                ...document.querySelectorAll(".cell"),
+            ].find(cell =>
+                !cell.classList.contains("player-cell")
+                    && !cell.classList.contains("selected")
+                    && cell.querySelector(".item") !== null
+            ) ?? cellWithCoordinates({
+                latitude: dragTargetCoordinates.latitude,
+                longitude: dragTargetCoordinates.longitude + 1,
+            });
+            const firstItemClickCoordinates = cellCoordinates(
+                firstItemCellAfterDrag,
+            );
+            // Click immediately, while the post-drop slide may still be in
+            // progress. The selection must be queued rather than discarded.
+            firstItemCellAfterDrag.click();
+            await new Promise(resolve => window.setTimeout(resolve, 700));
+            const selectionAfterFirstItemClick = cellCoordinates(
+                document.querySelector(".cell.selected"),
+            );
             oldPlayerCell.click();
             const selectionAfterTrailingClick = cellCoordinates(
                 document.querySelector(".cell.selected"),
@@ -786,6 +806,8 @@
                 exploreCenterAfterDrag,
                 exploreSelectionAfterDrag,
                 destinationOutlineVisibleAfterDrop,
+                firstItemClickCoordinates,
+                selectionAfterFirstItemClick,
                 selectionAfterTrailingClick,
                 catCenterAfterDrag: {
                     x: centeredCatAfterDrag.centerX,

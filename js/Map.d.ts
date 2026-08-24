@@ -50,7 +50,7 @@ export declare class Map {
     private dragState;
     private dragDestination;
     private dragDestinationRemovalTimer;
-    private suppressNextCellClick;
+    private pendingCellSelection;
     private static readonly PLAYER_DRAG_THRESHOLD_PIXELS;
     static coordinatesAtCell(center: Coordinates, column: number, row: number, columns: number, rows: number): Coordinates;
     static cellIsInsideCircularFootprint(column: number, row: number, columns: number, rows: number): boolean;
@@ -111,8 +111,10 @@ export declare class Map {
             catTop: number;
         };
     }): void;
+    private selectPendingCellAfterSlide;
     getCellElement(x: number, y: number, cell_coordinates: Coordinates): HTMLDivElement;
     private bindPlayerDragging;
+    private static suppressTrailingClickOn;
     private movePlayerDragPreview;
     private preservePlayerDragDestination;
     private attachPlayerDragDestination;
