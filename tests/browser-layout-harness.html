@@ -574,6 +574,7 @@
             let playerBounds = rectangle(playerCell);
             let targetBounds = rectangle(dragTarget);
             const playerImage = playerCell.querySelector("#cat");
+            const playerNativeDraggingDisabled = !playerImage.draggable;
             dispatchPointer(
                 playerImage,
                 "pointerdown",
@@ -630,6 +631,8 @@
                 { x: targetBounds.centerX, y: targetBounds.centerY },
                 42,
             );
+            const targetHighlightedDuringDrag =
+                dragTarget.classList.contains("player-drop-target");
             dispatchPointer(
                 playerCell,
                 "pointercancel",
@@ -655,14 +658,8 @@
                 { x: playerBounds.centerX, y: playerBounds.centerY },
                 43,
             );
-            dispatchPointer(
-                oldPlayerCell,
-                "pointermove",
-                { x: targetBounds.centerX, y: targetBounds.centerY },
-                43,
-            );
-            const targetHighlightedDuringDrag =
-                dragTarget.classList.contains("player-drop-target");
+            // A very quick drag may deliver its changed position only with
+            // pointerup, without an intermediate pointermove.
             dispatchPointer(
                 oldPlayerCell,
                 "pointerup",
@@ -685,6 +682,7 @@
             measurement.exploreDrag = {
                 startingCoordinates: playerCoordinates,
                 targetCoordinates: dragTargetCoordinates,
+                playerNativeDraggingDisabled,
                 nonExploreCenterAfterDrag,
                 exploreCenterAfterClick,
                 exploreSelectionAfterClick,

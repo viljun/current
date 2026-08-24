@@ -435,6 +435,11 @@ test(
                 layout.exploreDrag.startingCoordinates,
                 viewport.name + " dragged in GPS mode",
             );
+            assert.equal(
+                layout.exploreDrag.playerNativeDraggingDisabled,
+                true,
+                viewport.name + " player still uses native image dragging",
+            );
             assert.deepEqual(
                 layout.exploreDrag.exploreCenterAfterClick,
                 layout.exploreDrag.startingCoordinates,

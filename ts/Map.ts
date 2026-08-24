@@ -1687,6 +1687,10 @@ export class Map {
         playerCell: HTMLDivElement,
         player: HTMLImageElement,
     ): void {
+        // Images are natively draggable on desktop browsers. That drag can
+        // take over the pointer before our movement threshold is reached.
+        player.draggable = false;
+
         playerCell.addEventListener("pointerdown", event => {
             if (!this.state.exploreMode
                 || this.slidingAnimationInProgress
@@ -1744,6 +1748,12 @@ export class Map {
                 return;
             }
 
+            if (!drag.active) {
+                drag.active = Math.hypot(
+                    event.clientX - drag.startX,
+                    event.clientY - drag.startY,
+                ) >= Map.PLAYER_DRAG_THRESHOLD_PIXELS;
+            }
             if (drag.active) {
                 this.setPlayerDragTarget(this.cellAtPoint(
                     event.clientX,
