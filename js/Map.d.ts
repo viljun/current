@@ -48,9 +48,12 @@ export declare class Map {
     private readonly onExploreMoveRequested;
     private readonly onInteractionUnlocked;
     private dragState;
+    private dragDestination;
+    private dragDestinationRemovalTimer;
     private suppressNextCellClick;
     private static readonly PLAYER_DRAG_THRESHOLD_PIXELS;
     static coordinatesAtCell(center: Coordinates, column: number, row: number, columns: number, rows: number): Coordinates;
+    static cellIsInsideCircularFootprint(column: number, row: number, columns: number, rows: number): boolean;
     static offsetForMovement(previousCoordinates: Coordinates, currentCoordinates: Coordinates): {
         x: number;
         y: number;
@@ -110,6 +113,10 @@ export declare class Map {
     }): void;
     getCellElement(x: number, y: number, cell_coordinates: Coordinates): HTMLDivElement;
     private bindPlayerDragging;
+    private movePlayerDragPreview;
+    private preservePlayerDragDestination;
+    private attachPlayerDragDestination;
+    private fadePlayerDragDestination;
     private cellAtPoint;
     private setPlayerDragTarget;
     private finishPlayerDrag;

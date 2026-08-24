@@ -4,9 +4,9 @@ import test from "node:test";
 import { calculateMapLayout } from "../js/GameController.js";
 
 const TILE_SIZE = 42;
-const SAFETY_MARGIN = 6;
+const VISUAL_OVERSCAN_CELLS = 2;
 
-test("mobile map always covers the viewport with an odd centered grid", () => {
+test("mobile map uses an odd centered circle covering every screen corner", () => {
     const viewports = [
         { width: 320, height: 568 },
         { width: 375, height: 667 },
@@ -20,10 +20,12 @@ test("mobile map always covers the viewport with an odd centered grid", () => {
             width,
             height,
             TILE_SIZE,
-            SAFETY_MARGIN,
+            VISUAL_OVERSCAN_CELLS,
         );
         assert.equal(layout.cols % 2, 1);
         assert.equal(layout.rows % 2, 1);
+        assert.equal(layout.cols, layout.rows);
+        assert.equal(layout.mapWidth, layout.mapHeight);
         assert.ok(layout.mapWidth >= width);
         assert.ok(layout.mapHeight >= height);
         assert.ok(layout.marginLeft <= 0);
@@ -35,10 +37,15 @@ test("mobile map always covers the viewport with an odd centered grid", () => {
             + ((layout.rows - 1) / 2) * TILE_SIZE;
         assert.equal(centerCellLeft + TILE_SIZE / 2, width / 2);
         assert.equal(centerCellTop + TILE_SIZE / 2, height / 2);
+        assert.ok(
+            layout.mapWidth / 2
+                >= Math.hypot(width, height) / 2
+                    + VISUAL_OVERSCAN_CELLS * TILE_SIZE,
+        );
     }
 });
 
-test("desktop map uses the same centered full-coverage invariant", () => {
+test("desktop map uses the same centered circular-coverage invariant", () => {
     for (const { width, height } of [
         { width: 1024, height: 768 },
         { width: 1366, height: 768 },
@@ -48,10 +55,17 @@ test("desktop map uses the same centered full-coverage invariant", () => {
             width,
             height,
             TILE_SIZE,
-            SAFETY_MARGIN,
+            VISUAL_OVERSCAN_CELLS,
         );
+        assert.equal(layout.cols, layout.rows);
+        assert.equal(layout.mapWidth, layout.mapHeight);
         assert.ok(layout.mapWidth >= width);
         assert.ok(layout.mapHeight >= height);
+        assert.ok(
+            layout.mapWidth / 2
+                >= Math.hypot(width, height) / 2
+                    + VISUAL_OVERSCAN_CELLS * TILE_SIZE,
+        );
         assert.equal(
             layout.marginLeft + layout.mapWidth / 2,
             width / 2,

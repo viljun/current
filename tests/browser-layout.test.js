@@ -117,6 +117,30 @@ test(
             assert.ok(layout.map.bottom >= viewport.height);
             assert.equal(layout.paintedEdges.right, true);
             assert.equal(layout.paintedEdges.bottom, true);
+            assert.equal(layout.headingMap.columns, layout.headingMap.rows);
+            assert.ok(
+                layout.headingMap.renderedCells
+                    < layout.headingMap.columns * layout.headingMap.rows,
+                viewport.name + " map still renders a square footprint",
+            );
+            assert.equal(layout.headingMap.overflow, "visible");
+            assert.equal(layout.headingMap.eastMapRotation, "-90deg");
+            assert.equal(layout.headingMap.eastCatCounterRotation, "90deg");
+            assert.equal(
+                layout.headingMap.labelStayedUpright,
+                true,
+                viewport.name + " rotated map label text",
+            );
+            assert.equal(
+                layout.headingMap.eastIsUp,
+                true,
+                viewport.name + " east did not rotate to the top",
+            );
+            assert.equal(
+                layout.headingMap.rotatedCornersPainted,
+                true,
+                viewport.name + " rotated circular map exposed a corner",
+            );
 
             near(
                 layout.cat.centerX,
@@ -461,6 +485,21 @@ test(
                 viewport.name + " cancelled drag left visual state behind",
             );
             assert.equal(
+                layout.exploreDrag.catStayedPutDuringDrag,
+                true,
+                viewport.name + " drag moved the actual cat",
+            );
+            assert.equal(
+                layout.exploreDrag.shadowMovedWithPointer,
+                true,
+                viewport.name + " drag shadow did not follow the pointer",
+            );
+            assert.equal(
+                layout.exploreDrag.dragShadowRemovedAfterCancel,
+                true,
+                viewport.name + " cancelled drag left the shadow behind",
+            );
+            assert.equal(
                 layout.exploreDrag.targetHighlightedDuringDrag,
                 true,
                 viewport.name + " drag target was not highlighted",
@@ -474,6 +513,11 @@ test(
                 layout.exploreDrag.exploreSelectionAfterDrag,
                 layout.exploreDrag.targetCoordinates,
                 viewport.name + " arrival cell was not selected",
+            );
+            assert.equal(
+                layout.exploreDrag.destinationOutlineVisibleAfterDrop,
+                true,
+                viewport.name + " destination outline vanished before arrival",
             );
             assert.deepEqual(
                 layout.exploreDrag.selectionAfterTrailingClick,

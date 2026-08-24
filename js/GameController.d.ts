@@ -7,17 +7,22 @@ export interface MapLayout {
     marginLeft: number;
     marginTop: number;
 }
+export declare function normalizeHeading(heading: number): number;
+export declare function shortestHeadingDelta(from: number, to: number): number;
+export declare function smoothHeading(previous: number | null, next: number, factor?: number, deadbandDegrees?: number): number;
+export declare function usableTravelHeading(heading: number | null, speedMetersPerSecond: number | null): number | null;
 export declare function shouldExitAreaAtWall(areaId: number, wall: boolean): boolean;
 export declare function gpsTakingRangeMeters(accuracyMeters: number): number;
 export declare function gpsHysteresisMeters(accuracyMeters: number): number;
 export declare function shouldAdoptGpsCoordinates(current: Coordinates | null, candidate: Coordinates, accuracyMeters: number): boolean;
-export declare function calculateMapLayout(viewportWidth: number, viewportHeight: number, tileSize: number, safetyMargin: number): MapLayout;
+export declare function calculateMapLayout(viewportWidth: number, viewportHeight: number, tileSize: number, visualOverscanCells: number): MapLayout;
 export declare class GameController {
     private static readonly EXPLORE_STORAGE_KEY;
     private static readonly EXPLORE_LOCATION_STORAGE_KEY;
     private static readonly LABELS_STORAGE_KEY;
     private static readonly INVENTORY_STORAGE_KEY;
-    private static readonly SAFETY_MARGIN;
+    private static readonly MAP_VISUAL_OVERSCAN_CELLS;
+    private static readonly COMPASS_MAP_UPDATE_INTERVAL_MS;
     private static readonly TILE_SIZE;
     private static readonly MAX_ACCEPTED_GPS_ACCURACY_METERS;
     private static readonly GPS_SMOOTHING_FACTOR;
@@ -41,6 +46,10 @@ export declare class GameController {
     private latestGpsAccuracy;
     private smoothedGpsLocation;
     private pendingCoordinates;
+    private compassHeading;
+    private travelHeading;
+    private displayedHeading;
+    private compassMapUpdateTimer;
     constructor();
     start(): void;
     private configureMapDimensions;
@@ -56,6 +65,9 @@ export declare class GameController {
     private showGpsError;
     private showCurrentGpsStatus;
     private setGpsStatus;
+    private applyMapHeading;
+    private scheduleCompassMapHeading;
+    private cancelScheduledCompassMapHeading;
     private loadExploreMode;
     private loadLabelsEnabled;
     private loadExploreCoordinates;

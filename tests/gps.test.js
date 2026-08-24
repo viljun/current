@@ -11,8 +11,12 @@ import {
 import {
     gpsHysteresisMeters,
     gpsTakingRangeMeters,
+    normalizeHeading,
+    shortestHeadingDelta,
     shouldAdoptGpsCoordinates,
     shouldExitAreaAtWall,
+    smoothHeading,
+    usableTravelHeading,
 } from "../js/GameController.js";
 import { ItemType } from "../js/ItemType.js";
 import { Map as GameMap } from "../js/Map.js";
@@ -88,6 +92,31 @@ test("north is up and east is right on the map", () => {
         ),
         { x: 1, y: 0 },
     );
+});
+
+test("headings normalize and smooth across north by the shortest route", () => {
+    assert.equal(normalizeHeading(450), 90);
+    assert.equal(normalizeHeading(-90), 270);
+    assert.equal(shortestHeadingDelta(359, 1), 2);
+    assert.equal(shortestHeadingDelta(1, 359), -2);
+    assert.equal(smoothHeading(null, 90), 90);
+    assert.equal(smoothHeading(10, 11.9), 10);
+    assert.equal(smoothHeading(359, 1, .25, 0), 359.5);
+    assert.equal(smoothHeading(1, 359, .25, 0), .5);
+});
+
+test("travel heading is accepted only while GPS reports movement", () => {
+    assert.equal(usableTravelHeading(450, 1.2), 90);
+    assert.equal(usableTravelHeading(90, null), 90);
+    assert.equal(usableTravelHeading(90, .2), null);
+    assert.equal(usableTravelHeading(null, 1.2), null);
+});
+
+test("map cells form a centered circular footprint", () => {
+    assert.equal(GameMap.cellIsInsideCircularFootprint(5, 5, 9, 9), true);
+    assert.equal(GameMap.cellIsInsideCircularFootprint(5, 1, 9, 9), true);
+    assert.equal(GameMap.cellIsInsideCircularFootprint(1, 1, 9, 9), false);
+    assert.equal(GameMap.cellIsInsideCircularFootprint(9, 9, 9, 9), false);
 });
 
 test("GPS pickup range follows uncertainty within safe limits", () => {

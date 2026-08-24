@@ -17,7 +17,7 @@ interface CompassOrientationEvent extends DeviceOrientationEvent {
 }
 
 interface CompassOrientationEventConstructor {
-    requestPermission?: () => Promise<"granted"|"denied">;
+    requestPermission?: (absolute?: boolean) => Promise<"granted"|"denied">;
 }
 
 export interface MapLayout {
@@ -27,6 +27,49 @@ export interface MapLayout {
     mapHeight: number;
     marginLeft: number;
     marginTop: number;
+}
+
+export function normalizeHeading(heading: number): number {
+    return ((heading % 360) + 360) % 360;
+}
+
+export function shortestHeadingDelta(from: number, to: number): number {
+    return ((normalizeHeading(to) - normalizeHeading(from) + 540) % 360)
+        - 180;
+}
+
+export function smoothHeading(
+    previous: number|null,
+    next: number,
+    factor = .24,
+    deadbandDegrees = 2,
+): number {
+    const target = normalizeHeading(next);
+    if (previous === null) {
+        return target;
+    }
+    const delta = shortestHeadingDelta(previous, target);
+
+    return Math.abs(delta) <= deadbandDegrees
+        ? previous
+        : previous + delta * factor;
+}
+
+export function usableTravelHeading(
+    heading: number|null,
+    speedMetersPerSecond: number|null,
+): number|null {
+    if (heading === null || !Number.isFinite(heading)) {
+        return null;
+    }
+    if (speedMetersPerSecond !== null
+        && Number.isFinite(speedMetersPerSecond)
+        && speedMetersPerSecond < .5
+    ) {
+        return null;
+    }
+
+    return normalizeHeading(heading);
 }
 
 export function shouldExitAreaAtWall(
@@ -77,15 +120,17 @@ export function calculateMapLayout(
     viewportWidth: number,
     viewportHeight: number,
     tileSize: number,
-    safetyMargin: number,
+    visualOverscanCells: number,
 ): MapLayout {
-    const oddSizeAtLeast = (visibleSize: number): number => {
-        const minimum = Math.max(1, Math.ceil(visibleSize) + safetyMargin);
-
-        return minimum % 2 === 0 ? minimum + 1 : minimum;
-    };
-    const cols = oddSizeAtLeast(viewportWidth / tileSize);
-    const rows = oddSizeAtLeast(viewportHeight / tileSize);
+    const screenRadius = Math.hypot(viewportWidth, viewportHeight) / 2;
+    const mapRadius = screenRadius
+        + Math.max(0, visualOverscanCells) * tileSize;
+    const minimumDiameter = Math.max(1, Math.ceil(mapRadius * 2 / tileSize));
+    const diameter = minimumDiameter % 2 === 0
+        ? minimumDiameter + 1
+        : minimumDiameter;
+    const cols = diameter;
+    const rows = diameter;
     const mapWidth = cols * tileSize;
     const mapHeight = rows * tileSize;
 
@@ -104,7 +149,11 @@ export class GameController {
     private static readonly EXPLORE_LOCATION_STORAGE_KEY = "gpsgame.exploreLocation";
     private static readonly LABELS_STORAGE_KEY = "gpsgame.mapLabels";
     private static readonly INVENTORY_STORAGE_KEY = "gpsgame.inventory";
-    private static readonly SAFETY_MARGIN = 6;
+    // The map boundary stays two tiles beyond every screen corner. Larger
+    // transparent artwork may be clipped outside the visible viewport, but
+    // those distant cells no longer make each redraw prohibitively expensive.
+    private static readonly MAP_VISUAL_OVERSCAN_CELLS = 2;
+    private static readonly COMPASS_MAP_UPDATE_INTERVAL_MS = 100;
     private static readonly TILE_SIZE = 42;
     private static readonly MAX_ACCEPTED_GPS_ACCURACY_METERS =
         MAX_GPS_TAKING_RANGE_METERS;
@@ -135,6 +184,10 @@ export class GameController {
     private latestGpsAccuracy: number|null = null;
     private smoothedGpsLocation: SmoothedLocation|null = null;
     private pendingCoordinates: Coordinates|null = null;
+    private compassHeading: number|null = null;
+    private travelHeading: number|null = null;
+    private displayedHeading: number|null = null;
+    private compassMapUpdateTimer: number|null = null;
 
     constructor() {
         const exploreMode = this.loadExploreMode();
@@ -200,8 +253,10 @@ export class GameController {
             this.mapContainer.clientWidth,
             this.mapContainer.clientHeight,
             GameController.TILE_SIZE,
-            GameController.SAFETY_MARGIN,
+            GameController.MAP_VISUAL_OVERSCAN_CELLS,
         );
+        this.mapElement.dataset.columns = String(layout.cols);
+        this.mapElement.dataset.rows = String(layout.rows);
         this.mapDimensionStyle.textContent = ".cell {width:" + GameController.TILE_SIZE
             + "px;height:" + GameController.TILE_SIZE + "px;} #map{"
             + "grid-template-columns:repeat(" + layout.cols + ","
@@ -264,15 +319,19 @@ export class GameController {
             if (heading === null || !Number.isFinite(heading)) {
                 return;
             }
-            const northRotation = ((-heading % 360) + 360) % 360;
+            const normalizedHeading = normalizeHeading(heading);
+            this.compassHeading = normalizedHeading;
+            const northRotation = normalizeHeading(-normalizedHeading);
             this.compassIndicator.style.setProperty(
                 "--compass-rotation",
                 northRotation + "deg",
             );
             this.compassIndicator.setAttribute(
                 "aria-label",
-                "Compass heading " + Math.round(heading) + " degrees",
+                "Compass heading " + Math.round(normalizedHeading)
+                    + " degrees",
             );
+            this.scheduleCompassMapHeading();
         };
         let listening = false;
         const listen = (): void => {
@@ -295,7 +354,7 @@ export class GameController {
         this.compassIndicator.setAttribute("tabindex", "0");
         this.compassIndicator.title = "Tap to enable compass";
         const requestPermission = (): void => {
-            void orientationConstructor.requestPermission?.()
+            void orientationConstructor.requestPermission?.(true)
                 .then(permission => {
                     if (permission !== "granted") {
                         return;
@@ -346,6 +405,8 @@ export class GameController {
         this.state.exploreMode = exploreMode;
         this.mapContainer.classList.toggle("explore-mode", exploreMode);
         this.save(GameController.EXPLORE_STORAGE_KEY, String(exploreMode));
+        this.cancelScheduledCompassMapHeading();
+        this.applyMapHeading(true);
 
         if (exploreMode) {
             this.state.selectedCoordinates = this.state.coordinates;
@@ -415,6 +476,13 @@ export class GameController {
 
             return;
         }
+
+        this.travelHeading = usableTravelHeading(
+            location.coords.heading,
+            location.coords.speed,
+        );
+        this.cancelScheduledCompassMapHeading();
+        this.applyMapHeading();
 
         const rawLocation = {
             latitude: location.coords.latitude,
@@ -487,6 +555,72 @@ export class GameController {
     private setGpsStatus(message: string, status = "ready"): void {
         this.gpsStatus.textContent = message;
         this.gpsStatus.dataset.state = status;
+    }
+
+    private applyMapHeading(immediate = false): void {
+        const sensorHeading = this.state.exploreMode
+            ? null
+            : this.travelHeading ?? this.compassHeading;
+        const target = sensorHeading ?? this.displayedHeading;
+        if (this.state.exploreMode || target === null) {
+            this.mapContainer.style.setProperty(
+                "--map-bearing-rotation",
+                "0deg",
+            );
+            this.mapContainer.style.setProperty(
+                "--map-counter-rotation",
+                "0deg",
+            );
+            this.mapContainer.classList.remove("map-heading-up");
+
+            return;
+        }
+
+        const hadDisplayedHeading = this.displayedHeading !== null;
+        const previous = this.displayedHeading ?? 0;
+        const nextHeading = immediate || !hadDisplayedHeading
+            ? previous + shortestHeadingDelta(previous, target)
+            : smoothHeading(previous, target);
+        this.displayedHeading = nextHeading;
+        if (!immediate && hadDisplayedHeading && nextHeading === previous) {
+            return;
+        }
+        this.mapContainer.style.setProperty(
+            "--map-bearing-rotation",
+            -this.displayedHeading + "deg",
+        );
+        this.mapContainer.style.setProperty(
+            "--map-counter-rotation",
+            this.displayedHeading + "deg",
+        );
+        this.mapContainer.classList.add("map-heading-up");
+    }
+
+    private scheduleCompassMapHeading(): void {
+        if (this.state.exploreMode || this.travelHeading !== null) {
+            return;
+        }
+        if (this.displayedHeading === null) {
+            this.applyMapHeading(true);
+
+            return;
+        }
+        if (this.compassMapUpdateTimer !== null) {
+            return;
+        }
+
+        this.compassMapUpdateTimer = window.setTimeout(() => {
+            this.compassMapUpdateTimer = null;
+            this.applyMapHeading();
+        }, GameController.COMPASS_MAP_UPDATE_INTERVAL_MS);
+    }
+
+    private cancelScheduledCompassMapHeading(): void {
+        if (this.compassMapUpdateTimer === null) {
+            return;
+        }
+        window.clearTimeout(this.compassMapUpdateTimer);
+        this.compassMapUpdateTimer = null;
     }
 
     private loadExploreMode(): boolean {

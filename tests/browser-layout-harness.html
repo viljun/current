@@ -46,7 +46,9 @@
         const fontSize = element =>
             Number.parseFloat(frame.contentWindow.getComputedStyle(element).fontSize);
         const cellAt = (document, x, y) =>
-            document.elementFromPoint(x, y)?.closest(".cell") !== null;
+            document.elementsFromPoint(x, y).some(element =>
+                element.closest(".cell") !== null
+            );
 
         const measure = () => {
             const window = frame.contentWindow;
@@ -552,6 +554,71 @@
                         && Number(cell.dataset.longitude)
                             === coordinates.longitude
                 );
+            const headingPlayerCell = document.querySelector(".player-cell");
+            const headingPlayerCoordinates = cellCoordinates(
+                headingPlayerCell,
+            );
+            const eastCell = cellWithCoordinates({
+                latitude: headingPlayerCoordinates.latitude,
+                longitude: headingPlayerCoordinates.longitude + 1,
+            });
+            const headingLabelText = [
+                ...document.querySelectorAll(".map-item-label-text"),
+            ].find(label => rectangle(label).width > 0);
+            const headingLabelBefore = headingLabelText === undefined
+                ? null
+                : rectangle(headingLabelText);
+            map.style.transition = "none";
+            container.style.setProperty("--map-bearing-rotation", "-90deg");
+            container.style.setProperty("--map-counter-rotation", "90deg");
+            void map.offsetWidth;
+            const eastBoundsWhenHeadingEast = rectangle(eastCell);
+            const playerBoundsWhenHeadingEast = rectangle(headingPlayerCell);
+            const eastMapRotation = window.getComputedStyle(map).rotate;
+            const eastCatCounterRotation = window.getComputedStyle(
+                headingPlayerCell.querySelector("#cat"),
+            ).rotate;
+            const headingLabelWhenEast = headingLabelText === undefined
+                ? null
+                : rectangle(headingLabelText);
+            container.style.setProperty("--map-bearing-rotation", "-45deg");
+            container.style.setProperty("--map-counter-rotation", "45deg");
+            void map.offsetWidth;
+            const rotatedCornersPainted = [
+                [1, 1],
+                [window.innerWidth - 1, 1],
+                [1, window.innerHeight - 1],
+                [window.innerWidth - 1, window.innerHeight - 1],
+            ].every(([x, y]) => cellAt(document, x, y));
+            container.style.setProperty("--map-bearing-rotation", "0deg");
+            container.style.setProperty("--map-counter-rotation", "0deg");
+            map.style.removeProperty("transition");
+            measurement.headingMap = {
+                columns: Number(map.dataset.columns),
+                rows: Number(map.dataset.rows),
+                renderedCells: map.querySelectorAll(".cell").length,
+                overflow: window.getComputedStyle(map).overflow,
+                eastMapRotation,
+                eastCatCounterRotation,
+                labelStayedUpright: headingLabelBefore === null
+                        || headingLabelWhenEast === null
+                    ? false
+                    : Math.abs(
+                        headingLabelBefore.width
+                            - headingLabelWhenEast.width,
+                    ) < 1
+                        && Math.abs(
+                            headingLabelBefore.height
+                                - headingLabelWhenEast.height,
+                        ) < 1,
+                eastIsUp: eastBoundsWhenHeadingEast.centerY
+                        < playerBoundsWhenHeadingEast.centerY
+                    && Math.abs(
+                        eastBoundsWhenHeadingEast.centerX
+                            - playerBoundsWhenHeadingEast.centerX,
+                    ) < 2,
+                rotatedCornersPainted,
+            };
             const dispatchPointer = (element, type, point, pointerId) =>
                 element.dispatchEvent(new window.PointerEvent(type, {
                     bubbles: true,
@@ -631,6 +698,25 @@
                 { x: targetBounds.centerX, y: targetBounds.centerY },
                 42,
             );
+            const dragShadow = document.querySelector(
+                ".player-drag-preview",
+            );
+            const expectedDragOffset = {
+                x: targetBounds.centerX - playerBounds.centerX,
+                y: targetBounds.centerY - playerBounds.centerY,
+            };
+            const shadowTranslate = dragShadow === null
+                ? []
+                : window.getComputedStyle(dragShadow).translate
+                    .split(" ")
+                    .map(Number.parseFloat);
+            const catStayedPutDuringDrag =
+                oldPlayerImage.style.translate === "";
+            const shadowMovedWithPointer = dragShadow !== null
+                && dragShadow !== oldPlayerImage
+                && Math.abs(shadowTranslate[0] - expectedDragOffset.x) < 1
+                && Math.abs((shadowTranslate[1] ?? 0)
+                    - expectedDragOffset.y) < 1;
             const targetHighlightedDuringDrag =
                 dragTarget.classList.contains("player-drop-target");
             dispatchPointer(
@@ -645,6 +731,9 @@
             const cancelledDragHighlightRemoved =
                 !dragTarget.classList.contains("player-drop-target")
                     && !map.classList.contains("player-dragging");
+            const dragShadowRemovedAfterCancel = document.querySelector(
+                ".player-drag-preview",
+            ) === null;
 
             playerCell = document.querySelector(".player-cell");
             dragTarget = cellWithCoordinates(dragTargetCoordinates);
@@ -672,6 +761,8 @@
             const exploreSelectionAfterDrag = cellCoordinates(
                 document.querySelector(".cell.selected"),
             );
+            const destinationOutlineVisibleAfterDrop =
+                document.querySelector(".player-drag-destination") !== null;
             oldPlayerCell.click();
             const selectionAfterTrailingClick = cellCoordinates(
                 document.querySelector(".cell.selected"),
@@ -688,9 +779,13 @@
                 exploreSelectionAfterClick,
                 exploreCenterAfterCancelledDrag,
                 cancelledDragHighlightRemoved,
+                catStayedPutDuringDrag,
+                shadowMovedWithPointer,
+                dragShadowRemovedAfterCancel,
                 targetHighlightedDuringDrag,
                 exploreCenterAfterDrag,
                 exploreSelectionAfterDrag,
+                destinationOutlineVisibleAfterDrop,
                 selectionAfterTrailingClick,
                 catCenterAfterDrag: {
                     x: centeredCatAfterDrag.centerX,

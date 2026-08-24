@@ -102,7 +102,10 @@ export class Map {
         startY: number;
         active: boolean;
         targetCell: HTMLDivElement|null;
+        preview: HTMLImageElement|null;
     }|null = null;
+    private dragDestination: HTMLImageElement|null = null;
+    private dragDestinationRemovalTimer: number|null = null;
     private suppressNextCellClick = false;
 
     private static readonly PLAYER_DRAG_THRESHOLD_PIXELS = 8;
@@ -118,6 +121,22 @@ export class Map {
             center.latitude + (rows + 1) / 2 - row,
             center.longitude + column - (columns + 1) / 2,
         );
+    }
+
+    static cellIsInsideCircularFootprint(
+        column: number,
+        row: number,
+        columns: number,
+        rows: number,
+    ): boolean {
+        const centerColumn = (columns + 1) / 2;
+        const centerRow = (rows + 1) / 2;
+        const radius = (Math.min(columns, rows) - 1) / 2;
+
+        return Math.hypot(
+            column - centerColumn,
+            row - centerRow,
+        ) <= radius;
     }
 
     static offsetForMovement(
@@ -213,6 +232,14 @@ export class Map {
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
             for (let x = 1; x <= this.cols; x++) {
+                if (!Map.cellIsInsideCircularFootprint(
+                    x,
+                    y,
+                    this.cols,
+                    this.rows,
+                )) {
+                    continue;
+                }
                 const cell_coordinates = Map.coordinatesAtCell(
                     this.state.coordinates,
                     x,
@@ -719,6 +746,8 @@ export class Map {
                 this.map.append(div);
             }
         }
+
+        this.attachPlayerDragDestination();
 
         // Opening an encounter card while its cell is being built focuses item
         // labels before that cell has been attached to the map. Reapply the
@@ -1642,6 +1671,7 @@ export class Map {
             );
         } else {
             this.slidingAnimationInProgress = false;
+            this.fadePlayerDragDestination();
             console.log("End sliding animation.");
         }
 
@@ -1709,6 +1739,7 @@ export class Map {
                 startY: event.clientY,
                 active: false,
                 targetCell: playerCell,
+                preview: null,
             };
             try {
                 playerCell.setPointerCapture(event.pointerId);
@@ -1733,8 +1764,7 @@ export class Map {
             }
 
             drag.active = true;
-            player.style.translate = offsetX + "px " + offsetY + "px";
-            player.classList.add("player-drag-preview");
+            this.movePlayerDragPreview(playerCell, player, offsetX, offsetY);
             this.map.classList.add("player-dragging");
             this.setPlayerDragTarget(this.cellAtPoint(
                 event.clientX,
@@ -1759,6 +1789,12 @@ export class Map {
                     event.clientX,
                     event.clientY,
                 ));
+                this.movePlayerDragPreview(
+                    playerCell,
+                    player,
+                    event.clientX - drag.startX,
+                    event.clientY - drag.startY,
+                );
             }
             const target = this.state.exploreMode
                 && drag.active
@@ -1766,9 +1802,15 @@ export class Map {
                 ? Map.coordinatesFromCell(drag.targetCell)
                 : null;
             this.suppressNextCellClick = drag.active;
-            this.finishPlayerDrag(playerCell, player, event.pointerId);
+            if (target !== null) {
+                this.preservePlayerDragDestination();
+            }
+            this.finishPlayerDrag(playerCell, event.pointerId);
             if (target !== null) {
                 this.onExploreMoveRequested(target);
+                if (!this.slidingAnimationInProgress) {
+                    this.fadePlayerDragDestination();
+                }
             }
             if (drag.active) {
                 event.preventDefault();
@@ -1781,8 +1823,89 @@ export class Map {
             }
 
             this.suppressNextCellClick = false;
-            this.finishPlayerDrag(playerCell, player, event.pointerId);
+            this.finishPlayerDrag(playerCell, event.pointerId);
         });
+    }
+
+    private movePlayerDragPreview(
+        playerCell: HTMLDivElement,
+        player: HTMLImageElement,
+        offsetX: number,
+        offsetY: number,
+    ): void {
+        const drag = this.dragState;
+        if (drag === null) {
+            return;
+        }
+        if (drag.preview === null) {
+            drag.preview = player.cloneNode(true) as HTMLImageElement;
+            drag.preview.removeAttribute("id");
+            drag.preview.classList.add("player-drag-preview");
+            drag.preview.setAttribute("aria-hidden", "true");
+            drag.preview.alt = "";
+            drag.preview.draggable = false;
+            playerCell.append(drag.preview);
+        }
+        drag.preview.style.translate = offsetX + "px " + offsetY + "px";
+    }
+
+    private preservePlayerDragDestination(): void {
+        const preview = this.dragState?.preview;
+        if (preview === undefined || preview === null) {
+            return;
+        }
+
+        if (this.dragDestinationRemovalTimer !== null) {
+            window.clearTimeout(this.dragDestinationRemovalTimer);
+            this.dragDestinationRemovalTimer = null;
+        }
+        this.dragDestination?.remove();
+        this.dragDestination = preview;
+        this.dragState!.preview = null;
+        preview.classList.replace(
+            "player-drag-preview",
+            "player-drag-destination",
+        );
+        preview.style.removeProperty("translate");
+        this.map.parentElement?.append(preview);
+    }
+
+    private attachPlayerDragDestination(): void {
+        if (this.dragDestination === null) {
+            return;
+        }
+
+        const playerCell = this.map.querySelector<HTMLDivElement>(
+            ".player-cell",
+        );
+        if (playerCell === null) {
+            return;
+        }
+        this.dragDestination.style.setProperty(
+            "--item-mirror",
+            String(this.catFacingX),
+        );
+        playerCell.append(this.dragDestination);
+    }
+
+    private fadePlayerDragDestination(): void {
+        const destination = this.dragDestination;
+        if (destination === null
+            || destination.classList.contains(
+                "player-drag-destination--arrived",
+            )
+        ) {
+            return;
+        }
+
+        destination.classList.add("player-drag-destination--arrived");
+        this.dragDestinationRemovalTimer = window.setTimeout(() => {
+            destination.remove();
+            if (this.dragDestination === destination) {
+                this.dragDestination = null;
+            }
+            this.dragDestinationRemovalTimer = null;
+        }, 600);
     }
 
     private cellAtPoint(clientX: number, clientY: number): HTMLDivElement|null {
@@ -1807,13 +1930,11 @@ export class Map {
 
     private finishPlayerDrag(
         playerCell: HTMLDivElement,
-        player: HTMLImageElement,
         pointerId: number,
     ): void {
         this.dragState?.targetCell?.classList.remove("player-drop-target");
+        this.dragState?.preview?.remove();
         this.dragState = null;
-        player.style.removeProperty("translate");
-        player.classList.remove("player-drag-preview");
         this.map.classList.remove("player-dragging");
         if (playerCell.hasPointerCapture(pointerId)) {
             playerCell.releasePointerCapture(pointerId);

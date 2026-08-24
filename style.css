@@ -20,6 +20,8 @@ body {
     font-size: 1rem;
 }
 #mapContainer {
+    --map-bearing-rotation: 0deg;
+    --map-counter-rotation: 0deg;
     position: fixed;
     inset: 0;
     display: flex;
@@ -37,7 +39,11 @@ body {
     top: 0;
     left: 0;
     display: grid;
-    overflow: hidden;
+    overflow: visible;
+    rotate: var(--map-bearing-rotation);
+    transform-origin: center;
+    transition: rotate 160ms linear;
+    will-change: rotate;
 }
 .item {
     position: absolute;
@@ -102,7 +108,9 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.72);
     text-align: center;
     white-space: normal;
-    transform: translate(-50%, -50%);
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--map-counter-rotation));
 }
 .map-item-label--disabled .map-item-label-text {
     color: #aaa69b;
@@ -126,6 +134,12 @@ body {
     touch-action: none;
     user-select: none;
 }
+.explore-mode #map {
+    transition: none;
+}
+#cat {
+    rotate: var(--map-counter-rotation);
+}
 .explore-mode #map.player-dragging #cat {
     cursor: grabbing;
 }
@@ -133,11 +147,28 @@ body {
     outline: 3px solid rgba(126, 218, 255, 0.95);
     outline-offset: -3px;
 }
-#map #cat.player-drag-preview {
+#map .player-drag-preview,
+#map .player-drag-destination {
     z-index: 250 !important;
-    opacity: 0.86;
-    filter: drop-shadow(0 0 0.35rem rgba(126, 218, 255, 0.9));
+    opacity: 0.58;
+    filter:
+        grayscale(0.82)
+        brightness(1.18)
+        drop-shadow(-2px 0 0 rgba(104, 210, 255, 0.95))
+        drop-shadow(2px 0 0 rgba(104, 210, 255, 0.95))
+        drop-shadow(0 -2px 0 rgba(104, 210, 255, 0.95))
+        drop-shadow(0 2px 0 rgba(104, 210, 255, 0.95))
+        drop-shadow(0 0 0.32rem rgba(126, 218, 255, 0.72));
+    rotate: var(--map-counter-rotation);
     pointer-events: none;
+}
+#map .player-drag-destination--arrived {
+    animation: player-drag-destination-fade 520ms ease-out forwards;
+}
+@keyframes player-drag-destination-fade {
+    to {
+        opacity: 0;
+    }
 }
 .cell.surface-river,
 .origin-artwork-cell.surface-river {
@@ -3053,6 +3084,9 @@ button.fight-card:not(:disabled):not(.fight-card--blocking):focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    #map {
+        transition: none;
+    }
     #map.area-explosion-map-burst {
         animation: area-explosion-map-reduced 240ms linear both;
     }

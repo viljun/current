@@ -33,6 +33,12 @@ export class Map {
     static coordinatesAtCell(center, column, row, columns, rows) {
         return new Coordinates(center.latitude + (rows + 1) / 2 - row, center.longitude + column - (columns + 1) / 2);
     }
+    static cellIsInsideCircularFootprint(column, row, columns, rows) {
+        const centerColumn = (columns + 1) / 2;
+        const centerRow = (rows + 1) / 2;
+        const radius = (Math.min(columns, rows) - 1) / 2;
+        return Math.hypot(column - centerColumn, row - centerRow) <= radius;
+    }
     static offsetForMovement(previousCoordinates, currentCoordinates) {
         return {
             x: currentCoordinates.longitude - previousCoordinates.longitude,
@@ -56,6 +62,8 @@ export class Map {
         this.catVisualState = null;
         this.visibleDungeonWalls = {};
         this.dragState = null;
+        this.dragDestination = null;
+        this.dragDestinationRemovalTimer = null;
         this.suppressNextCellClick = false;
         this.map = map;
         this.messageBox = messageBox;
@@ -107,6 +115,9 @@ export class Map {
         this.map.innerHTML = "";
         for (let y = 1; y <= this.rows; y++) {
             for (let x = 1; x <= this.cols; x++) {
+                if (!Map.cellIsInsideCircularFootprint(x, y, this.cols, this.rows)) {
+                    continue;
+                }
                 const cell_coordinates = Map.coordinatesAtCell(this.state.coordinates, x, y, this.cols, this.rows);
                 const seed = cell_coordinates.getSeed();
                 const surfaceRiver = areaId === SURFACE_AREA
@@ -403,6 +414,7 @@ export class Map {
                 this.map.append(div);
             }
         }
+        this.attachPlayerDragDestination();
         // Opening an encounter card while its cell is being built focuses item
         // labels before that cell has been attached to the map. Reapply the
         // focus after every cell exists so the clicked item is included too.
@@ -954,6 +966,7 @@ export class Map {
         }
         else {
             this.slidingAnimationInProgress = false;
+            this.fadePlayerDragDestination();
             console.log("End sliding animation.");
         }
         // Save margin values to css.
@@ -1005,6 +1018,7 @@ export class Map {
                 startY: event.clientY,
                 active: false,
                 targetCell: playerCell,
+                preview: null,
             };
             try {
                 playerCell.setPointerCapture(event.pointerId);
@@ -1027,8 +1041,7 @@ export class Map {
                 return;
             }
             drag.active = true;
-            player.style.translate = offsetX + "px " + offsetY + "px";
-            player.classList.add("player-drag-preview");
+            this.movePlayerDragPreview(playerCell, player, offsetX, offsetY);
             this.map.classList.add("player-dragging");
             this.setPlayerDragTarget(this.cellAtPoint(event.clientX, event.clientY));
             event.preventDefault();
@@ -1043,6 +1056,7 @@ export class Map {
             }
             if (drag.active) {
                 this.setPlayerDragTarget(this.cellAtPoint(event.clientX, event.clientY));
+                this.movePlayerDragPreview(playerCell, player, event.clientX - drag.startX, event.clientY - drag.startY);
             }
             const target = this.state.exploreMode
                 && drag.active
@@ -1050,9 +1064,15 @@ export class Map {
                 ? Map.coordinatesFromCell(drag.targetCell)
                 : null;
             this.suppressNextCellClick = drag.active;
-            this.finishPlayerDrag(playerCell, player, event.pointerId);
+            if (target !== null) {
+                this.preservePlayerDragDestination();
+            }
+            this.finishPlayerDrag(playerCell, event.pointerId);
             if (target !== null) {
                 this.onExploreMoveRequested(target);
+                if (!this.slidingAnimationInProgress) {
+                    this.fadePlayerDragDestination();
+                }
             }
             if (drag.active) {
                 event.preventDefault();
@@ -1065,8 +1085,67 @@ export class Map {
                 return;
             }
             this.suppressNextCellClick = false;
-            this.finishPlayerDrag(playerCell, player, event.pointerId);
+            this.finishPlayerDrag(playerCell, event.pointerId);
         });
+    }
+    movePlayerDragPreview(playerCell, player, offsetX, offsetY) {
+        const drag = this.dragState;
+        if (drag === null) {
+            return;
+        }
+        if (drag.preview === null) {
+            drag.preview = player.cloneNode(true);
+            drag.preview.removeAttribute("id");
+            drag.preview.classList.add("player-drag-preview");
+            drag.preview.setAttribute("aria-hidden", "true");
+            drag.preview.alt = "";
+            drag.preview.draggable = false;
+            playerCell.append(drag.preview);
+        }
+        drag.preview.style.translate = offsetX + "px " + offsetY + "px";
+    }
+    preservePlayerDragDestination() {
+        var _a, _b, _c;
+        const preview = (_a = this.dragState) === null || _a === void 0 ? void 0 : _a.preview;
+        if (preview === undefined || preview === null) {
+            return;
+        }
+        if (this.dragDestinationRemovalTimer !== null) {
+            window.clearTimeout(this.dragDestinationRemovalTimer);
+            this.dragDestinationRemovalTimer = null;
+        }
+        (_b = this.dragDestination) === null || _b === void 0 ? void 0 : _b.remove();
+        this.dragDestination = preview;
+        this.dragState.preview = null;
+        preview.classList.replace("player-drag-preview", "player-drag-destination");
+        preview.style.removeProperty("translate");
+        (_c = this.map.parentElement) === null || _c === void 0 ? void 0 : _c.append(preview);
+    }
+    attachPlayerDragDestination() {
+        if (this.dragDestination === null) {
+            return;
+        }
+        const playerCell = this.map.querySelector(".player-cell");
+        if (playerCell === null) {
+            return;
+        }
+        this.dragDestination.style.setProperty("--item-mirror", String(this.catFacingX));
+        playerCell.append(this.dragDestination);
+    }
+    fadePlayerDragDestination() {
+        const destination = this.dragDestination;
+        if (destination === null
+            || destination.classList.contains("player-drag-destination--arrived")) {
+            return;
+        }
+        destination.classList.add("player-drag-destination--arrived");
+        this.dragDestinationRemovalTimer = window.setTimeout(() => {
+            destination.remove();
+            if (this.dragDestination === destination) {
+                this.dragDestination = null;
+            }
+            this.dragDestinationRemovalTimer = null;
+        }, 600);
     }
     cellAtPoint(clientX, clientY) {
         const element = document.elementFromPoint(clientX, clientY);
@@ -1085,12 +1164,11 @@ export class Map {
         drag.targetCell = target;
         (_b = drag.targetCell) === null || _b === void 0 ? void 0 : _b.classList.add("player-drop-target");
     }
-    finishPlayerDrag(playerCell, player, pointerId) {
-        var _a, _b;
+    finishPlayerDrag(playerCell, pointerId) {
+        var _a, _b, _c, _d;
         (_b = (_a = this.dragState) === null || _a === void 0 ? void 0 : _a.targetCell) === null || _b === void 0 ? void 0 : _b.classList.remove("player-drop-target");
+        (_d = (_c = this.dragState) === null || _c === void 0 ? void 0 : _c.preview) === null || _d === void 0 ? void 0 : _d.remove();
         this.dragState = null;
-        player.style.removeProperty("translate");
-        player.classList.remove("player-drag-preview");
         this.map.classList.remove("player-dragging");
         if (playerCell.hasPointerCapture(pointerId)) {
             playerCell.releasePointerCapture(pointerId);
