@@ -2,9 +2,46 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { calculateMapLayout } from "../js/GameController.js";
+import { Map as GameMap } from "../js/Map.js";
 
 const TILE_SIZE = 42;
 const VISUAL_OVERSCAN_CELLS = 2;
+
+function near(actual, expected, tolerance = 0.0001) {
+    assert.ok(Math.abs(actual - expected) <= tolerance);
+}
+
+test("screen drag offsets are converted into rotated map coordinates", () => {
+    let offset = GameMap.mapLocalOffsetForScreenOffset(12, -8, 0);
+    near(offset.x, 12);
+    near(offset.y, -8);
+
+    offset = GameMap.mapLocalOffsetForScreenOffset(-84, 0, -90);
+    near(offset.x, 0);
+    near(offset.y, -84);
+
+    offset = GameMap.mapLocalOffsetForScreenOffset(20, 0, 45);
+    near(offset.x, Math.sqrt(200));
+    near(offset.y, -Math.sqrt(200));
+});
+
+test("map-local slide offsets are converted into screen coordinates", () => {
+    let offset = GameMap.screenOffsetForMapLocalOffset(12, -8, 0);
+    near(offset.x, 12);
+    near(offset.y, -8);
+
+    offset = GameMap.screenOffsetForMapLocalOffset(-84, 0, -90);
+    near(offset.x, 0);
+    near(offset.y, 84);
+
+    offset = GameMap.screenOffsetForMapLocalOffset(
+        Math.sqrt(200),
+        -Math.sqrt(200),
+        45,
+    );
+    near(offset.x, 20);
+    near(offset.y, 0);
+});
 
 test("mobile map uses an odd centered circle covering every screen corner", () => {
     const viewports = [

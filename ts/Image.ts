@@ -11,6 +11,7 @@ export class Image {
     domId: string | null;
     zIndex: number;
     tile_size: number;
+    remainsUprightOnMap: boolean;
     private static readonly DUNGEON_MONSTER_IMAGES: Readonly<Record<string, string>> = {
         "bone rat": "monster-bone-rat-medieval-photoreal-v1.png",
         "cave bat": "monster-cave-bat-medieval-photoreal-v1.png",
@@ -87,6 +88,26 @@ export class Image {
         "cat selling crucible": "vendor-cat-seller-crucible-medieval-photoreal-v1.png",
         "cat selling treasure": "vendor-cat-seller-treasure-medieval-photoreal-v1.png",
     };
+    private static readonly MAP_RELATIVE_ARTWORK = new Set([
+        "cloud",
+        "dungeon boneyard scatter",
+        "dungeon mineral cluster",
+        "dungeon moonwell water",
+        "dungeon root tangle",
+        "dungeon web tangle",
+        "dungeon wet floor",
+        "grass",
+        "highland mountain crag",
+        "road",
+        "rock formation",
+        "big rock",
+        "sand",
+        "shop outside grass",
+        "stairs up",
+        "surface road bridge",
+        "surface road grass",
+        "water",
+    ]);
     constructor(
         dimension: number,
         src: string,
@@ -97,6 +118,7 @@ export class Image {
         domId: string | null,
         zIndex: number,
         tile_size: number,
+        remainsUprightOnMap: boolean,
     ) {
         this.dimension = dimension;
         this.src       = src;
@@ -107,6 +129,17 @@ export class Image {
         this.domId     = domId;
         this.zIndex    = zIndex;
         this.tile_size = tile_size;
+        this.remainsUprightOnMap = remainsUprightOnMap;
+    }
+
+    static shouldRemainUprightOnMap(name: string): boolean {
+        const mapRelative = name.endsWith(" floor")
+            || name.endsWith(" ground")
+            || name.endsWith(" wall")
+            || name.startsWith("highland castle wall")
+            || Image.MAP_RELATIVE_ARTWORK.has(name);
+
+        return !mapRelative;
     }
 
     // Returns image for item type.
@@ -1053,6 +1086,7 @@ export class Image {
             domId,
             zIndex,
             tile_size,
+            Image.shouldRemainUprightOnMap(name),
         );
     }
 
@@ -1103,7 +1137,10 @@ export class Image {
 
         // Create image element.
         let img = document.createElement("img");
-        img.setAttribute("class", "item");
+        img.setAttribute(
+            "class",
+            "item" + (this.remainsUprightOnMap ? " map-upright-item" : ""),
+        );
         img.setAttribute("src", 'images/' + this.src);
         if (style !== null) {
             img.setAttribute("style", style);

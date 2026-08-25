@@ -42,7 +42,6 @@ body {
     overflow: visible;
     rotate: var(--map-bearing-rotation);
     transform-origin: center;
-    transition: rotate 160ms linear;
     will-change: rotate;
 }
 .item {
@@ -135,6 +134,9 @@ body {
     user-select: none;
 }
 #cat {
+    rotate: var(--map-counter-rotation);
+}
+#map .map-upright-item {
     rotate: var(--map-counter-rotation);
 }
 .explore-mode #map.player-dragging #cat {
@@ -833,6 +835,30 @@ body {
         inset 0 0 0 1px rgba(217, 189, 106, 0.22);
     color: #f1e4bd;
     pointer-events: none;
+}
+#compassIndicator.compass-permission,
+#compassIndicator.compass-manual {
+    pointer-events: auto;
+}
+#compassIndicator.compass-permission {
+    cursor: pointer;
+}
+#compassIndicator.compass-manual {
+    border-color: rgba(126, 218, 255, 0.9);
+    box-shadow:
+        0 0 0.42rem rgba(126, 218, 255, 0.42),
+        inset 0 0 0 1px rgba(126, 218, 255, 0.24);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+#compassIndicator.compass-manual.compass-dragging {
+    cursor: grabbing;
+}
+#compassIndicator.compass-manual:focus-visible,
+#compassIndicator.compass-permission:focus-visible {
+    outline: 3px solid rgba(126, 218, 255, 0.95);
+    outline-offset: 3px;
 }
 .navigation-gps {
     display: grid;

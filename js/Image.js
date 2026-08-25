@@ -1,7 +1,7 @@
 import { ItemType } from "./ItemType.js";
 import { BattleSpell } from "./BattleSpell.js";
 export class Image {
-    constructor(dimension, src, style, isTaken, takeable, rotate, domId, zIndex, tile_size) {
+    constructor(dimension, src, style, isTaken, takeable, rotate, domId, zIndex, tile_size, remainsUprightOnMap) {
         this.dimension = dimension;
         this.src = src;
         this.style = style;
@@ -11,6 +11,15 @@ export class Image {
         this.domId = domId;
         this.zIndex = zIndex;
         this.tile_size = tile_size;
+        this.remainsUprightOnMap = remainsUprightOnMap;
+    }
+    static shouldRemainUprightOnMap(name) {
+        const mapRelative = name.endsWith(" floor")
+            || name.endsWith(" ground")
+            || name.endsWith(" wall")
+            || name.startsWith("highland castle wall")
+            || Image.MAP_RELATIVE_ARTWORK.has(name);
+        return !mapRelative;
     }
     // Returns image for item type.
     static getWithItemTypeName(name, tile_size, seed = 0, isTaken = false, takeable = true) {
@@ -1043,7 +1052,7 @@ export class Image {
         style += "--item-mirror:"
             + (name !== "cat" && Image.visualSeed(seed, name, 6) % 2 ? -1 : 1)
             + ";";
-        return new Image(dimension, (_b = srcs[sourceSeed % srcs.length]) !== null && _b !== void 0 ? _b : "", style, isTaken, takeable, rotate, domId, zIndex, tile_size);
+        return new Image(dimension, (_b = srcs[sourceSeed % srcs.length]) !== null && _b !== void 0 ? _b : "", style, isTaken, takeable, rotate, domId, zIndex, tile_size, Image.shouldRemainUprightOnMap(name));
     }
     // Creates independent, repeatable random-looking streams for each visual
     // property. Item placement continues to use the original coordinate seed.
@@ -1085,7 +1094,7 @@ export class Image {
             + "deg) scaleX(var(--item-mirror));";
         // Create image element.
         let img = document.createElement("img");
-        img.setAttribute("class", "item");
+        img.setAttribute("class", "item" + (this.remainsUprightOnMap ? " map-upright-item" : ""));
         img.setAttribute("src", 'images/' + this.src);
         if (style !== null) {
             img.setAttribute("style", style);
@@ -1172,3 +1181,23 @@ Image.VENDOR_CAT_IMAGES = {
     "cat selling crucible": "vendor-cat-seller-crucible-medieval-photoreal-v1.png",
     "cat selling treasure": "vendor-cat-seller-treasure-medieval-photoreal-v1.png",
 };
+Image.MAP_RELATIVE_ARTWORK = new Set([
+    "cloud",
+    "dungeon boneyard scatter",
+    "dungeon mineral cluster",
+    "dungeon moonwell water",
+    "dungeon root tangle",
+    "dungeon web tangle",
+    "dungeon wet floor",
+    "grass",
+    "highland mountain crag",
+    "road",
+    "rock formation",
+    "big rock",
+    "sand",
+    "shop outside grass",
+    "stairs up",
+    "surface road bridge",
+    "surface road grass",
+    "water",
+]);

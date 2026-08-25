@@ -9,8 +9,10 @@ import {
     SURFACE_AREA,
 } from "../js/Area.js";
 import {
+    compassDialAngle,
     gpsHysteresisMeters,
     gpsTakingRangeMeters,
+    manualHeadingAfterDialDrag,
     mapHeadingFromSensors,
     normalizeHeading,
     shouldQueueMovement,
@@ -120,6 +122,16 @@ test("Explore map follows the compass instead of GPS travel course", () => {
     assert.equal(mapHeadingFromSensors(true, 80, null), null);
     assert.equal(mapHeadingFromSensors(false, 80, 145), 80);
     assert.equal(mapHeadingFromSensors(false, null, 145), 145);
+    assert.equal(mapHeadingFromSensors(false, 80, 145, 220), 220);
+});
+
+test("manual compass dragging converts dial rotation into map heading", () => {
+    assert.equal(compassDialAngle(50, 0, 50, 50), 0);
+    assert.equal(compassDialAngle(100, 50, 50, 50), 90);
+    assert.equal(compassDialAngle(50, 100, 50, 50), 180);
+    assert.equal(compassDialAngle(0, 50, 50, 50), 270);
+    assert.equal(manualHeadingAfterDialDrag(0, 0, 270), 90);
+    assert.equal(manualHeadingAfterDialDrag(350, 350, 10), 330);
 });
 
 test("map cells form a centered circular footprint", () => {

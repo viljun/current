@@ -76,10 +76,33 @@ export function mapHeadingFromSensors(
     exploreMode: boolean,
     travelHeading: number|null,
     compassHeading: number|null,
+    manualHeading: number|null = null,
 ): number|null {
-    return exploreMode
+    return manualHeading ?? (exploreMode
         ? compassHeading
-        : travelHeading ?? compassHeading;
+        : travelHeading ?? compassHeading);
+}
+
+export function compassDialAngle(
+    clientX: number,
+    clientY: number,
+    centerX: number,
+    centerY: number,
+): number {
+    return normalizeHeading(
+        Math.atan2(clientX - centerX, centerY - clientY) * 180 / Math.PI,
+    );
+}
+
+export function manualHeadingAfterDialDrag(
+    startHeading: number,
+    startDialAngle: number,
+    currentDialAngle: number,
+): number {
+    return normalizeHeading(
+        startHeading
+            - shortestHeadingDelta(startDialAngle, currentDialAngle),
+    );
 }
 
 export function shouldExitAreaAtWall(
@@ -177,6 +200,8 @@ export class GameController {
     // those distant cells no longer make each redraw prohibitively expensive.
     private static readonly MAP_VISUAL_OVERSCAN_CELLS = 2;
     private static readonly COMPASS_MAP_UPDATE_INTERVAL_MS = 100;
+    private static readonly COMPASS_SENSOR_TIMEOUT_MS = 1_500;
+    private static readonly MANUAL_COMPASS_STEP_DEGREES = 5;
     private static readonly TILE_SIZE = 42;
     private static readonly MAX_ACCEPTED_GPS_ACCURACY_METERS =
         MAX_GPS_TAKING_RANGE_METERS;
@@ -209,8 +234,17 @@ export class GameController {
     private pendingCoordinates: Coordinates|null = null;
     private compassHeading: number|null = null;
     private travelHeading: number|null = null;
+    private manualCompassHeading: number|null = null;
+    private pendingSensorHeading: number|null = null;
     private displayedHeading: number|null = null;
     private compassMapUpdateTimer: number|null = null;
+    private compassFallbackTimer: number|null = null;
+    private manualCompassUpdateTimer: number|null = null;
+    private manualCompassDrag: {
+        pointerId: number;
+        startDialAngle: number;
+        startHeading: number;
+    }|null = null;
 
     constructor() {
         const exploreMode = this.loadExploreMode();
@@ -328,7 +362,10 @@ export class GameController {
     }
 
     private bindCompass(): void {
-        if (!("DeviceOrientationEvent" in window)) {
+        this.bindManualCompassControls();
+        if (typeof window.DeviceOrientationEvent === "undefined") {
+            this.enableManualCompass();
+
             return;
         }
         const orientationConstructor = window.DeviceOrientationEvent as unknown as CompassOrientationEventConstructor;
@@ -343,19 +380,7 @@ export class GameController {
             if (heading === null || !Number.isFinite(heading)) {
                 return;
             }
-            const normalizedHeading = normalizeHeading(heading);
-            this.compassHeading = normalizedHeading;
-            const northRotation = normalizeHeading(-normalizedHeading);
-            this.compassIndicator.style.setProperty(
-                "--compass-rotation",
-                northRotation + "deg",
-            );
-            this.compassIndicator.setAttribute(
-                "aria-label",
-                "Compass heading " + Math.round(normalizedHeading)
-                    + " degrees",
-            );
-            this.scheduleCompassMapHeading();
+            this.receiveSensorHeading(normalizeHeading(heading));
         };
         let listening = false;
         const listen = (): void => {
@@ -369,27 +394,42 @@ export class GameController {
 
         if (orientationConstructor.requestPermission === undefined) {
             listen();
+            this.startCompassFallbackTimer();
 
             return;
         }
 
-        this.compassIndicator.style.pointerEvents = "auto";
+        this.compassIndicator.classList.add("compass-permission");
         this.compassIndicator.setAttribute("role", "button");
         this.compassIndicator.setAttribute("tabindex", "0");
         this.compassIndicator.title = "Tap to enable compass";
+        let permissionRequested = false;
         const requestPermission = (): void => {
+            if (permissionRequested || this.manualCompassHeading !== null) {
+                return;
+            }
+            permissionRequested = true;
             void orientationConstructor.requestPermission?.(true)
                 .then(permission => {
                     if (permission !== "granted") {
+                        this.enableManualCompass();
+
                         return;
                     }
                     listen();
-                    this.compassIndicator.style.pointerEvents = "none";
+                    this.compassIndicator.classList.remove(
+                        "compass-permission",
+                    );
                     this.compassIndicator.setAttribute("role", "img");
                     this.compassIndicator.removeAttribute("tabindex");
-                    this.compassIndicator.title = "North";
+                    this.compassIndicator.title = "Waiting for compass";
+                    this.compassIndicator.setAttribute(
+                        "aria-label",
+                        "Waiting for compass",
+                    );
+                    this.startCompassFallbackTimer();
                 })
-                .catch(() => {});
+                .catch(() => this.enableManualCompass());
         };
         this.compassIndicator.addEventListener("click", requestPermission);
         this.compassIndicator.addEventListener("keydown", event => {
@@ -398,6 +438,224 @@ export class GameController {
                 requestPermission();
             }
         });
+    }
+
+    private bindManualCompassControls(): void {
+        this.compassIndicator.addEventListener("pointerdown", event => {
+            if (this.manualCompassHeading === null
+                || !event.isPrimary
+                || event.button !== 0
+            ) {
+                return;
+            }
+            const bounds = this.compassIndicator.getBoundingClientRect();
+            this.manualCompassDrag = {
+                pointerId: event.pointerId,
+                startDialAngle: compassDialAngle(
+                    event.clientX,
+                    event.clientY,
+                    bounds.left + bounds.width / 2,
+                    bounds.top + bounds.height / 2,
+                ),
+                startHeading: this.manualCompassHeading,
+            };
+            this.compassIndicator.classList.add("compass-dragging");
+            try {
+                this.compassIndicator.setPointerCapture(event.pointerId);
+            } catch {
+                // Synthetic browser-test pointers cannot be captured.
+            }
+            event.preventDefault();
+        });
+        this.compassIndicator.addEventListener("pointermove", event => {
+            if (this.manualCompassDrag?.pointerId !== event.pointerId) {
+                return;
+            }
+            this.updateManualCompassFromPointer(event);
+            event.preventDefault();
+        });
+        const finishPointer = (event: PointerEvent): void => {
+            if (this.manualCompassDrag?.pointerId !== event.pointerId) {
+                return;
+            }
+            if (event.type === "pointerup") {
+                this.updateManualCompassFromPointer(event);
+            }
+            this.manualCompassDrag = null;
+            this.compassIndicator.classList.remove("compass-dragging");
+            if (this.compassIndicator.hasPointerCapture(event.pointerId)) {
+                this.compassIndicator.releasePointerCapture(event.pointerId);
+            }
+            if (this.pendingSensorHeading !== null) {
+                const heading = this.pendingSensorHeading;
+                this.pendingSensorHeading = null;
+                this.useSensorHeading(heading);
+            }
+            event.preventDefault();
+        };
+        this.compassIndicator.addEventListener("pointerup", finishPointer);
+        this.compassIndicator.addEventListener("pointercancel", finishPointer);
+        this.compassIndicator.addEventListener("wheel", event => {
+            if (this.manualCompassHeading === null) {
+                return;
+            }
+            const delta = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+            if (delta === 0) {
+                return;
+            }
+            this.setManualCompassHeading(
+                this.manualCompassHeading
+                    + Math.sign(delta)
+                        * GameController.MANUAL_COMPASS_STEP_DEGREES,
+            );
+            event.preventDefault();
+        }, { passive: false });
+        this.compassIndicator.addEventListener("keydown", event => {
+            if (this.manualCompassHeading === null) {
+                return;
+            }
+            let heading: number|null = null;
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+                heading = this.manualCompassHeading
+                    + GameController.MANUAL_COMPASS_STEP_DEGREES;
+            } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+                heading = this.manualCompassHeading
+                    - GameController.MANUAL_COMPASS_STEP_DEGREES;
+            } else if (event.key === "PageUp") {
+                heading = this.manualCompassHeading + 15;
+            } else if (event.key === "PageDown") {
+                heading = this.manualCompassHeading - 15;
+            } else if (event.key === "Home") {
+                heading = 0;
+            }
+            if (heading === null) {
+                return;
+            }
+            this.setManualCompassHeading(heading);
+            event.preventDefault();
+        });
+    }
+
+    private updateManualCompassFromPointer(event: PointerEvent): void {
+        const drag = this.manualCompassDrag;
+        if (drag === null) {
+            return;
+        }
+        const bounds = this.compassIndicator.getBoundingClientRect();
+        const dialAngle = compassDialAngle(
+            event.clientX,
+            event.clientY,
+            bounds.left + bounds.width / 2,
+            bounds.top + bounds.height / 2,
+        );
+        this.setManualCompassHeading(manualHeadingAfterDialDrag(
+            drag.startHeading,
+            drag.startDialAngle,
+            dialAngle,
+        ));
+    }
+
+    private setManualCompassHeading(heading: number): void {
+        this.manualCompassHeading = normalizeHeading(heading);
+        if (this.manualCompassUpdateTimer !== null) {
+            return;
+        }
+        this.manualCompassUpdateTimer = window.setTimeout(() => {
+            this.manualCompassUpdateTimer = null;
+            if (this.manualCompassHeading === null) {
+                return;
+            }
+            this.showCompassHeading(this.manualCompassHeading, true);
+            this.cancelScheduledCompassMapHeading();
+            this.applyMapHeading(true);
+        });
+    }
+
+    private enableManualCompass(): void {
+        this.cancelCompassFallbackTimer();
+        this.manualCompassHeading = normalizeHeading(
+            this.manualCompassHeading
+                ?? this.displayedHeading
+                ?? this.compassHeading
+                ?? 0,
+        );
+        this.compassIndicator.classList.remove("compass-permission");
+        this.compassIndicator.classList.add("compass-manual");
+        this.compassIndicator.setAttribute("role", "slider");
+        this.compassIndicator.setAttribute("tabindex", "0");
+        this.compassIndicator.setAttribute("aria-valuemin", "0");
+        this.compassIndicator.setAttribute("aria-valuemax", "359");
+        this.compassIndicator.title =
+            "Drag, scroll, or use arrow keys to rotate the map";
+        this.setManualCompassHeading(this.manualCompassHeading);
+    }
+
+    private receiveSensorHeading(heading: number): void {
+        if (this.manualCompassDrag !== null) {
+            this.pendingSensorHeading = heading;
+
+            return;
+        }
+        this.useSensorHeading(heading);
+    }
+
+    private useSensorHeading(heading: number): void {
+        this.cancelCompassFallbackTimer();
+        if (this.manualCompassUpdateTimer !== null) {
+            window.clearTimeout(this.manualCompassUpdateTimer);
+            this.manualCompassUpdateTimer = null;
+        }
+        this.manualCompassHeading = null;
+        this.compassHeading = heading;
+        this.compassIndicator.classList.remove(
+            "compass-manual",
+            "compass-dragging",
+            "compass-permission",
+        );
+        this.compassIndicator.setAttribute("role", "img");
+        this.compassIndicator.removeAttribute("tabindex");
+        this.compassIndicator.removeAttribute("aria-valuemin");
+        this.compassIndicator.removeAttribute("aria-valuemax");
+        this.compassIndicator.removeAttribute("aria-valuenow");
+        this.compassIndicator.title = "North";
+        this.showCompassHeading(heading, false);
+        this.scheduleCompassMapHeading();
+    }
+
+    private showCompassHeading(heading: number, manual: boolean): void {
+        this.compassIndicator.style.setProperty(
+            "--compass-rotation",
+            normalizeHeading(-heading) + "deg",
+        );
+        this.compassIndicator.setAttribute(
+            "aria-label",
+            (manual ? "Manual compass heading " : "Compass heading ")
+                + Math.round(heading) + " degrees",
+        );
+        if (manual) {
+            this.compassIndicator.setAttribute(
+                "aria-valuenow",
+                String(Math.round(heading)),
+            );
+        }
+    }
+
+    private startCompassFallbackTimer(): void {
+        this.cancelCompassFallbackTimer();
+        this.compassFallbackTimer = window.setTimeout(() => {
+            this.compassFallbackTimer = null;
+            if (this.compassHeading === null) {
+                this.enableManualCompass();
+            }
+        }, GameController.COMPASS_SENSOR_TIMEOUT_MS);
+    }
+
+    private cancelCompassFallbackTimer(): void {
+        if (this.compassFallbackTimer === null) {
+            return;
+        }
+        window.clearTimeout(this.compassFallbackTimer);
+        this.compassFallbackTimer = null;
     }
 
     private scheduleResize(): void {
@@ -598,6 +856,7 @@ export class GameController {
             this.state.exploreMode,
             this.travelHeading,
             this.compassHeading,
+            this.manualCompassHeading,
         );
         const target = sensorHeading ?? this.displayedHeading;
         if (target === null) {

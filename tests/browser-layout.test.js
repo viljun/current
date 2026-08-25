@@ -124,8 +124,28 @@ test(
                 viewport.name + " map still renders a square footprint",
             );
             assert.equal(layout.headingMap.overflow, "visible");
+            assert.equal(layout.manualCompass.enabled, true);
+            assert.equal(layout.manualCompass.role, "slider");
+            assert.equal(layout.manualCompass.bearingAfterManualDrag, "-90deg");
+            assert.equal(layout.manualCompass.compassAfterManualDrag, "270deg");
+            assert.equal(layout.manualCompass.bearingAfterManualWheel, "-95deg");
+            assert.equal(layout.manualCompass.bearingAfterManualKeyboard, "-5deg");
+            assert.equal(layout.manualCompass.value, "5");
+            assert.equal(layout.manualCompass.mapWasNotRebuilt, true);
             assert.equal(layout.headingMap.eastMapRotation, "-90deg");
             assert.equal(layout.headingMap.eastCatCounterRotation, "90deg");
+            assert.equal(
+                layout.headingMap.eastUprightSpriteRotation,
+                "90deg",
+                viewport.name + " rotated an upright map sprite",
+            );
+            assert.equal(
+                layout.headingMap.eastTerrainSpriteRotation,
+                "none",
+                viewport.name + " counter-rotated terrain artwork",
+            );
+            assert.ok(layout.headingMap.uprightSprites > 0);
+            assert.ok(layout.headingMap.terrainSprites > 0);
             assert.equal(
                 layout.headingMap.labelStayedUpright,
                 true,
@@ -518,6 +538,16 @@ test(
                 layout.exploreDrag.destinationOutlineVisibleAfterDrop,
                 true,
                 viewport.name + " destination outline vanished before arrival",
+            );
+            assert.equal(
+                layout.exploreDrag.sourceCellStayedPutAtSlideStart,
+                true,
+                viewport.name + " rotated map jumped in the wrong direction",
+            );
+            assert.equal(
+                layout.exploreDrag.catStayedCenteredAtSlideStart,
+                true,
+                viewport.name + " cat jumped when the rotated slide began",
             );
             assert.deepEqual(
                 layout.exploreDrag.selectionAfterFirstItemClick,

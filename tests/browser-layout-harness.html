@@ -558,16 +558,104 @@
             const headingPlayerCoordinates = cellCoordinates(
                 headingPlayerCell,
             );
+            const headingCat = headingPlayerCell.querySelector("#cat");
             const eastCell = cellWithCoordinates({
                 latitude: headingPlayerCoordinates.latitude,
                 longitude: headingPlayerCoordinates.longitude + 1,
             });
+            const manualCompass = document.getElementById(
+                "compassIndicator",
+            );
+            await new Promise(resolve => window.setTimeout(resolve, 1700));
+            const manualMapCell = map.querySelector(".cell");
+            const manualCompassBounds = rectangle(manualCompass);
+            const manualPointer = (type, x, y) => manualCompass.dispatchEvent(
+                new window.PointerEvent(type, {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: x,
+                    clientY: y,
+                    button: 0,
+                    buttons: type === "pointerup" ? 0 : 1,
+                    isPrimary: true,
+                    pointerId: 50,
+                    pointerType: "mouse",
+                }),
+            );
+            manualPointer(
+                "pointerdown",
+                manualCompassBounds.centerX,
+                manualCompassBounds.top + 3,
+            );
+            manualPointer(
+                "pointermove",
+                manualCompassBounds.left + 3,
+                manualCompassBounds.centerY,
+            );
+            manualPointer(
+                "pointerup",
+                manualCompassBounds.left + 3,
+                manualCompassBounds.centerY,
+            );
+            const nextCompassUpdate = () => new Promise(resolve =>
+                window.setTimeout(resolve, 20)
+            );
+            await nextCompassUpdate();
+            const bearingAfterManualDrag = container.style.getPropertyValue(
+                "--map-bearing-rotation",
+            );
+            const compassAfterManualDrag = manualCompass.style
+                .getPropertyValue("--compass-rotation");
+            manualCompass.dispatchEvent(new window.WheelEvent("wheel", {
+                bubbles: true,
+                cancelable: true,
+                deltaY: 1,
+            }));
+            await nextCompassUpdate();
+            const bearingAfterManualWheel = container.style.getPropertyValue(
+                "--map-bearing-rotation",
+            );
+            manualCompass.dispatchEvent(new window.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Home",
+            }));
+            manualCompass.dispatchEvent(new window.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "ArrowRight",
+            }));
+            await nextCompassUpdate();
+            const bearingAfterManualKeyboard = container.style
+                .getPropertyValue("--map-bearing-rotation");
+            measurement.manualCompass = {
+                enabled: manualCompass.classList.contains("compass-manual"),
+                role: manualCompass.getAttribute("role"),
+                value: manualCompass.getAttribute("aria-valuenow"),
+                bearingAfterManualDrag,
+                compassAfterManualDrag,
+                bearingAfterManualWheel,
+                bearingAfterManualKeyboard,
+                mapWasNotRebuilt: manualMapCell === map.querySelector(".cell"),
+            };
+            manualCompass.dispatchEvent(new window.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Home",
+            }));
+            await nextCompassUpdate();
             const headingLabelText = [
                 ...document.querySelectorAll(".map-item-label-text"),
             ].find(label => rectangle(label).width > 0);
             const headingLabelBefore = headingLabelText === undefined
                 ? null
                 : rectangle(headingLabelText);
+            const uprightSprite = map.querySelector(
+                ".map-upright-item:not(#cat)",
+            );
+            const terrainSprite = map.querySelector(
+                ".item:not(.map-upright-item)",
+            );
             map.style.transition = "none";
             container.style.setProperty("--map-bearing-rotation", "-90deg");
             container.style.setProperty("--map-counter-rotation", "90deg");
@@ -576,8 +664,14 @@
             const playerBoundsWhenHeadingEast = rectangle(headingPlayerCell);
             const eastMapRotation = window.getComputedStyle(map).rotate;
             const eastCatCounterRotation = window.getComputedStyle(
-                headingPlayerCell.querySelector("#cat"),
+                headingCat,
             ).rotate;
+            const eastUprightSpriteRotation = uprightSprite === null
+                ? null
+                : window.getComputedStyle(uprightSprite).rotate;
+            const eastTerrainSpriteRotation = terrainSprite === null
+                ? null
+                : window.getComputedStyle(terrainSprite).rotate;
             const headingLabelWhenEast = headingLabelText === undefined
                 ? null
                 : rectangle(headingLabelText);
@@ -600,6 +694,14 @@
                 overflow: window.getComputedStyle(map).overflow,
                 eastMapRotation,
                 eastCatCounterRotation,
+                eastUprightSpriteRotation,
+                eastTerrainSpriteRotation,
+                uprightSprites: map.querySelectorAll(
+                    ".map-upright-item",
+                ).length,
+                terrainSprites: map.querySelectorAll(
+                    ".item:not(.map-upright-item)",
+                ).length,
                 labelStayedUpright: headingLabelBefore === null
                         || headingLabelWhenEast === null
                     ? false
@@ -619,6 +721,17 @@
                     ) < 2,
                 rotatedCornersPainted,
             };
+            for (let index = 0; index < 3; index++) {
+                manualCompass.dispatchEvent(new window.KeyboardEvent(
+                    "keydown",
+                    {
+                        bubbles: true,
+                        cancelable: true,
+                        key: "PageUp",
+                    },
+                ));
+            }
+            await nextCompassUpdate();
             const dispatchPointer = (element, type, point, pointerId) =>
                 element.dispatchEvent(new window.PointerEvent(type, {
                     bubbles: true,
@@ -705,18 +818,23 @@
                 x: targetBounds.centerX - playerBounds.centerX,
                 y: targetBounds.centerY - playerBounds.centerY,
             };
-            const shadowTranslate = dragShadow === null
-                ? []
-                : window.getComputedStyle(dragShadow).translate
-                    .split(" ")
-                    .map(Number.parseFloat);
+            const playerImageDuringDrag = rectangle(oldPlayerImage);
+            const shadowDuringDrag = dragShadow === null
+                ? null
+                : rectangle(dragShadow);
             const catStayedPutDuringDrag =
                 oldPlayerImage.style.translate === "";
             const shadowMovedWithPointer = dragShadow !== null
                 && dragShadow !== oldPlayerImage
-                && Math.abs(shadowTranslate[0] - expectedDragOffset.x) < 1
-                && Math.abs((shadowTranslate[1] ?? 0)
-                    - expectedDragOffset.y) < 1;
+                && shadowDuringDrag !== null
+                && Math.abs(
+                    shadowDuringDrag.centerX - playerImageDuringDrag.centerX
+                        - expectedDragOffset.x,
+                ) < 2
+                && Math.abs(
+                    shadowDuringDrag.centerY - playerImageDuringDrag.centerY
+                        - expectedDragOffset.y,
+                ) < 2;
             const targetHighlightedDuringDrag =
                 dragTarget.classList.contains("player-drop-target");
             dispatchPointer(
@@ -741,6 +859,7 @@
             targetBounds = rectangle(dragTarget);
             const oldPlayerCell = playerCell;
             oldPlayerImage = playerCell.querySelector("#cat");
+            const catBeforeDrop = rectangle(oldPlayerImage);
             dispatchPointer(
                 oldPlayerImage,
                 "pointerdown",
@@ -755,6 +874,22 @@
                 { x: targetBounds.centerX, y: targetBounds.centerY },
                 43,
             );
+            const sourceCellAtSlideStart = rectangle(
+                cellWithCoordinates(playerCoordinates),
+            );
+            const catAtSlideStart = rectangle(
+                document.getElementById("cat"),
+            );
+            const sourceCellStayedPutAtSlideStart = Math.abs(
+                sourceCellAtSlideStart.centerX - playerBounds.centerX,
+            ) < 2 && Math.abs(
+                sourceCellAtSlideStart.centerY - playerBounds.centerY,
+            ) < 2;
+            const catStayedCenteredAtSlideStart = Math.abs(
+                catAtSlideStart.centerX - catBeforeDrop.centerX,
+            ) < 2 && Math.abs(
+                catAtSlideStart.centerY - catBeforeDrop.centerY,
+            ) < 2;
             const exploreCenterAfterDrag = cellCoordinates(
                 document.querySelector(".player-cell"),
             );
@@ -806,6 +941,8 @@
                 exploreCenterAfterDrag,
                 exploreSelectionAfterDrag,
                 destinationOutlineVisibleAfterDrop,
+                sourceCellStayedPutAtSlideStart,
+                catStayedCenteredAtSlideStart,
                 firstItemClickCoordinates,
                 selectionAfterFirstItemClick,
                 selectionAfterTrailingClick,

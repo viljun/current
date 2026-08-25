@@ -59,6 +59,14 @@ export declare class Map {
         x: number;
         y: number;
     };
+    static mapLocalOffsetForScreenOffset(screenX: number, screenY: number, mapRotationDegrees: number): {
+        x: number;
+        y: number;
+    };
+    static screenOffsetForMapLocalOffset(localX: number, localY: number, mapRotationDegrees: number): {
+        x: number;
+        y: number;
+    };
     static interactionCoordinates(state: MapState): Coordinates | null;
     constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onExploreMoveRequested: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void, onSlideFinished: () => void);
     show({ previousCoordinates, }: {
@@ -117,6 +125,7 @@ export declare class Map {
     private bindPlayerDragging;
     private static suppressTrailingClickOn;
     private movePlayerDragPreview;
+    private mapRotationDegrees;
     private preservePlayerDragDestination;
     private attachPlayerDragDestination;
     private fadePlayerDragDestination;

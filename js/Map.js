@@ -45,6 +45,24 @@ export class Map {
             y: previousCoordinates.latitude - currentCoordinates.latitude,
         };
     }
+    static mapLocalOffsetForScreenOffset(screenX, screenY, mapRotationDegrees) {
+        const radians = mapRotationDegrees * Math.PI / 180;
+        const cosine = Math.cos(radians);
+        const sine = Math.sin(radians);
+        return {
+            x: cosine * screenX + sine * screenY,
+            y: -sine * screenX + cosine * screenY,
+        };
+    }
+    static screenOffsetForMapLocalOffset(localX, localY, mapRotationDegrees) {
+        const radians = mapRotationDegrees * Math.PI / 180;
+        const cosine = Math.cos(radians);
+        const sine = Math.sin(radians);
+        return {
+            x: cosine * localX - sine * localY,
+            y: sine * localX + cosine * localY,
+        };
+    }
     static interactionCoordinates(state) {
         if (state.selectedCoordinates !== null) {
             return state.selectedCoordinates;
@@ -947,14 +965,15 @@ export class Map {
         let margins = Object.assign({}, originalMargins);
         const animationFinished = stepNumber >= MAP_SLIDING_STEPS;
         if (!animationFinished) {
-            const horizontalMargin = (MAP_SLIDING_STEPS - stepNumber)
+            const localHorizontalMargin = (MAP_SLIDING_STEPS - stepNumber)
                 * signedStepSizeX;
-            const verticalMargin = (MAP_SLIDING_STEPS - stepNumber)
+            const localVerticalMargin = (MAP_SLIDING_STEPS - stepNumber)
                 * signedStepSizeY;
-            margins.mapLeft += horizontalMargin;
-            margins.mapTop += verticalMargin;
-            margins.catLeft -= horizontalMargin;
-            margins.catTop -= verticalMargin;
+            const screenMapMargin = Map.screenOffsetForMapLocalOffset(localHorizontalMargin, localVerticalMargin, this.mapRotationDegrees());
+            margins.mapLeft += screenMapMargin.x;
+            margins.mapTop += screenMapMargin.y;
+            margins.catLeft -= localHorizontalMargin;
+            margins.catTop -= localVerticalMargin;
             // Callback.
             window.setTimeout(() => {
                 stepNumber++;
@@ -1120,7 +1139,13 @@ export class Map {
             drag.preview.draggable = false;
             playerCell.append(drag.preview);
         }
-        drag.preview.style.translate = offsetX + "px " + offsetY + "px";
+        const localOffset = Map.mapLocalOffsetForScreenOffset(offsetX, offsetY, this.mapRotationDegrees());
+        drag.preview.style.translate = localOffset.x + "px "
+            + localOffset.y + "px";
+    }
+    mapRotationDegrees() {
+        const rotationDegrees = Number.parseFloat(window.getComputedStyle(this.map).getPropertyValue("--map-bearing-rotation"));
+        return Number.isFinite(rotationDegrees) ? rotationDegrees : 0;
     }
     preservePlayerDragDestination() {
         var _a, _b, _c;

@@ -73,3 +73,19 @@ test("shop walls use the generated seamless oak texture", () => {
         "shop-wall-aged-oak-seamless-topdown-photoreal-v3.png",
     );
 });
+
+test("upright map sprites are distinct from rotating terrain artwork", () => {
+    for (const name of ["cat", "tree", "orc", "surface road milestone"]) {
+        assert.equal(Image.shouldRemainUprightOnMap(name), true, name);
+    }
+    for (const name of [
+        "grass",
+        "road",
+        "surface road bridge",
+        "dungeon floor",
+        "highland castle wall vertical",
+        "shop outside grass",
+    ]) {
+        assert.equal(Image.shouldRemainUprightOnMap(name), false, name);
+    }
+});
