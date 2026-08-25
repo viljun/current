@@ -47,6 +47,7 @@ export declare class Map {
     private readonly onCellSelected;
     private readonly onExploreMoveRequested;
     private readonly onInteractionUnlocked;
+    private readonly onSlideFinished;
     private dragState;
     private dragDestination;
     private dragDestinationRemovalTimer;
@@ -59,7 +60,7 @@ export declare class Map {
         y: number;
     };
     static interactionCoordinates(state: MapState): Coordinates | null;
-    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onExploreMoveRequested: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void);
+    constructor(map: HTMLDivElement, messageBox: HTMLDivElement, cols: number, rows: number, inventory: Inventory, state: MapState, tile_size: number, onCellSelected: (coordinates: Coordinates) => void, onExploreMoveRequested: (coordinates: Coordinates) => void, onInteractionUnlocked: () => void, onSlideFinished: () => void);
     show({ previousCoordinates, }: {
         previousCoordinates?: Coordinates | null;
     }): void;

@@ -96,6 +96,7 @@ export class Map {
     private readonly onCellSelected: (coordinates: Coordinates) => void;
     private readonly onExploreMoveRequested: (coordinates: Coordinates) => void;
     private readonly onInteractionUnlocked: () => void;
+    private readonly onSlideFinished: () => void;
     private dragState: {
         pointerId: number;
         startX: number;
@@ -171,6 +172,7 @@ export class Map {
         onCellSelected: (coordinates: Coordinates) => void,
         onExploreMoveRequested: (coordinates: Coordinates) => void,
         onInteractionUnlocked: () => void,
+        onSlideFinished: () => void,
     ) {
         this.map = map;
         this.messageBox = messageBox;
@@ -182,6 +184,7 @@ export class Map {
         this.onCellSelected = onCellSelected;
         this.onExploreMoveRequested = onExploreMoveRequested;
         this.onInteractionUnlocked = onInteractionUnlocked;
+        this.onSlideFinished = onSlideFinished;
     }
 
     // Redraws map.
@@ -1683,6 +1686,7 @@ export class Map {
         if (animationFinished) {
             this.fadePlayerDragDestination();
             this.selectPendingCellAfterSlide();
+            this.onSlideFinished();
         }
     }
 

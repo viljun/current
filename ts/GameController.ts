@@ -126,6 +126,19 @@ export function shouldAdoptGpsCoordinates(
             >= gpsHysteresisMeters(accuracyMeters);
 }
 
+export function shouldQueueMovement(
+    interactionLocked: boolean,
+    slideInProgress: boolean,
+): boolean {
+    return interactionLocked || slideInProgress;
+}
+
+export function shouldRefreshMapForGpsAccuracy(
+    previousTakingRangeMeters: number|null,
+): boolean {
+    return previousTakingRangeMeters === null;
+}
+
 export function calculateMapLayout(
     viewportWidth: number,
     viewportHeight: number,
@@ -233,6 +246,7 @@ export class GameController {
             coordinates => this.selectCoordinates(coordinates),
             coordinates => this.moveTo(coordinates),
             () => this.resumeMovement(),
+            () => this.resumePendingMovement(),
         );
         this.map.show({});
         this.bindControls();
@@ -440,7 +454,10 @@ export class GameController {
     }
 
     private moveTo(coordinates: Coordinates): void {
-        if (this.map.interactionLocked) {
+        if (shouldQueueMovement(
+            this.map.interactionLocked,
+            this.map.slidingAnimationInProgress,
+        )) {
             this.pendingCoordinates = coordinates;
 
             return;
@@ -467,6 +484,17 @@ export class GameController {
             this.saveExploreCoordinates();
         }
         this.map.show({ previousCoordinates });
+    }
+
+    private resumePendingMovement(): void {
+        if (this.pendingCoordinates === null) {
+            return;
+        }
+        const coordinates = this.pendingCoordinates;
+        this.pendingCoordinates = null;
+        if (!this.state.coordinates.equals(coordinates)) {
+            this.moveTo(coordinates);
+        }
     }
 
     private resumeMovement(): void {
@@ -533,9 +561,7 @@ export class GameController {
         ) {
             if (!this.state.coordinates.equals(this.latestGpsCoordinates)) {
                 this.moveTo(this.latestGpsCoordinates);
-            } else if (
-                previousTakingRange !== this.state.takingRangeMeters
-            ) {
+            } else if (shouldRefreshMapForGpsAccuracy(previousTakingRange)) {
                 this.map.show({});
             }
         }

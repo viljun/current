@@ -54,7 +54,7 @@ export class Map {
         }
         return null;
     }
-    constructor(map, messageBox, cols, rows, inventory, state, tile_size, onCellSelected, onExploreMoveRequested, onInteractionUnlocked) {
+    constructor(map, messageBox, cols, rows, inventory, state, tile_size, onCellSelected, onExploreMoveRequested, onInteractionUnlocked, onSlideFinished) {
         this.slidingAnimationInProgress = false;
         this.interactionLocked = false;
         this.catFacingX = 1;
@@ -75,6 +75,7 @@ export class Map {
         this.onCellSelected = onCellSelected;
         this.onExploreMoveRequested = onExploreMoveRequested;
         this.onInteractionUnlocked = onInteractionUnlocked;
+        this.onSlideFinished = onSlideFinished;
     }
     // Redraws map.
     show({ previousCoordinates = null, }) {
@@ -977,6 +978,7 @@ export class Map {
         if (animationFinished) {
             this.fadePlayerDragDestination();
             this.selectPendingCellAfterSlide();
+            this.onSlideFinished();
         }
     }
     selectPendingCellAfterSlide() {

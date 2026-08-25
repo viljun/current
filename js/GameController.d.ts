@@ -16,6 +16,8 @@ export declare function shouldExitAreaAtWall(areaId: number, wall: boolean): boo
 export declare function gpsTakingRangeMeters(accuracyMeters: number): number;
 export declare function gpsHysteresisMeters(accuracyMeters: number): number;
 export declare function shouldAdoptGpsCoordinates(current: Coordinates | null, candidate: Coordinates, accuracyMeters: number): boolean;
+export declare function shouldQueueMovement(interactionLocked: boolean, slideInProgress: boolean): boolean;
+export declare function shouldRefreshMapForGpsAccuracy(previousTakingRangeMeters: number | null): boolean;
 export declare function calculateMapLayout(viewportWidth: number, viewportHeight: number, tileSize: number, visualOverscanCells: number): MapLayout;
 export declare class GameController {
     private static readonly EXPLORE_STORAGE_KEY;
@@ -61,6 +63,7 @@ export declare class GameController {
     private setExploreMode;
     private selectCoordinates;
     private moveTo;
+    private resumePendingMovement;
     private resumeMovement;
     private acceptGpsLocation;
     private showGpsError;

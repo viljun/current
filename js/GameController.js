@@ -62,6 +62,12 @@ export function shouldAdoptGpsCoordinates(current, candidate, accuracyMeters) {
         || current.distanceInMetersFrom(candidate)
             >= gpsHysteresisMeters(accuracyMeters);
 }
+export function shouldQueueMovement(interactionLocked, slideInProgress) {
+    return interactionLocked || slideInProgress;
+}
+export function shouldRefreshMapForGpsAccuracy(previousTakingRangeMeters) {
+    return previousTakingRangeMeters === null;
+}
 export function calculateMapLayout(viewportWidth, viewportHeight, tileSize, visualOverscanCells) {
     const screenRadius = Math.hypot(viewportWidth, viewportHeight) / 2;
     const mapRadius = screenRadius
@@ -124,7 +130,7 @@ export class GameController {
         Effects.initialize(this.soundSwitch);
         document.head.append(this.mapDimensionStyle);
         const dimensions = this.configureMapDimensions();
-        this.map = new Map(this.mapElement, this.messageBox, dimensions.cols, dimensions.rows, this.inventory, this.state, GameController.TILE_SIZE, coordinates => this.selectCoordinates(coordinates), coordinates => this.moveTo(coordinates), () => this.resumeMovement());
+        this.map = new Map(this.mapElement, this.messageBox, dimensions.cols, dimensions.rows, this.inventory, this.state, GameController.TILE_SIZE, coordinates => this.selectCoordinates(coordinates), coordinates => this.moveTo(coordinates), () => this.resumeMovement(), () => this.resumePendingMovement());
         this.map.show({});
         this.bindControls();
         this.bindCompass();
@@ -284,7 +290,7 @@ export class GameController {
         this.map.show({});
     }
     moveTo(coordinates) {
-        if (this.map.interactionLocked) {
+        if (shouldQueueMovement(this.map.interactionLocked, this.map.slidingAnimationInProgress)) {
             this.pendingCoordinates = coordinates;
             return;
         }
@@ -306,6 +312,16 @@ export class GameController {
             this.saveExploreCoordinates();
         }
         this.map.show({ previousCoordinates });
+    }
+    resumePendingMovement() {
+        if (this.pendingCoordinates === null) {
+            return;
+        }
+        const coordinates = this.pendingCoordinates;
+        this.pendingCoordinates = null;
+        if (!this.state.coordinates.equals(coordinates)) {
+            this.moveTo(coordinates);
+        }
     }
     resumeMovement() {
         if (this.pendingCoordinates !== null) {
@@ -357,7 +373,7 @@ export class GameController {
             if (!this.state.coordinates.equals(this.latestGpsCoordinates)) {
                 this.moveTo(this.latestGpsCoordinates);
             }
-            else if (previousTakingRange !== this.state.takingRangeMeters) {
+            else if (shouldRefreshMapForGpsAccuracy(previousTakingRange)) {
                 this.map.show({});
             }
         }

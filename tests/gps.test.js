@@ -13,9 +13,11 @@ import {
     gpsTakingRangeMeters,
     mapHeadingFromSensors,
     normalizeHeading,
+    shouldQueueMovement,
     shortestHeadingDelta,
     shouldAdoptGpsCoordinates,
     shouldExitAreaAtWall,
+    shouldRefreshMapForGpsAccuracy,
     smoothHeading,
     usableTravelHeading,
 } from "../js/GameController.js";
@@ -153,6 +155,19 @@ test("GPS hysteresis ignores one-cell jitter but follows real movement", () => {
         ),
         true,
     );
+});
+
+test("movement waits for locks and active slides", () => {
+    assert.equal(shouldQueueMovement(false, false), false);
+    assert.equal(shouldQueueMovement(true, false), true);
+    assert.equal(shouldQueueMovement(false, true), true);
+    assert.equal(shouldQueueMovement(true, true), true);
+});
+
+test("GPS accuracy refreshes the map only when range is first established", () => {
+    assert.equal(shouldRefreshMapForGpsAccuracy(null), true);
+    assert.equal(shouldRefreshMapForGpsAccuracy(15), false);
+    assert.equal(shouldRefreshMapForGpsAccuracy(24.7), false);
 });
 
 test("ordinary actions use the same three-cell radius in both modes", () => {
